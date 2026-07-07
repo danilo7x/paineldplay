@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          ativo: boolean
           avatar_url: string | null
           bio: string | null
           cargo: string | null
@@ -27,6 +28,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ativo?: boolean
           avatar_url?: string | null
           bio?: string | null
           cargo?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ativo?: boolean
           avatar_url?: string | null
           bio?: string | null
           cargo?: string | null
@@ -76,6 +79,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_ativo: {
+        Args: { _ativo: boolean; _user_id: string }
+        Returns: undefined
+      }
+      admin_set_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -83,6 +97,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff_or_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "staff"
