@@ -1,9 +1,15 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Bell, Search, Settings } from "lucide-react";
+import { Route as AuthRoute } from "@/routes/_authenticated";
+import { trackSession } from "@/lib/session-tracker";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { user } = AuthRoute.useRouteContext();
+  useEffect(() => {
+    if (user?.id) trackSession(user.id);
+  }, [user?.id]);
   return (
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background text-foreground">
