@@ -33,6 +33,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Route as AuthRoute } from "@/routes/_authenticated";
 import logo from "@/assets/dplay-logo-transparent.png.asset.json";
+import { useProfile } from "@/lib/profile-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean };
 
@@ -63,6 +65,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { user, isAdmin } = AuthRoute.useRouteContext();
+  const { profile, firstName, initials } = useProfile();
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -157,9 +160,12 @@ export function AppSidebar() {
       <SidebarFooter>
         {collapsed ? (
           <div className="flex flex-col items-center gap-2 py-1">
-            <div className="grid size-8 place-items-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-              {user.email?.[0]?.toUpperCase()}
-            </div>
+            <Avatar className="size-8">
+              <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
+              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             <button
               onClick={handleSignOut}
               className="grid size-8 place-items-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
@@ -171,13 +177,16 @@ export function AppSidebar() {
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2 py-2">
-            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-              {user.email?.[0]?.toUpperCase()}
-            </div>
+            <Avatar className="size-8 shrink-0">
+              <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
+              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium">{user.email}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {isAdmin ? "Administrador" : "Colaborador"}
+              <p className="truncate text-xs font-medium">{profile?.nome || firstName}</p>
+              <p className="truncate text-[10px] text-muted-foreground">
+                {profile?.cargo || (isAdmin ? "Administrador" : "Colaborador")}
               </p>
             </div>
             <button
