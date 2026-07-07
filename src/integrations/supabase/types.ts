@@ -232,6 +232,59 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          cliente_contato: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          observacoes: string | null
+          project_id: string
+          status: Database["public"]["Enums"]["sale_status"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_contato?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          observacoes?: string | null
+          project_id: string
+          status?: Database["public"]["Enums"]["sale_status"]
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cliente_contato?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          observacoes?: string | null
+          project_id?: string
+          status?: Database["public"]["Enums"]["sale_status"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -290,6 +343,7 @@ export type Database = {
         | "concluido"
         | "pausado"
       project_step_status: "pendente" | "em_andamento" | "concluido"
+      sale_status: "pendente" | "pago" | "cancelado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -425,6 +479,7 @@ export const Constants = {
         "pausado",
       ],
       project_step_status: ["pendente", "em_andamento", "concluido"],
+      sale_status: ["pendente", "pago", "cancelado"],
     },
   },
 } as const
