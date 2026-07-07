@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, DollarSign, FolderKanban, TrendingUp, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Area,
   AreaChart,
@@ -17,12 +18,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
-const kpis = [
-  { label: "Receita do mês", value: "R$ —", icon: DollarSign, hint: "Aguardando dados" },
-  { label: "Projetos ativos", value: "0", icon: FolderKanban, hint: "Nenhum cadastrado" },
-  { label: "Vendas no mês", value: "0", icon: TrendingUp, hint: "Nenhuma venda" },
-  { label: "Equipe", value: "1", icon: Users, hint: "Sócios + funcionários" },
-];
+const staticKpis = [
+  { key: "receita", label: "Receita do mês", value: "R$ —", icon: DollarSign, hint: "Aguardando dados" },
+  { key: "vendas", label: "Vendas no mês", value: "0", icon: TrendingUp, hint: "Nenhuma venda" },
+  { key: "equipe", label: "Equipe", value: "1", icon: Users, hint: "Sócios + funcionários" },
+] as const;
 
 const periods = ["1D", "1S", "1M", "6M", "1A"] as const;
 type Period = (typeof periods)[number];
@@ -41,6 +41,38 @@ const chartData = [
 function DashboardPage() {
   const { user, isAdmin } = Route.useRouteContext();
   const [period, setPeriod] = useState<Period>("1M");
+  const [projectStats, setProjectStats] = useState<{ total: number; ativos: number }>({
+    total: 0,
+    ativos: 0,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("projects").select("status");
+      const rows = data ?? [];
+      setProjectStats({
+        total: rows.length,
+        ativos: rows.filter((r) => r.status !== "concluido" && r.status !== "pausado").length,
+      });
+    })();
+  }, []);
+
+  const kpis = [
+    staticKpis[0],
+    {
+      key: "projetos",
+      label: "Projetos ativos",
+      value: String(projectStats.ativos),
+      icon: FolderKanban,
+      hint:
+        projectStats.total === 0
+          ? "Nenhum cadastrado"
+          : `${projectStats.total} no total`,
+    },
+    staticKpis[1],
+    staticKpis[2],
+  ];
+
   return (
     <div className="space-y-8">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
@@ -63,7 +95,7 @@ function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((k) => (
           <Card
-            key={k.label}
+            key={k.key}
             className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition hover:border-primary/40"
           >
             <CardContent className="p-6">
