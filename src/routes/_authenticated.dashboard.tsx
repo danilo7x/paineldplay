@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, DollarSign, FolderKanban, TrendingUp, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Area,
@@ -18,25 +18,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
-const staticKpis = [
-  { key: "receita", label: "Receita do mês", value: "R$ —", icon: DollarSign, hint: "Aguardando dados" },
-  { key: "vendas", label: "Vendas no mês", value: "0", icon: TrendingUp, hint: "Nenhuma venda" },
-  { key: "equipe", label: "Equipe", value: "1", icon: Users, hint: "Sócios + funcionários" },
-] as const;
-
 const periods = ["1D", "1S", "1M", "6M", "1A"] as const;
 type Period = (typeof periods)[number];
 
-const chartData = [
-  { d: "Sem 1", v: 12 },
-  { d: "Sem 2", v: 18 },
-  { d: "Sem 3", v: 15 },
-  { d: "Sem 4", v: 26 },
-  { d: "Sem 5", v: 22 },
-  { d: "Sem 6", v: 34 },
-  { d: "Sem 7", v: 30 },
-  { d: "Sem 8", v: 42 },
-];
+const brl = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
 function DashboardPage() {
   const { user, isAdmin } = Route.useRouteContext();
@@ -45,33 +31,65 @@ function DashboardPage() {
     total: 0,
     ativos: 0,
   });
+  const [teamCount, setTeamCount] = useState(0);
+  const [sales, setSales] = useState<{ valor: number; data: string; status: string }[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("projects").select("status");
-      const rows = data ?? [];
+      const [projectsRes, salesRes, teamRes] = await Promise.all([
+        supabase.from("projects").select("status"),
+        supabase.from("sales").select("valor, data, status"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("ativo", true),
+      ]);
+      const rows = projectsRes.data ?? [];
       setProjectStats({
         total: rows.length,
         ativos: rows.filter((r) => r.status !== "concluido" && r.status !== "pausado").length,
       });
+      setSales((salesRes.data ?? []) as { valor: number; data: string; status: string }[]);
+      setTeamCount(teamRes.count ?? 0);
     })();
   }, []);
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthKey = monthStart.toISOString().slice(0, 10);
+  const salesMes = sales.filter((s) => s.data >= monthKey && s.status !== "cancelado");
+  const receitaMes = salesMes.reduce((a, s) => a + Number(s.valor), 0);
+
   const kpis = [
-    staticKpis[0],
+    {
+      key: "receita",
+      label: isAdmin ? "Receita do mês" : "Sua receita no mês",
+      value: brl(receitaMes),
+      icon: DollarSign,
+      hint: salesMes.length === 0 ? "Nenhuma venda" : `${salesMes.length} vendas no mês`,
+    },
     {
       key: "projetos",
       label: "Projetos ativos",
       value: String(projectStats.ativos),
       icon: FolderKanban,
       hint:
-        projectStats.total === 0
-          ? "Nenhum cadastrado"
-          : `${projectStats.total} no total`,
+        projectStats.total === 0 ? "Nenhum cadastrado" : `${projectStats.total} no total`,
     },
-    staticKpis[1],
-    staticKpis[2],
+    {
+      key: "vendas",
+      label: "Vendas no mês",
+      value: String(salesMes.length),
+      icon: TrendingUp,
+      hint: salesMes.length === 0 ? "Aguardando registros" : "Contando pagas e pendentes",
+    },
+    {
+      key: "equipe",
+      label: "Equipe",
+      value: String(teamCount || 1),
+      icon: Users,
+      hint: "Ativos no CRM",
+    },
   ];
+
+  const chartData = useMemo(() => buildChart(sales, period), [sales, period]);
 
   return (
     <div className="space-y-8">
@@ -129,7 +147,7 @@ function DashboardPage() {
                 Evolução do faturamento
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Dados simulados até a Fase 4 conectar as vendas.
+                Vendas agregadas por mês, respeitando seu nível de acesso.
               </p>
             </div>
             <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/60 p-1">
