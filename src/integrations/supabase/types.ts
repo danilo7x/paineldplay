@@ -53,6 +53,185 @@ export type Database = {
         }
         Relationships: []
       }
+      project_credentials: {
+        Row: {
+          created_at: string
+          id: string
+          login: string | null
+          nome_acesso: string
+          notas: string | null
+          project_id: string
+          senha: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          login?: string | null
+          nome_acesso: string
+          notas?: string | null
+          project_id: string
+          senha?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          login?: string | null
+          nome_acesso?: string
+          notas?: string | null
+          project_id?: string
+          senha?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_credentials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_notes: {
+        Row: {
+          autor_id: string | null
+          conteudo: string
+          created_at: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          autor_id?: string | null
+          conteudo: string
+          created_at?: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          autor_id?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_steps: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          ordem: number
+          project_id: string
+          status: Database["public"]["Enums"]["project_step_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          project_id: string
+          status?: Database["public"]["Enums"]["project_step_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          project_id?: string
+          status?: Database["public"]["Enums"]["project_step_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_steps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          cliente: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          cliente?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          cliente?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -97,10 +276,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_project_member: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff_or_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "staff"
+      project_status:
+        | "em_desenvolvimento"
+        | "em_manutencao"
+        | "concluido"
+        | "pausado"
+      project_step_status: "pendente" | "em_andamento" | "concluido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -229,6 +418,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff"],
+      project_status: [
+        "em_desenvolvimento",
+        "em_manutencao",
+        "concluido",
+        "pausado",
+      ],
+      project_step_status: ["pendente", "em_andamento", "concluido"],
     },
   },
 } as const
