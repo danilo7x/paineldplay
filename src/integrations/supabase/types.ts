@@ -58,6 +58,122 @@ export type Database = {
           },
         ]
       }
+      notes: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          titulo: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          titulo?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          titulo?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notice_reads: {
+        Row: {
+          id: string
+          notice_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          notice_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          notice_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notice_reads_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "notices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notices: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          id: string
+          mensagem: string
+          titulo: string
+        }
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          id?: string
+          mensagem: string
+          titulo: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          id?: string
+          mensagem?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      personal_files: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          owner_id: string
+          size: number | null
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          owner_id: string
+          size?: number | null
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          owner_id?: string
+          size?: number | null
+          titulo?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
