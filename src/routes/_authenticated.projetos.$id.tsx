@@ -85,6 +85,11 @@ function ProjectDetail() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [creds, setCreds] = useState<Credential[]>([]);
   const [team, setTeam] = useState<MemberProfile[]>([]);
+  const [salesSummary, setSalesSummary] = useState<{ total: number; count: number; pago: number }>({
+    total: 0,
+    count: 0,
+    pago: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   async function fetchAll() {
@@ -97,6 +102,18 @@ function ProjectDetail() {
       supabase.from("project_credentials").select("*").eq("project_id", id).order("created_at"),
       supabase.from("profiles").select("id, nome, email, avatar_url").eq("ativo", true).order("nome"),
     ]);
+    const salesRes = await supabase
+      .from("sales")
+      .select("valor, status")
+      .eq("project_id", id);
+    const salesRows = (salesRes.data ?? []) as { valor: number; status: string }[];
+    setSalesSummary({
+      count: salesRows.length,
+      total: salesRows.reduce((s, r) => s + Number(r.valor ?? 0), 0),
+      pago: salesRows
+        .filter((r) => r.status === "pago")
+        .reduce((s, r) => s + Number(r.valor ?? 0), 0),
+    });
     if (projRes.error || !projRes.data) {
       toast.error("Projeto não encontrado ou sem acesso");
       setLoading(false);
@@ -226,6 +243,32 @@ function ProjectDetail() {
               <span className="text-xs text-muted-foreground">{pct}% concluído</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Faturamento do projeto
+            </p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                salesSummary.total,
+              )}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {salesSummary.count} venda{salesSummary.count === 1 ? "" : "s"} · pago{" "}
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                salesSummary.pago,
+              )}
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to="/faturamento" search={{ project: project.id }}>
+              Ver vendas
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
