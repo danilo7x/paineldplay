@@ -310,7 +310,7 @@ function FinanceiroPage() {
           label="Despesa"
           value={brl(despesaTotalPeriodo)}
           icon={ArrowDownRight}
-          hint={`${expenses.filter(inRange).length} lançamentos`}
+          hint={`${filteredExpenses.length} lançamento${filteredExpenses.length === 1 ? "" : "s"}`}
           accent="text-rose-300"
         />
         <SummaryCard
