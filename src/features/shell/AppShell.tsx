@@ -1,9 +1,11 @@
 import { useEffect, type ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search, Settings } from "lucide-react";
+import { Search } from "lucide-react";
 import { Route as AuthRoute } from "@/routes/_authenticated";
 import { trackSession } from "@/lib/session-tracker";
+import { ProfileProvider } from "@/lib/profile-context";
+import { HeaderActions } from "./HeaderActions";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = AuthRoute.useRouteContext();
@@ -11,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (user?.id) trackSession(user.id);
   }, [user?.id]);
   return (
+    <ProfileProvider userId={user.id} email={user.email ?? null}>
     <SidebarProvider>
       <div className="relative flex min-h-screen w-full bg-background text-foreground">
         {/* Ambient radial glow */}
@@ -34,14 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="h-8 w-full rounded-full border border-border/50 bg-card/40 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
               />
             </div>
-            <div className="ml-auto flex items-center gap-1">
-              <button className="grid size-8 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground" aria-label="Notificações">
-                <Bell className="size-4" />
-              </button>
-              <button className="grid size-8 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground" aria-label="Configurações">
-                <Settings className="size-4" />
-              </button>
-            </div>
+            <HeaderActions />
           </header>
           <main className="flex-1 px-6 py-8">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
@@ -49,5 +45,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
     </SidebarProvider>
+    </ProfileProvider>
   );
 }
