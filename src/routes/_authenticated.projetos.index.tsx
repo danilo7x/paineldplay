@@ -67,17 +67,22 @@ function ProjetosIndex() {
     }
 
     const [membersRes, stepsRes] = await Promise.all([
-      supabase
-        .from("project_members")
-        .select("project_id, user_id, profiles:profiles!project_members_user_id_fkey(id,nome,avatar_url)")
-        .in("project_id", ids),
+      supabase.from("project_members").select("project_id, user_id").in("project_id", ids),
       supabase.from("project_steps").select("project_id, status").in("project_id", ids),
     ]);
 
+    const userIds = Array.from(new Set((membersRes.data ?? []).map((m) => m.user_id)));
+    const profilesRes = userIds.length
+      ? await supabase.from("profiles").select("id, nome, avatar_url").in("id", userIds)
+      : { data: [] as MemberProfile[] };
+    const profileMap = new Map<string, MemberProfile>();
+    (profilesRes.data ?? []).forEach((p) => profileMap.set(p.id, p as MemberProfile));
+
     const membersByProject = new Map<string, MemberProfile[]>();
-    (membersRes.data ?? []).forEach((m: any) => {
+    (membersRes.data ?? []).forEach((m) => {
       const arr = membersByProject.get(m.project_id) ?? [];
-      if (m.profiles) arr.push(m.profiles as MemberProfile);
+      const p = profileMap.get(m.user_id);
+      if (p) arr.push(p);
       membersByProject.set(m.project_id, arr);
     });
 
