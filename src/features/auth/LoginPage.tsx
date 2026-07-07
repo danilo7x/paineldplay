@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/dplay-logo.png.asset.json";
+import logo from "@/assets/dplay-logo-transparent.png.asset.json";
 
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-first-admin`;
 
@@ -108,8 +108,35 @@ export function LoginPage() {
 
   if (checkingSession) {
     return (
-      <div className="mercury-wrapper">
-        <Loader2 className="size-6 animate-spin" style={{ color: "#057EF3" }} />
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "#04070d",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+        }}
+      >
+        <style>{`
+          @keyframes dplayPulse {
+            0%, 100% { transform: scale(1);    opacity: 0.65; }
+            50%      { transform: scale(1.12); opacity: 1;    }
+          }
+        `}</style>
+        <img
+          src={logo.url}
+          alt="DPlay Solutions"
+          style={{
+            width: 88,
+            height: 88,
+            animation: "dplayPulse 1.4s ease-in-out infinite",
+            filter: "drop-shadow(0 6px 24px rgba(5,126,243,0.55))",
+          }}
+        />
       </div>
     );
   }
