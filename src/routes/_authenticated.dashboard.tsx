@@ -24,6 +24,35 @@ type Period = (typeof periods)[number];
 const brl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
+function buildChart(
+  sales: { valor: number; data: string; status: string }[],
+  period: Period,
+) {
+  const now = new Date();
+  let months = 6;
+  if (period === "1D" || period === "1S" || period === "1M") months = 3;
+  else if (period === "6M") months = 6;
+  else if (period === "1A") months = 12;
+  const buckets: { d: string; key: string; v: number }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    buckets.push({
+      d: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+      key: d.toISOString().slice(0, 7),
+      v: 0,
+    });
+  }
+  const map = new Map(buckets.map((b) => [b.key, b] as const));
+  sales
+    .filter((s) => s.status !== "cancelado")
+    .forEach((s) => {
+      const k = s.data.slice(0, 7);
+      const b = map.get(k);
+      if (b) b.v += Number(s.valor);
+    });
+  return buckets;
+}
+
 function DashboardPage() {
   const { user, isAdmin } = Route.useRouteContext();
   const [period, setPeriod] = useState<Period>("1M");
