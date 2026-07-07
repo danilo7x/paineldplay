@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Wallet,
@@ -62,6 +63,31 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { user, isAdmin } = AuthRoute.useRouteContext();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const [n, r] = await Promise.all([
+        supabase.from("notices").select("id", { head: true, count: "exact" }),
+        supabase
+          .from("notice_reads")
+          .select("id", { head: true, count: "exact" })
+          .eq("user_id", user.id),
+      ]);
+      if (!mounted) return;
+      setUnread(Math.max(0, (n.count ?? 0) - (r.count ?? 0)));
+    }
+    load();
+    const t = setInterval(load, 30_000);
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      mounted = false;
+      clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [user.id, pathname]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -79,12 +105,18 @@ export function AppSidebar() {
           <SidebarMenu>
             {filtered.map((item) => {
               const active = pathname === item.url || pathname.startsWith(item.url + "/");
+              const badge = item.url === "/avisos" && unread > 0 ? unread : null;
               return (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
                     <Link to={item.url as never}>
                       <item.icon className="size-4" />
-                      <span>{item.title}</span>
+                      <span className="flex-1">{item.title}</span>
+                      {badge && !collapsed && (
+                        <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                          {badge}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
