@@ -85,6 +85,11 @@ function ProjectDetail() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [creds, setCreds] = useState<Credential[]>([]);
   const [team, setTeam] = useState<MemberProfile[]>([]);
+  const [salesSummary, setSalesSummary] = useState<{ total: number; count: number; pago: number }>({
+    total: 0,
+    count: 0,
+    pago: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   async function fetchAll() {
@@ -97,6 +102,18 @@ function ProjectDetail() {
       supabase.from("project_credentials").select("*").eq("project_id", id).order("created_at"),
       supabase.from("profiles").select("id, nome, email, avatar_url").eq("ativo", true).order("nome"),
     ]);
+    const salesRes = await supabase
+      .from("sales")
+      .select("valor, status")
+      .eq("project_id", id);
+    const salesRows = (salesRes.data ?? []) as { valor: number; status: string }[];
+    setSalesSummary({
+      count: salesRows.length,
+      total: salesRows.reduce((s, r) => s + Number(r.valor ?? 0), 0),
+      pago: salesRows
+        .filter((r) => r.status === "pago")
+        .reduce((s, r) => s + Number(r.valor ?? 0), 0),
+    });
     if (projRes.error || !projRes.data) {
       toast.error("Projeto não encontrado ou sem acesso");
       setLoading(false);
