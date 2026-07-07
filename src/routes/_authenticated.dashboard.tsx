@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUpRight, DollarSign, FolderKanban, TrendingUp, Users } from "lucide-react";
+import { useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -13,14 +24,29 @@ const kpis = [
   { label: "Equipe", value: "1", icon: Users, hint: "Sócios + funcionários" },
 ];
 
+const periods = ["1D", "1S", "1M", "6M", "1A"] as const;
+type Period = (typeof periods)[number];
+
+const chartData = [
+  { d: "Sem 1", v: 12 },
+  { d: "Sem 2", v: 18 },
+  { d: "Sem 3", v: 15 },
+  { d: "Sem 4", v: 26 },
+  { d: "Sem 5", v: 22 },
+  { d: "Sem 6", v: 34 },
+  { d: "Sem 7", v: 30 },
+  { d: "Sem 8", v: 42 },
+];
+
 function DashboardPage() {
   const { user, isAdmin } = Route.useRouteContext();
+  const [period, setPeriod] = useState<Period>("1M");
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Visão geral</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight">
             Olá, {user.email?.split("@")[0]} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -29,7 +55,7 @@ function DashboardPage() {
               : "Seus projetos e faturamento aparecerão aqui."}
           </p>
         </div>
-        <span className="rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+        <span className="shrink-0 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
           {isAdmin ? "Administrador" : "Colaborador"}
         </span>
       </header>
@@ -38,21 +64,21 @@ function DashboardPage() {
         {kpis.map((k) => (
           <Card
             key={k.label}
-            className="border-border/50 bg-card/60 backdrop-blur transition hover:border-primary/40"
+            className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition hover:border-primary/40"
           >
-            <CardContent className="p-5">
+            <CardContent className="p-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     {k.label}
                   </p>
-                  <p className="mt-2 text-2xl font-semibold">{k.value}</p>
+                  <p className="mt-3 text-3xl font-semibold tracking-tight">{k.value}</p>
                 </div>
-                <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
                   <k.icon className="size-4" />
                 </div>
               </div>
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+              <p className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
                 <ArrowUpRight className="size-3" /> {k.hint}
               </p>
             </CardContent>
@@ -60,19 +86,81 @@ function DashboardPage() {
         ))}
       </div>
 
-      <Card className="border-border/50 bg-card/50 backdrop-blur">
-        <CardContent className="p-8">
-          <h2 className="text-lg font-semibold">Evolução do faturamento</h2>
-          <p className="text-sm text-muted-foreground">
-            Assim que você cadastrar vendas na Fase 4, o gráfico aparecerá aqui.
-          </p>
-          <div
-            className="mt-6 h-56 rounded-xl border border-dashed border-border/60"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(5,126,243,0.08), rgba(1,87,198,0.02))",
-            }}
-          />
+      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Faturamento
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+                Evolução do faturamento
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Dados simulados até a Fase 4 conectar as vendas.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/60 p-1">
+              {periods.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    period === p
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="fillBlue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#057EF3" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#057EF3" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis
+                  dataKey="d"
+                  stroke="rgba(255,255,255,0.35)"
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={11}
+                />
+                <YAxis
+                  stroke="rgba(255,255,255,0.35)"
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={11}
+                  width={32}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(11,15,26,0.95)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke="#31B7FF"
+                  strokeWidth={2}
+                  fill="url(#fillBlue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
     </div>

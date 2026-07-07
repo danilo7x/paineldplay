@@ -51,7 +51,7 @@ const personal: Item[] = [
   { title: "Meus Arquivos", url: "/arquivos", icon: FolderLock },
   { title: "Notas", url: "/notas", icon: StickyNote },
   { title: "Avisos", url: "/avisos", icon: Megaphone },
-  { title: "Yada", url: "/yada", icon: Sparkles },
+  { title: "Rani", url: "/rani", icon: Sparkles },
   { title: "Perfil", url: "/perfil", icon: UserRound },
   { title: "Atividade", url: "/atividade", icon: Activity },
 ];
@@ -100,7 +100,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
       <SidebarHeader>
         <div className="flex items-center gap-2.5 px-1 py-1.5">
-          <img src={logo.url} alt="" className="size-8 shrink-0" />
+          <img
+            src={logo.url}
+            alt=""
+            className="size-8 shrink-0 aspect-square object-contain"
+          />
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">DPlay Solutions</p>
@@ -119,27 +123,41 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2 py-2">
-          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-            {user.email?.[0]?.toUpperCase()}
+        {collapsed ? (
+          <div className="flex flex-col items-center gap-2 py-1">
+            <div className="grid size-8 place-items-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+              {user.email?.[0]?.toUpperCase()}
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="grid size-8 place-items-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Sair"
+              title="Sair"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
-          {!collapsed && (
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2 py-2">
+            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
+              {user.email?.[0]?.toUpperCase()}
+            </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{user.email}</p>
               <p className="text-[10px] text-muted-foreground">
                 {isAdmin ? "Administrador" : "Colaborador"}
               </p>
             </div>
-          )}
-          <button
-            onClick={handleSignOut}
-            className="rounded-md p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-            aria-label="Sair"
-            title="Sair"
-          >
-            <LogOut className="size-4" />
-          </button>
-        </div>
+            <button
+              onClick={handleSignOut}
+              className="rounded-md p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Sair"
+              title="Sair"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
