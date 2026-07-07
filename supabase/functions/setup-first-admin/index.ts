@@ -53,6 +53,8 @@ Deno.serve(async (req) => {
       if (createErr) throw createErr;
 
       const userId = created.user!.id;
+      // trigger auto-assigns 'staff'; remove it and set admin
+      await supabase.from("user_roles").delete().eq("user_id", userId);
       const { error: roleErr } = await supabase
         .from("user_roles")
         .insert({ user_id: userId, role: "admin" });
