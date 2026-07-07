@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
 import { Route as AuthenticatedFaturamentoRouteImport } from './routes/_authenticated.faturamento'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated.equipe'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFaturamentoRoute =
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipe'
     | '/faturamento'
+    | '/financeiro'
     | '/perfil'
     | '/projetos/$id'
     | '/projetos/'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/equipe'
     | '/faturamento'
+    | '/financeiro'
     | '/perfil'
     | '/projetos/$id'
     | '/projetos'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/equipe'
     | '/_authenticated/faturamento'
+    | '/_authenticated/financeiro'
     | '/_authenticated/perfil'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/projetos/'
@@ -146,6 +158,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/faturamento': {
@@ -190,6 +209,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedFaturamentoRoute: typeof AuthenticatedFaturamentoRoute
+  AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
@@ -199,6 +219,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedFaturamentoRoute: AuthenticatedFaturamentoRoute,
+  AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
