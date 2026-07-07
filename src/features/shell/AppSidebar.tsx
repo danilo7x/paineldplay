@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Route as AuthRoute } from "@/routes/_authenticated";
-import logo from "@/assets/dplay-logo.png.asset.json";
+import logo from "@/assets/dplay-logo-transparent.png.asset.json";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean };
 
