@@ -91,10 +91,7 @@ function ProjectDetail() {
     setLoading(true);
     const [projRes, membersRes, stepsRes, notesRes, credsRes, teamRes] = await Promise.all([
       supabase.from("projects").select("id, nome, cliente, descricao, status").eq("id", id).maybeSingle(),
-      supabase
-        .from("project_members")
-        .select("user_id, profiles:profiles!project_members_user_id_fkey(id,nome,email,avatar_url)")
-        .eq("project_id", id),
+      supabase.from("project_members").select("user_id").eq("project_id", id),
       supabase.from("project_steps").select("*").eq("project_id", id).order("ordem"),
       supabase.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: false }),
       supabase.from("project_credentials").select("*").eq("project_id", id).order("created_at"),
@@ -105,12 +102,14 @@ function ProjectDetail() {
       setLoading(false);
       return;
     }
+    const teamData = (teamRes.data ?? []) as MemberProfile[];
+    const memberIds = new Set((membersRes.data ?? []).map((m) => m.user_id));
     setProject(projRes.data);
-    setMembers(((membersRes.data ?? []) as any[]).map((m) => m.profiles).filter(Boolean));
+    setMembers(teamData.filter((p) => memberIds.has(p.id)));
     setSteps((stepsRes.data ?? []) as Step[]);
     setNotes((notesRes.data ?? []) as Note[]);
     setCreds((credsRes.data ?? []) as Credential[]);
-    setTeam((teamRes.data ?? []) as MemberProfile[]);
+    setTeam(teamData);
     setLoading(false);
   }
 
