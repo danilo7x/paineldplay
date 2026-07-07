@@ -18,6 +18,19 @@ export function LoginPage() {
   const [setupNome, setSetupNome] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
 
+  const blobsData = useMemo(
+    () =>
+      Array.from({ length: 6 }).map(() => ({
+        size: Math.random() * 200 + 150,
+        left: Math.random() * 80 + 10,
+        top: Math.random() * 80 + 10,
+        animationDelay: Math.random() * -20,
+        animationDuration: Math.random() * 15 + 15,
+      })),
+    [],
+  );
+  const blobRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -37,6 +50,22 @@ export function LoginPage() {
       }
     })();
   }, [navigate]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      blobRefs.current.forEach((blob, index) => {
+        if (blob) {
+          const speed = (index + 1) * 20;
+          blob.style.marginLeft = `${x * speed}px`;
+          blob.style.marginTop = `${y * speed}px`;
+        }
+      });
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => document.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -84,35 +113,6 @@ export function LoginPage() {
       </div>
     );
   }
-
-  const blobsData = useMemo(
-    () =>
-      Array.from({ length: 6 }).map(() => ({
-        size: Math.random() * 200 + 150,
-        left: Math.random() * 80 + 10,
-        top: Math.random() * 80 + 10,
-        animationDelay: Math.random() * -20,
-        animationDuration: Math.random() * 15 + 15,
-      })),
-    [],
-  );
-  const blobRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX / window.innerWidth;
-      const y = e.clientY / window.innerHeight;
-      blobRefs.current.forEach((blob, index) => {
-        if (blob) {
-          const speed = (index + 1) * 20;
-          blob.style.marginLeft = `${x * speed}px`;
-          blob.style.marginTop = `${y * speed}px`;
-        }
-      });
-    };
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   return (
     <div className="mercury-wrapper">
