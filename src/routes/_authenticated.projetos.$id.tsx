@@ -246,6 +246,32 @@ function ProjectDetail() {
         </CardContent>
       </Card>
 
+      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Faturamento do projeto
+            </p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight">
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                salesSummary.total,
+              )}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {salesSummary.count} venda{salesSummary.count === 1 ? "" : "s"} · pago{" "}
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                salesSummary.pago,
+              )}
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to="/faturamento" search={{ project: project.id }}>
+              Ver vendas
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="progresso">
         <TabsList className="rounded-full bg-card/60">
           <TabsTrigger value="progresso" className="rounded-full">
