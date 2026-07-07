@@ -5,6 +5,7 @@ import { Loader2, Upload } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { notifyProfileUpdated } from "@/lib/profile-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +71,7 @@ function PerfilPage() {
       return;
     }
     toast.success("Perfil atualizado");
+    notifyProfileUpdated();
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -94,6 +96,7 @@ function PerfilPage() {
       if (updErr) throw updErr;
       setProfile((p) => ({ ...p, avatar_url: url }));
       toast.success("Avatar atualizado");
+      notifyProfileUpdated();
     } catch (err) {
       toast.error("Falha no upload", {
         description: err instanceof Error ? err.message : "Tente novamente",
