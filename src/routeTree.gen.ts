@@ -18,6 +18,7 @@ import { Route as AuthenticatedFaturamentoRouteImport } from './routes/_authenti
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated.equipe'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated.avisos'
+import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authenticated.atividade'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
@@ -67,6 +68,11 @@ const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
   path: '/avisos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAtividadeRoute = AuthenticatedAtividadeRouteImport.update({
+  id: '/atividade',
+  path: '/atividade',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
   id: '/arquivos',
   path: '/arquivos',
@@ -87,6 +93,7 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
+  '/atividade': typeof AuthenticatedAtividadeRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
+  '/atividade': typeof AuthenticatedAtividadeRoute
   '/avisos': typeof AuthenticatedAvisosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
+  '/_authenticated/atividade': typeof AuthenticatedAtividadeRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/arquivos'
+    | '/atividade'
     | '/avisos'
     | '/dashboard'
     | '/equipe'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/arquivos'
+    | '/atividade'
     | '/avisos'
     | '/dashboard'
     | '/equipe'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/arquivos'
+    | '/_authenticated/atividade'
     | '/_authenticated/avisos'
     | '/_authenticated/dashboard'
     | '/_authenticated/equipe'
@@ -238,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAvisosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/atividade': {
+      id: '/_authenticated/atividade'
+      path: '/atividade'
+      fullPath: '/atividade'
+      preLoaderRoute: typeof AuthenticatedAtividadeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/arquivos': {
       id: '/_authenticated/arquivos'
       path: '/arquivos'
@@ -264,6 +283,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
+  AuthenticatedAtividadeRoute: typeof AuthenticatedAtividadeRoute
   AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
@@ -277,6 +297,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
+  AuthenticatedAtividadeRoute: AuthenticatedAtividadeRoute,
   AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,

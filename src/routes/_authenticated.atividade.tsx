@@ -1,0 +1,345 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import {
+  Activity,
+  Monitor,
+  Smartphone,
+  Tablet,
+  LogOut,
+  ShieldCheck,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { Route as AuthRoute } from "@/routes/_authenticated";
+import { currentSessionKey } from "@/lib/session-tracker";
+
+export const Route = createFileRoute("/_authenticated/atividade")({
+  component: AtividadePage,
+});
+
+type ActivityRow = {
+  id: string;
+  actor_id: string | null;
+  acao: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  details: any;
+  created_at: string;
+};
+
+type SessionRow = {
+  id: string;
+  user_id: string;
+  session_key: string;
+  device_name: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  ip_address: string | null;
+  last_active_at: string;
+  created_at: string;
+};
+
+type Profile = { id: string; nome: string | null; email: string | null; avatar_url: string | null };
+
+const ENTITY_LABEL: Record<string, string> = {
+  projeto: "Projeto",
+  venda: "Venda",
+  despesa: "Despesa",
+  aviso: "Aviso",
+  membro: "Membro",
+  etapa: "Etapa",
+};
+
+const ACTION_LABEL: Record<string, string> = {
+  criou: "criou",
+  editou: "editou",
+  excluiu: "excluiu",
+  mudou_status: "mudou o status de",
+  adicionou_membro: "adicionou um membro em",
+};
+
+function DeviceIcon({ type }: { type: string | null }) {
+  const t = type ?? "desktop";
+  if (t === "mobile") return <Smartphone className="size-4" />;
+  if (t === "tablet") return <Tablet className="size-4" />;
+  return <Monitor className="size-4" />;
+}
+
+function AtividadePage() {
+  const { user, isAdmin } = AuthRoute.useRouteContext();
+  const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [entityFilter, setEntityFilter] = useState<string>("todos");
+  const [periodFilter, setPeriodFilter] = useState<string>("30");
+  const [loading, setLoading] = useState(true);
+  const sessionKey = currentSessionKey();
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      const since = new Date();
+      since.setDate(since.getDate() - Number(periodFilter));
+      let q = supabase
+        .from("activity_logs")
+        .select("*")
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (entityFilter !== "todos") q = q.eq("entity_type", entityFilter);
+      const { data: acts } = await q;
+      const { data: sess } = await supabase
+        .from("user_sessions")
+        .select("*")
+        .order("last_active_at", { ascending: false });
+      const userIds = new Set<string>();
+      acts?.forEach((a) => a.actor_id && userIds.add(a.actor_id));
+      sess?.forEach((s) => userIds.add(s.user_id));
+      let profMap: Record<string, Profile> = {};
+      if (userIds.size) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id,nome,email,avatar_url")
+          .in("id", Array.from(userIds));
+        profs?.forEach((p) => (profMap[p.id] = p as Profile));
+      }
+      if (!mounted) return;
+      setActivities((acts ?? []) as ActivityRow[]);
+      setSessions((sess ?? []) as SessionRow[]);
+      setProfiles(profMap);
+      setLoading(false);
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [entityFilter, periodFilter]);
+
+  const mySessions = useMemo(
+    () => sessions.filter((s) => s.user_id === user.id),
+    [sessions, user.id],
+  );
+  const teamSessions = useMemo(
+    () => sessions.filter((s) => s.user_id !== user.id),
+    [sessions, user.id],
+  );
+
+  async function endOtherSessions() {
+    if (!confirm("Encerrar todas as outras sessões? Você continuará conectado neste dispositivo.")) return;
+    // Remove records other than current
+    await supabase
+      .from("user_sessions")
+      .delete()
+      .eq("user_id", user.id)
+      .neq("session_key", sessionKey ?? "");
+    // Sign out globally then re-sign this session (best-effort: only remove records here)
+    try {
+      await supabase.auth.signOut({ scope: "others" as any });
+    } catch {}
+    toast.success("Outras sessões encerradas");
+    setSessions((s) => s.filter((x) => x.user_id !== user.id || x.session_key === sessionKey));
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Atividade</h1>
+        <p className="text-sm text-muted-foreground">
+          Ações registradas e dispositivos conectados.
+        </p>
+      </div>
+
+      <Tabs defaultValue="feed" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="feed">
+            <Activity className="mr-2 size-4" /> Feed
+          </TabsTrigger>
+          <TabsTrigger value="dispositivos">
+            <Monitor className="mr-2 size-4" /> Meus dispositivos
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="equipe">
+              <ShieldCheck className="mr-2 size-4" /> Sessões da equipe
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="feed" className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Select value={entityFilter} onValueChange={setEntityFilter}>
+              <SelectTrigger className="h-9 w-[180px] rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as entidades</SelectItem>
+                {Object.entries(ENTITY_LABEL).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger className="h-9 w-[160px] rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="90">Últimos 90 dias</SelectItem>
+                <SelectItem value="365">Último ano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card className="rounded-2xl">
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div>
+              ) : activities.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  Nenhuma atividade no período.
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/40">
+                  {activities.map((a) => {
+                    const p = a.actor_id ? profiles[a.actor_id] : null;
+                    const name = p?.nome || p?.email || "Sistema";
+                    const initials = (name ?? "?").slice(0, 2).toUpperCase();
+                    return (
+                      <li key={a.id} className="flex items-start gap-3 p-4">
+                        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-medium text-primary">
+                          {p?.avatar_url ? (
+                            <img src={p.avatar_url} alt="" className="size-9 rounded-full object-cover" />
+                          ) : (
+                            initials
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm">
+                            <span className="font-medium">{name}</span>{" "}
+                            <span className="text-muted-foreground">
+                              {ACTION_LABEL[a.acao] ?? a.acao}
+                            </span>{" "}
+                            <Badge variant="secondary" className="ml-1 rounded-full text-[10px]">
+                              {ENTITY_LABEL[a.entity_type] ?? a.entity_type}
+                            </Badge>{" "}
+                            <span className="font-medium">{a.entity_name ?? ""}</span>
+                          </p>
+                          {a.details && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {typeof a.details === "object"
+                                ? Object.entries(a.details)
+                                    .map(([k, v]) => `${k}: ${String(v)}`)
+                                    .join(" · ")
+                                : String(a.details)}
+                            </p>
+                          )}
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dispositivos" className="space-y-4">
+          <div className="flex justify-end">
+            {mySessions.length > 1 && (
+              <Button variant="outline" size="sm" onClick={endOtherSessions}>
+                <LogOut className="mr-2 size-4" /> Encerrar outras sessões
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {mySessions.map((s) => (
+              <SessionCard key={s.id} s={s} current={s.session_key === sessionKey} />
+            ))}
+            {mySessions.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nenhuma sessão registrada ainda.</p>
+            )}
+          </div>
+        </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="equipe" className="space-y-3">
+            <Card className="rounded-2xl">
+              <CardHeader>
+                <CardTitle className="text-base">Sessões ativas na equipe</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ul className="divide-y divide-border/40">
+                  {teamSessions.map((s) => {
+                    const p = profiles[s.user_id];
+                    return (
+                      <li key={s.id} className="flex items-center gap-3 p-4">
+                        <DeviceIcon type={s.device_type} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{p?.nome || p?.email || s.user_id.slice(0, 8)}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {s.device_name || `${s.browser ?? ""} · ${s.os ?? ""}`}
+                            {s.ip_address ? ` · ${s.ip_address}` : ""}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(s.last_active_at), { addSuffix: true, locale: ptBR })}
+                        </span>
+                      </li>
+                    );
+                  })}
+                  {teamSessions.length === 0 && (
+                    <li className="p-6 text-center text-sm text-muted-foreground">Sem outras sessões.</li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
+    </div>
+  );
+}
+
+function SessionCard({ s, current }: { s: SessionRow; current: boolean }) {
+  return (
+    <Card className="rounded-2xl">
+      <CardContent className="flex items-start gap-3 p-4">
+        <div className="grid size-10 place-items-center rounded-xl bg-primary/15 text-primary">
+          <DeviceIcon type={s.device_type} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-medium">{s.device_name || `${s.browser ?? ""} · ${s.os ?? ""}`}</p>
+            {current && <Badge className="rounded-full text-[10px]">Este dispositivo</Badge>}
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {s.browser ?? "—"} · {s.os ?? "—"}
+            {s.ip_address ? ` · IP ${s.ip_address}` : ""}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Último acesso {formatDistanceToNow(new Date(s.last_active_at), { addSuffix: true, locale: ptBR })}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
