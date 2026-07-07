@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Toaster } from "@/components/ui/sonner";
+import { useAuthListener } from "@/hooks/use-auth-listener";
 
 function NotFoundComponent() {
   return (
@@ -116,11 +118,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-
+  useAuthListener();
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Toaster richColors theme="dark" position="top-right" />
     </QueryClientProvider>
   );
 }
