@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   emitRaniThreadsChanged,
-  RANI_PLACEHOLDER_REPLY,
   type RaniAttachment,
   type RaniMessage,
   type RaniThread,
@@ -89,7 +88,8 @@ function RaniThreadPage() {
     if (!text && !(files && files.length)) return;
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess.session?.user.id;
-    if (!uid) return;
+    const accessToken = sess.session?.access_token;
+    if (!uid || !accessToken) return;
 
     setTyping(true);
 
@@ -133,23 +133,79 @@ function RaniThreadPage() {
       emitRaniThreadsChanged();
     }
 
-    // Placeholder reply — Rani ainda não está ativa
-    await new Promise((r) => setTimeout(r, 650));
-
-    const assistantInsert = await supabase
-      .from("rani_messages")
-      .insert({
+    // Stream real response from Rani
+    const streamingId = `streaming-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: streamingId,
         thread_id: threadId,
         user_id: uid,
         role: "assistant",
-        content: RANI_PLACEHOLDER_REPLY,
-      })
-      .select()
-      .single();
+        content: "",
+        attachments: [],
+        created_at: new Date().toISOString(),
+      },
+    ]);
 
-    setTyping(false);
-    if (assistantInsert.data) {
-      setMessages((prev) => [...prev, normalizeMessage(assistantInsert.data)]);
+    let fullText = "";
+    try {
+      const history = [
+        ...messages,
+        normalizeMessage(userInsert.data),
+      ].map((m) => ({
+        id: m.id,
+        role: m.role,
+        parts: [{ type: "text", text: m.content }],
+      }));
+
+      const resp = await fetch("/api/rani/chat", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ messages: history }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const msg = await resp.text().catch(() => "");
+        throw new Error(msg || `HTTP ${resp.status}`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === streamingId ? { ...m, content: fullText } : m)),
+        );
+      }
+
+      if (!fullText.trim()) fullText = "…";
+
+      const assistantInsert = await supabase
+        .from("rani_messages")
+        .insert({
+          thread_id: threadId,
+          user_id: uid,
+          role: "assistant",
+          content: fullText,
+        })
+        .select()
+        .single();
+      if (assistantInsert.data) {
+        const normalized = normalizeMessage(assistantInsert.data);
+        setMessages((prev) => prev.map((m) => (m.id === streamingId ? normalized : m)));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error("Rani falhou ao responder", { description: message });
+      setMessages((prev) => prev.filter((m) => m.id !== streamingId));
+    } finally {
+      setTyping(false);
     }
   }
 
