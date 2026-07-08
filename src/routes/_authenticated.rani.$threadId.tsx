@@ -17,6 +17,23 @@ import {
 } from "@/features/rani/store";
 import { RaniMark } from "./_authenticated.rani";
 
+type ToolStatus = "running" | "done" | "error";
+type ToolEvent = { name: string; status: ToolStatus };
+type StreamEvent =
+  | { type: "text"; text: string }
+  | { type: "tool-start"; name: string }
+  | { type: "tool-end"; name: string; ok: boolean }
+  | { type: "error"; message: string };
+
+const TOOL_LABELS: Record<string, string> = {
+  resumo_financeiro: "Calculando resumo financeiro",
+  listar_vendas: "Buscando vendas",
+  listar_despesas: "Buscando despesas",
+  listar_projetos: "Buscando projetos",
+  listar_avisos: "Buscando avisos",
+  criar_nota: "Salvando nota",
+};
+
 export const Route = createFileRoute("/_authenticated/rani/$threadId")({
   ssr: false,
   component: RaniThreadPage,
@@ -316,24 +333,55 @@ function RaniThreadPage() {
   );
 }
 
-function MessageRow({ m }: { m: RaniMessage }) {
+function MessageRow({ m, tools }: { m: RaniMessage; tools?: ToolEvent[] }) {
   const isUser = m.role === "user";
   return (
     <li className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && <RaniMark size={28} />}
       <div className={cn("min-w-0", isUser ? "max-w-[80%]" : "max-w-[85%] flex-1")}>
+        {!isUser && tools && tools.length > 0 && <ToolActivity tools={tools} />}
         {isUser ? (
           <div className="whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-sm">
             {m.content}
           </div>
-        ) : (
+        ) : m.content ? (
           <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed text-foreground [&_a]:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_p]:my-1 [&_pre]:rounded-xl [&_pre]:bg-muted [&_pre]:p-3">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
           </div>
-        )}
+        ) : null}
         {m.attachments.length > 0 && <AttachmentsBar items={m.attachments} align={isUser ? "end" : "start"} />}
       </div>
     </li>
+  );
+}
+
+function ToolActivity({ tools }: { tools: ToolEvent[] }) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {tools.map((t, i) => {
+        const label = TOOL_LABELS[t.name] ?? `Executando ${t.name}`;
+        const Icon =
+          t.status === "running" ? Loader2 : t.status === "error" ? XCircle : CheckCircle2;
+        return (
+          <span
+            key={`${t.name}-${i}`}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition",
+              t.status === "running" &&
+                "border-[#057EF3]/30 bg-[#057EF3]/10 text-[#057EF3]",
+              t.status === "done" &&
+                "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+              t.status === "error" &&
+                "border-destructive/40 bg-destructive/10 text-destructive",
+            )}
+          >
+            <Icon className={cn("size-3", t.status === "running" && "animate-spin")} />
+            {label}
+            {t.status === "running" && "…"}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
