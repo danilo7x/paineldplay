@@ -44,6 +44,7 @@ export const Route = createFileRoute("/api/rani/chat")({
 
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) return new Response("messages required", { status: 400 });
+        const modelMessages = await convertToModelMessages(body.messages);
 
         const monthRange = () => {
           const now = new Date();
@@ -62,9 +63,9 @@ export const Route = createFileRoute("/api/rani/chat")({
               const [salesRes, expRes] = await Promise.all([
                 supabase
                   .from("sales")
-                  .select("valor, data_venda, status")
-                  .gte("data_venda", start.slice(0, 10))
-                  .lt("data_venda", end.slice(0, 10)),
+                  .select("valor, data, status")
+                  .gte("data", start.slice(0, 10))
+                  .lt("data", end.slice(0, 10)),
                 supabase
                   .from("expenses")
                   .select("valor, data")
@@ -93,10 +94,12 @@ export const Route = createFileRoute("/api/rani/chat")({
             execute: async ({ status, limit }) => {
               let q = supabase
                 .from("sales")
-                .select("id, cliente, valor, status, data_venda, project_id")
-                .order("data_venda", { ascending: false })
+                .select("id, cliente_nome, valor, status, data, project_id")
+                .order("data", { ascending: false })
                 .limit(Math.min(Math.max(limit ?? 10, 1), 50));
-              if (status) q = q.eq("status", status);
+              if (status === "pendente" || status === "pago" || status === "cancelado") {
+                q = q.eq("status", status);
+              }
               const { data, error } = await q;
               if (error) return { error: error.message };
               return { vendas: data ?? [] };
@@ -107,7 +110,14 @@ export const Route = createFileRoute("/api/rani/chat")({
             inputSchema: z.object({ status: z.string().nullable() }),
             execute: async ({ status }) => {
               let q = supabase.from("projects").select("id, nome, status, created_at").order("created_at", { ascending: false }).limit(50);
-              if (status) q = q.eq("status", status);
+              if (
+                status === "concluido" ||
+                status === "em_desenvolvimento" ||
+                status === "em_manutencao" ||
+                status === "pausado"
+              ) {
+                q = q.eq("status", status);
+              }
               const { data, error } = await q;
               if (error) return { error: error.message };
               return { projetos: data ?? [] };
@@ -166,7 +176,7 @@ export const Route = createFileRoute("/api/rani/chat")({
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
           system: SYSTEM_PROMPT,
-          messages: convertToModelMessages(body.messages),
+          messages: modelMessages,
           tools,
           stopWhen: stepCountIs(8),
         });
