@@ -197,7 +197,7 @@ function RaniLayout() {
 
         <div className="border-t border-border/40 px-4 py-3 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="size-3" /> Assistente em ativação
+            <Sparkles className="size-3" /> Rani ativa • conectada aos seus dados
           </div>
         </div>
       </aside>
