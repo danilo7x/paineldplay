@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Loader2, Paperclip } from "lucide-react";
+import { CheckCircle2, Loader2, Paperclip, Search, XCircle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
@@ -29,6 +29,7 @@ function RaniThreadPage() {
   const [messages, setMessages] = useState<RaniMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [typing, setTyping] = useState(false);
+  const [toolActivity, setToolActivity] = useState<Record<string, ToolEvent[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -147,6 +148,7 @@ function RaniThreadPage() {
         created_at: new Date().toISOString(),
       },
     ]);
+    setToolActivity((prev) => ({ ...prev, [streamingId]: [] }));
 
     let fullText = "";
     try {
@@ -175,13 +177,50 @@ function RaniThreadPage() {
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-        setMessages((prev) =>
-          prev.map((m) => (m.id === streamingId ? { ...m, content: fullText } : m)),
-        );
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let evt: StreamEvent | null = null;
+          try {
+            evt = JSON.parse(line) as StreamEvent;
+          } catch {
+            continue;
+          }
+          if (evt.type === "text") {
+            fullText += evt.text;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === streamingId ? { ...m, content: fullText } : m)),
+            );
+          } else if (evt.type === "tool-start") {
+            setToolActivity((prev) => ({
+              ...prev,
+              [streamingId]: [
+                ...(prev[streamingId] ?? []),
+                { name: evt.name, status: "running" },
+              ],
+            }));
+          } else if (evt.type === "tool-end") {
+            setToolActivity((prev) => {
+              const list = [...(prev[streamingId] ?? [])];
+              // mark the most recent running entry with this name as done
+              for (let i = list.length - 1; i >= 0; i--) {
+                if (list[i].name === evt.name && list[i].status === "running") {
+                  list[i] = { name: evt.name, status: evt.ok ? "done" : "error" };
+                  break;
+                }
+              }
+              return { ...prev, [streamingId]: list };
+            });
+          } else if (evt.type === "error") {
+            throw new Error(evt.message);
+          }
+        }
       }
 
       if (!fullText.trim()) fullText = "…";
@@ -199,11 +238,24 @@ function RaniThreadPage() {
       if (assistantInsert.data) {
         const normalized = normalizeMessage(assistantInsert.data);
         setMessages((prev) => prev.map((m) => (m.id === streamingId ? normalized : m)));
+        setToolActivity((prev) => {
+          const list = prev[streamingId];
+          if (!list) return prev;
+          const next = { ...prev };
+          delete next[streamingId];
+          if (list.length) next[normalized.id] = list;
+          return next;
+        });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error("Rani falhou ao responder", { description: message });
       setMessages((prev) => prev.filter((m) => m.id !== streamingId));
+      setToolActivity((prev) => {
+        const next = { ...prev };
+        delete next[streamingId];
+        return next;
+      });
     } finally {
       setTyping(false);
     }
@@ -246,7 +298,7 @@ function RaniThreadPage() {
         ) : (
           <ul className="mx-auto max-w-3xl space-y-5">
             {messages.map((m) => (
-              <MessageRow key={m.id} m={m} />
+              <MessageRow key={m.id} m={m} tools={toolActivity[m.id]} />
             ))}
             {typing && <TypingIndicator />}
           </ul>
