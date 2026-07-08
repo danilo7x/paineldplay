@@ -26,7 +26,6 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     if (!token) return json({ error: "Não autenticado" }, 401);
 
-    // caller identity + admin check
     const asUser = createClient(url, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
@@ -41,44 +40,22 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Somente admin" }, 403);
 
     const body = await req.json();
-    const { email, nome, cargo, role, password } = body as {
-      email?: string;
-      nome?: string;
-      cargo?: string;
-      role?: "admin" | "staff";
-      password?: string;
-    };
-    if (!email || !nome || !role) return json({ error: "Campos obrigatórios: email, nome, role" }, 400);
-    if (role !== "admin" && role !== "staff") return json({ error: "role inválido" }, 400);
+    const { userId, password } = body as { userId?: string; password?: string };
+    if (!userId) return json({ error: "userId obrigatório" }, 400);
     if (password && password.length < 8) return json({ error: "Senha deve ter no mínimo 8 caracteres" }, 400);
 
     const admin = createClient(url, serviceKey);
 
-    // use provided password or generate a random temporary one
-    const tempPassword = password && password.length >= 8
+    const finalPassword = password && password.length >= 8
       ? password
       : crypto.randomUUID().replace(/-/g, "") + "A1!";
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { nome },
+
+    const { error: updErr } = await admin.auth.admin.updateUserById(userId, {
+      password: finalPassword,
     });
-    if (createErr) return json({ error: createErr.message }, 400);
+    if (updErr) return json({ error: updErr.message }, 400);
 
-    const userId = created.user!.id;
-
-    // profile info
-    await admin.from("profiles").update({ nome, cargo: cargo ?? null }).eq("id", userId);
-
-    // role (replace default 'staff' set by trigger)
-    await admin.from("user_roles").delete().eq("user_id", userId);
-    const { error: insErr } = await admin
-      .from("user_roles")
-      .insert({ user_id: userId, role });
-    if (insErr) throw insErr;
-
-    return json({ ok: true, userId, tempPassword });
+    return json({ ok: true, tempPassword: finalPassword });
   } catch (err) {
     console.error(err);
     return json({ error: err instanceof Error ? err.message : "erro" }, 500);
