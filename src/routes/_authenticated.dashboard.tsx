@@ -68,19 +68,18 @@ function DashboardPage() {
   const [teamCount, setTeamCount] = useState(0);
   const [sales, setSales] = useState<{ valor: number; data: string; status: string }[]>([]);
   const [expensesMes, setExpensesMes] = useState(0);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !sessionStorage.getItem("dplay_welcome_seen");
+  });
 
   // Welcome animation once per session
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const seen = sessionStorage.getItem("dplay_welcome_seen");
-    if (!seen) {
-      setShowWelcome(true);
-      sessionStorage.setItem("dplay_welcome_seen", "1");
-      const t = setTimeout(() => setShowWelcome(false), 2200);
-      return () => clearTimeout(t);
-    }
-  }, []);
+    if (!showWelcome) return;
+    sessionStorage.setItem("dplay_welcome_seen", "1");
+    const t = setTimeout(() => setShowWelcome(false), 2200);
+    return () => clearTimeout(t);
+  }, [showWelcome]);
 
   useEffect(() => {
     let alive = true;
