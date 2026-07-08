@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRaniRouteImport } from './routes/_authenticated.rani'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated.notas'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
@@ -32,11 +31,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRaniRoute = AuthenticatedRaniRouteImport.update({
-  id: '/rani',
-  path: '/rani',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
@@ -107,7 +101,6 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/rani': typeof AuthenticatedRaniRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
 }
@@ -122,7 +115,6 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/rani': typeof AuthenticatedRaniRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
 }
@@ -139,7 +131,6 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/_authenticated/rani': typeof AuthenticatedRaniRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
 }
@@ -156,7 +147,6 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/notas'
     | '/perfil'
-    | '/rani'
     | '/projetos/$id'
     | '/projetos/'
   fileRoutesByTo: FileRoutesByTo
@@ -171,7 +161,6 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/notas'
     | '/perfil'
-    | '/rani'
     | '/projetos/$id'
     | '/projetos'
   id:
@@ -187,7 +176,6 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/notas'
     | '/_authenticated/perfil'
-    | '/_authenticated/rani'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/projetos/'
   fileRoutesById: FileRoutesById
@@ -212,13 +200,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/rani': {
-      id: '/_authenticated/rani'
-      path: '/rani'
-      fullPath: '/rani'
-      preLoaderRoute: typeof AuthenticatedRaniRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
@@ -310,7 +291,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
-  AuthenticatedRaniRoute: typeof AuthenticatedRaniRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
 }
@@ -325,7 +305,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
-  AuthenticatedRaniRoute: AuthenticatedRaniRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
 }
