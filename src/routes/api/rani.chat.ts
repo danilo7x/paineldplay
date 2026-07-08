@@ -181,8 +181,36 @@ export const Route = createFileRoute("/api/rani/chat")({
           stopWhen: stepCountIs(8),
         });
 
-        return result.toTextStreamResponse({
-          headers: { "content-type": "text/plain; charset=utf-8" },
+        // Custom NDJSON stream: {type:"text",text} | {type:"tool-start",name} | {type:"tool-end",name,ok}
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            const send = (obj: unknown) =>
+              controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+            try {
+              for await (const part of result.fullStream) {
+                if (part.type === "text-delta") {
+                  send({ type: "text", text: part.text });
+                } else if (part.type === "tool-call") {
+                  send({ type: "tool-start", name: part.toolName });
+                } else if (part.type === "tool-result") {
+                  const output = (part as { output?: unknown }).output;
+                  const ok = !(output && typeof output === "object" && "error" in output);
+                  send({ type: "tool-end", name: part.toolName, ok });
+                } else if (part.type === "error") {
+                  send({ type: "error", message: String((part as { error?: unknown }).error) });
+                }
+              }
+            } catch (err) {
+              send({ type: "error", message: err instanceof Error ? err.message : "stream error" });
+            } finally {
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: { "content-type": "application/x-ndjson; charset=utf-8" },
         });
       },
     },
