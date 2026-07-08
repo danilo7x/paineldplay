@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Paperclip, Search, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Paperclip, XCircle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
