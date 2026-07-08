@@ -59,6 +59,13 @@ export const Route = createFileRoute("/api/rani/chat")({
         }
         const userId = claims.claims.sub as string;
 
+        // Discover role via RPC (respects RLS; uses user's token)
+        const { data: isAdminRes } = await supabase.rpc("has_role", {
+          _user_id: userId,
+          _role: "admin",
+        });
+        const isAdmin = isAdminRes === true;
+
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) return new Response("messages required", { status: 400 });
         const modelMessages = await convertToModelMessages(body.messages);
@@ -72,24 +79,30 @@ export const Route = createFileRoute("/api/rani/chat")({
 
         const tools = {
           resumo_financeiro: tool({
-            description:
-              "Retorna receita (vendas), despesas e lucro do mês atual do usuário. Use para perguntas sobre faturamento, gastos ou lucro do mês.",
+            description: isAdmin
+              ? "Retorna receita (vendas), despesas e lucro do mês atual da empresa. Use para perguntas sobre faturamento, gastos ou lucro do mês."
+              : "Retorna a receita do mês atual dos projetos do usuário. Use para perguntas sobre o faturamento dos projetos dele.",
             inputSchema: z.object({}),
             execute: async () => {
               const { start, end } = monthRange();
-              const [salesRes, expRes] = await Promise.all([
-                supabase
-                  .from("sales")
-                  .select("valor, data, status")
-                  .gte("data", start.slice(0, 10))
-                  .lt("data", end.slice(0, 10)),
-                supabase
-                  .from("expenses")
-                  .select("valor, data")
-                  .gte("data", start.slice(0, 10))
-                  .lt("data", end.slice(0, 10)),
-              ]);
+              const salesRes = await supabase
+                .from("sales")
+                .select("valor, data, status")
+                .gte("data", start.slice(0, 10))
+                .lt("data", end.slice(0, 10));
               const receita = (salesRes.data ?? []).reduce((s, r) => s + Number(r.valor ?? 0), 0);
+              if (!isAdmin) {
+                return {
+                  mes: start.slice(0, 7),
+                  receita,
+                  vendas_count: salesRes.data?.length ?? 0,
+                };
+              }
+              const expRes = await supabase
+                .from("expenses")
+                .select("valor, data")
+                .gte("data", start.slice(0, 10))
+                .lt("data", end.slice(0, 10));
               const despesas = (expRes.data ?? []).reduce((s, r) => s + Number(r.valor ?? 0), 0);
               return {
                 mes: start.slice(0, 7),
@@ -140,24 +153,29 @@ export const Route = createFileRoute("/api/rani/chat")({
               return { projetos: data ?? [] };
             },
           }),
-          listar_despesas: tool({
-            description: "Lista as despesas mais recentes do usuário. Aceita categoria opcional e limite (padrão 10).",
-            inputSchema: z.object({
-              categoria: z.string().nullable(),
-              limit: z.number().nullable(),
-            }),
-            execute: async ({ categoria, limit }) => {
-              let q = supabase
-                .from("expenses")
-                .select("id, descricao, valor, categoria, data, project_id")
-                .order("data", { ascending: false })
-                .limit(Math.min(Math.max(limit ?? 10, 1), 50));
-              if (categoria) q = q.eq("categoria", categoria);
-              const { data, error } = await q;
-              if (error) return { error: error.message };
-              return { despesas: data ?? [] };
-            },
-          }),
+          ...(isAdmin
+            ? {
+                listar_despesas: tool({
+                  description:
+                    "Lista as despesas mais recentes da empresa. Aceita categoria opcional e limite (padrão 10).",
+                  inputSchema: z.object({
+                    categoria: z.string().nullable(),
+                    limit: z.number().nullable(),
+                  }),
+                  execute: async ({ categoria, limit }) => {
+                    let q = supabase
+                      .from("expenses")
+                      .select("id, descricao, valor, categoria, data, project_id")
+                      .order("data", { ascending: false })
+                      .limit(Math.min(Math.max(limit ?? 10, 1), 50));
+                    if (categoria) q = q.eq("categoria", categoria);
+                    const { data, error } = await q;
+                    if (error) return { error: error.message };
+                    return { despesas: data ?? [] };
+                  },
+                }),
+              }
+            : {}),
           listar_avisos: tool({
             description: "Lista os avisos mais recentes.",
             inputSchema: z.object({ limit: z.number().nullable() }),
@@ -192,7 +210,7 @@ export const Route = createFileRoute("/api/rani/chat")({
         const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: SYSTEM_PROMPT,
+          system: isAdmin ? ADMIN_PROMPT : COLLAB_PROMPT,
           messages: modelMessages,
           tools,
           stopWhen: stepCountIs(8),
