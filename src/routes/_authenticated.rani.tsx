@@ -67,7 +67,10 @@ function RaniLayout() {
 
   useEffect(() => {
     loadThreads();
-    return subscribeRaniThreads(loadThreads);
+    const unsub = subscribeRaniThreads(loadThreads);
+    return () => {
+      unsub();
+    };
   }, [loadThreads]);
 
   async function createThread() {
