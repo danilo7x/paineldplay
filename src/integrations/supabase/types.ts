@@ -425,6 +425,47 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          mime: string | null
+          nome: string
+          path: string
+          sale_id: string
+          size: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome: string
+          path: string
+          sale_id: string
+          size?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime?: string | null
+          nome?: string
+          path?: string
+          sale_id?: string
+          size?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_attachments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           cliente_contato: string | null
