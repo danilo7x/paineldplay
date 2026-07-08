@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Loader2, Copy } from "lucide-react";
+import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ function EquipePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [resetMember, setResetMember] = useState<Member | null>(null);
 
   async function fetchMembers() {
     setLoading(true);
@@ -226,6 +227,10 @@ function EquipePage() {
                           >
                             {m.ativo ? "Desativar" : "Ativar"}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setResetMember(m)}>
+                            <KeyRound className="mr-2 size-4" /> Redefinir senha
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -241,8 +246,14 @@ function EquipePage() {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         onCreated={() => {
-          setInviteOpen(false);
           fetchMembers();
+        }}
+      />
+
+      <ResetPasswordDialog
+        member={resetMember}
+        onOpenChange={(v) => {
+          if (!v) setResetMember(null);
         }}
       />
     </div>
@@ -262,6 +273,7 @@ function InviteDialog({
   const [email, setEmail] = useState("");
   const [cargo, setCargo] = useState("");
   const [role, setRole] = useState<Role>("staff");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
@@ -270,11 +282,16 @@ function InviteDialog({
     setEmail("");
     setCargo("");
     setRole("staff");
+    setPassword("");
     setTempPassword(null);
   }
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
+    if (password && password.length < 8) {
+      toast.error("Senha muito curta", { description: "Mínimo 8 caracteres" });
+      return;
+    }
     setLoading(true);
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -288,7 +305,13 @@ function InviteDialog({
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ nome, email, cargo: cargo || null, role }),
+        body: JSON.stringify({
+          nome,
+          email,
+          cargo: cargo || null,
+          role,
+          password: password || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Falha ao convidar");
@@ -369,6 +392,20 @@ function InviteDialog({
               />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="password">Senha (opcional)</Label>
+              <Input
+                id="password"
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Deixe em branco para gerar automática"
+                minLength={8}
+              />
+              <p className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres. Se vazio, uma senha aleatória será gerada.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label>Papel</Label>
               <Select value={role} onValueChange={(v) => setRole(v as Role)}>
                 <SelectTrigger>
@@ -384,6 +421,135 @@ function InviteDialog({
               <Button type="submit" disabled={loading} className="w-full gap-2">
                 {loading && <Loader2 className="size-4 animate-spin" />}
                 Convidar
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ResetPasswordDialog({
+  member,
+  onOpenChange,
+}: {
+  member: Member | null;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!member) {
+      setPassword("");
+      setResult(null);
+      setLoading(false);
+    }
+  }, [member]);
+
+  async function handleReset(e: React.FormEvent, useRandom: boolean) {
+    e.preventDefault();
+    if (!member) return;
+    if (!useRandom && password.length < 8) {
+      toast.error("Senha muito curta", { description: "Mínimo 8 caracteres" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: member.id,
+          password: useRandom ? undefined : password,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Falha ao redefinir");
+      setResult(json.tempPassword);
+      toast.success("Senha redefinida");
+    } catch (err) {
+      toast.error("Erro ao redefinir", {
+        description: err instanceof Error ? err.message : "Tente novamente",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!member} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Redefinir senha</DialogTitle>
+          <DialogDescription>
+            {result
+              ? `Nova senha de ${member?.nome ?? member?.email}. Copie e envie ao colaborador — não será mostrada de novo.`
+              : `Defina uma nova senha para ${member?.nome ?? member?.email} ou gere uma aleatória.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        {result ? (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 font-mono text-sm">
+              {result}
+            </div>
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(result);
+                toast.success("Senha copiada");
+              }}
+            >
+              <Copy className="size-4" /> Copiar
+            </Button>
+            <DialogFooter>
+              <Button className="w-full" onClick={() => onOpenChange(false)}>
+                Concluir
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <form onSubmit={(e) => handleReset(e, false)} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password">Nova senha</Label>
+              <Input
+                id="new-password"
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                minLength={8}
+              />
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                type="submit"
+                disabled={loading || password.length < 8}
+                className="w-full gap-2"
+              >
+                {loading && <Loader2 className="size-4 animate-spin" />}
+                Definir senha
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                className="w-full gap-2"
+                onClick={(e) => handleReset(e, true)}
+              >
+                Gerar senha aleatória
               </Button>
             </DialogFooter>
           </form>
