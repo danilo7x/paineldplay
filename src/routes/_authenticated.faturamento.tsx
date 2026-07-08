@@ -1,7 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { DollarSign, Loader2, Plus, TrendingUp, Wallet } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  DollarSign,
+  Loader2,
+  MoreHorizontal,
+  Paperclip,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  TrendingUp,
+  Upload,
+  Wallet,
+  X,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +51,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 type SaleStatus = "pendente" | "pago" | "cancelado";
@@ -47,8 +83,27 @@ type Sale = {
   observacoes: string | null;
 };
 type ProjectLite = { id: string; nome: string; cliente: string | null };
+type Attachment = {
+  id: string;
+  sale_id: string;
+  nome: string;
+  path: string;
+  size: number | null;
+  mime: string | null;
+  created_at: string;
+};
 
-type FaturamentoSearch = { project?: string };
+type SortKey = "data" | "valor" | "cliente_nome" | "status";
+type SortDir = "asc" | "desc";
+type FaturamentoSearch = {
+  project?: string;
+  page?: number;
+  q?: string;
+  sort?: SortKey;
+  dir?: SortDir;
+};
+
+const PAGE_SIZE = 20;
 
 const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
   pendente: { label: "Pendente", className: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30" },
@@ -71,6 +126,12 @@ const brl = (n: number) =>
 export const Route = createFileRoute("/_authenticated/faturamento")({
   validateSearch: (s: Record<string, unknown>): FaturamentoSearch => ({
     project: typeof s.project === "string" ? s.project : undefined,
+    page: typeof s.page === "number" ? s.page : Number(s.page) || undefined,
+    q: typeof s.q === "string" ? s.q : undefined,
+    sort: (["data", "valor", "cliente_nome", "status"].includes(String(s.sort))
+      ? (s.sort as SortKey)
+      : undefined),
+    dir: s.dir === "asc" || s.dir === "desc" ? s.dir : undefined,
   }),
   component: FaturamentoPage,
 });
@@ -97,28 +158,85 @@ function FaturamentoPage() {
   const { isAdmin } = Route.useRouteContext();
   const search = Route.useSearch();
   const [sales, setSales] = useState<Sale[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [aggregates, setAggregates] = useState({ total: 0, pago: 0, pendente: 0, count: 0 });
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey>("mes");
   const [statusFilter, setStatusFilter] = useState<"todos" | SaleStatus>("todos");
   const [projectFilter, setProjectFilter] = useState<string>(search.project ?? "todos");
+  const [query, setQuery] = useState(search.q ?? "");
+  const [debouncedQuery, setDebouncedQuery] = useState(search.q ?? "");
+  const [page, setPage] = useState<number>(search.page ?? 1);
+  const [sortKey, setSortKey] = useState<SortKey>(search.sort ?? "data");
+  const [sortDir, setSortDir] = useState<SortDir>(search.dir ?? "desc");
   const [open, setOpen] = useState(false);
-
-  async function fetchAll() {
-    setLoading(true);
-    const [salesRes, projectsRes] = await Promise.all([
-      supabase.from("sales").select("*").order("data", { ascending: false }),
-      supabase.from("projects").select("id, nome, cliente").order("nome"),
-    ]);
-    if (salesRes.error) toast.error("Erro ao carregar vendas", { description: salesRes.error.message });
-    setSales((salesRes.data ?? []) as Sale[]);
-    setProjects((projectsRes.data ?? []) as ProjectLite[]);
-    setLoading(false);
-  }
+  const [editSale, setEditSale] = useState<Sale | null>(null);
+  const [deleteSale, setDeleteSale] = useState<Sale | null>(null);
+  const [attachmentsSale, setAttachmentsSale] = useState<Sale | null>(null);
 
   useEffect(() => {
-    fetchAll();
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, statusFilter, projectFilter, period, sortKey, sortDir]);
+
+  const range = useMemo(() => periodRange(period), [period]);
+
+  const buildBaseQuery = useCallback(() => {
+    let q = supabase.from("sales").select("*", { count: "exact" });
+    if (range.from) q = q.gte("data", range.from);
+    if (statusFilter !== "todos") q = q.eq("status", statusFilter);
+    if (projectFilter !== "todos") q = q.eq("project_id", projectFilter);
+    if (debouncedQuery) {
+      const like = `%${debouncedQuery}%`;
+      q = q.or(
+        `cliente_nome.ilike.${like},cliente_email.ilike.${like},cliente_contato.ilike.${like},observacoes.ilike.${like}`,
+      );
+    }
+    return q;
+  }, [range.from, statusFilter, projectFilter, debouncedQuery]);
+
+  const fetchProjects = useCallback(async () => {
+    const { data } = await supabase.from("projects").select("id, nome, cliente").order("nome");
+    setProjects((data ?? []) as ProjectLite[]);
   }, []);
+
+  const fetchSales = useCallback(async () => {
+    setLoading(true);
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const pageRes = await buildBaseQuery()
+      .order(sortKey, { ascending: sortDir === "asc" })
+      .range(from, to);
+    const aggRes = await buildBaseQuery();
+    if (pageRes.error) {
+      toast.error("Erro ao carregar vendas", { description: pageRes.error.message });
+      setLoading(false);
+      return;
+    }
+    setSales((pageRes.data ?? []) as Sale[]);
+    setTotalCount(pageRes.count ?? 0);
+    const all = (aggRes.data ?? []) as Sale[];
+    setAggregates({
+      total: all.reduce((a, s) => a + Number(s.valor), 0),
+      pago: all.filter((s) => s.status === "pago").reduce((a, s) => a + Number(s.valor), 0),
+      pendente: all.filter((s) => s.status === "pendente").reduce((a, s) => a + Number(s.valor), 0),
+      count: all.length,
+    });
+    setLoading(false);
+  }, [buildBaseQuery, page, sortKey, sortDir]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const projectMap = useMemo(() => {
     const m = new Map<string, ProjectLite>();
@@ -126,24 +244,68 @@ function FaturamentoPage() {
     return m;
   }, [projects]);
 
-  const range = useMemo(() => periodRange(period), [period]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const filtered = useMemo(() => {
-    return sales.filter((s) => {
-      if (range.from && s.data < range.from) return false;
-      if (statusFilter !== "todos" && s.status !== statusFilter) return false;
-      if (projectFilter !== "todos" && s.project_id !== projectFilter) return false;
-      return true;
+  function toggleSort(k: SortKey) {
+    if (sortKey === k) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(k);
+      setSortDir(k === "data" || k === "valor" ? "desc" : "asc");
+    }
+  }
+
+  async function exportCsv() {
+    toast.loading("Preparando exportação…", { id: "csv-export" });
+    const { data, error } = await buildBaseQuery().order(sortKey, {
+      ascending: sortDir === "asc",
     });
-  }, [sales, range, statusFilter, projectFilter]);
-
-  const totalPeriodo = filtered.reduce((acc, s) => acc + Number(s.valor), 0);
-  const totalPago = filtered
-    .filter((s) => s.status === "pago")
-    .reduce((acc, s) => acc + Number(s.valor), 0);
-  const totalPendente = filtered
-    .filter((s) => s.status === "pendente")
-    .reduce((acc, s) => acc + Number(s.valor), 0);
+    if (error) {
+      toast.error("Falha ao exportar", { id: "csv-export", description: error.message });
+      return;
+    }
+    const rows = (data ?? []) as Sale[];
+    const header = [
+      "Data",
+      "Cliente",
+      "Email",
+      "Contato",
+      "Projeto",
+      "Valor",
+      "Status",
+      "Observações",
+    ];
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(";")].concat(
+      rows.map((s) =>
+        [
+          s.data,
+          s.cliente_nome,
+          s.cliente_email ?? "",
+          s.cliente_contato ?? "",
+          projectMap.get(s.project_id)?.nome ?? "",
+          Number(s.valor).toFixed(2).replace(".", ","),
+          STATUS_META[s.status].label,
+          s.observacoes ?? "",
+        ]
+          .map(escape)
+          .join(";"),
+      ),
+    );
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vendas-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Exportadas ${rows.length} vendas`, { id: "csv-export" });
+  }
 
   return (
     <div className="space-y-6">
@@ -157,39 +319,45 @@ function FaturamentoPage() {
               : "Vendas dos projetos em que você participa."}
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" /> Nova venda
-            </Button>
-          </DialogTrigger>
-          <NewSaleDialog
-            projects={projects}
-            onCreated={() => {
-              setOpen(false);
-              fetchAll();
-            }}
-          />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={exportCsv}>
+            <Download className="size-4" /> Exportar CSV
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="size-4" /> Nova venda
+              </Button>
+            </DialogTrigger>
+            <SaleDialog
+              mode="create"
+              projects={projects}
+              onDone={() => {
+                setOpen(false);
+                fetchSales();
+              }}
+            />
+          </Dialog>
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard
           label={isAdmin ? "Total do período" : "Seu total no período"}
-          value={brl(totalPeriodo)}
-          hint={`${filtered.length} vendas`}
+          value={brl(aggregates.total)}
+          hint={`${aggregates.count} vendas`}
           icon={Wallet}
         />
         <SummaryCard
           label="Pago"
-          value={brl(totalPago)}
+          value={brl(aggregates.pago)}
           hint="Recebido"
           icon={DollarSign}
           accent="text-emerald-300"
         />
         <SummaryCard
           label="Pendente"
-          value={brl(totalPendente)}
+          value={brl(aggregates.pendente)}
           hint="A receber"
           icon={TrendingUp}
           accent="text-amber-300"
@@ -214,6 +382,24 @@ function FaturamentoPage() {
                   {p.label}
                 </button>
               ))}
+            </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar cliente, email, obs…"
+                className="h-9 w-[240px] rounded-full pl-9 pr-8"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="Limpar"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
             <Select value={projectFilter} onValueChange={setProjectFilter}>
               <SelectTrigger className="h-9 w-[220px] rounded-full">
@@ -245,7 +431,7 @@ function FaturamentoPage() {
             <div className="flex justify-center py-16 text-muted-foreground">
               <Loader2 className="size-5 animate-spin" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sales.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               Nenhuma venda no filtro atual.
             </div>
@@ -254,15 +440,44 @@ function FaturamentoPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead>Cliente</TableHead>
+                    <TableHead>
+                      <SortHeader
+                        label="Cliente"
+                        active={sortKey === "cliente_nome"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("cliente_nome")}
+                      />
+                    </TableHead>
                     <TableHead>Projeto</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>
+                      <SortHeader
+                        label="Valor"
+                        active={sortKey === "valor"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("valor")}
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <SortHeader
+                        label="Status"
+                        active={sortKey === "status"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("status")}
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <SortHeader
+                        label="Data"
+                        active={sortKey === "data"}
+                        dir={sortDir}
+                        onClick={() => toggleSort("data")}
+                      />
+                    </TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((s) => {
+                  {sales.map((s) => {
                     const proj = projectMap.get(s.project_id);
                     const meta = STATUS_META[s.status];
                     return (
@@ -287,6 +502,30 @@ function FaturamentoPage() {
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
                         </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="size-8">
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditSale(s)}>
+                                <Pencil className="mr-2 size-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setAttachmentsSale(s)}>
+                                <Paperclip className="mr-2 size-4" /> Anexos
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteSale(s)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 size-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -294,9 +533,111 @@ function FaturamentoPage() {
               </Table>
             </div>
           )}
+
+          {!loading && sales.length > 0 && (
+            <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+              <span>
+                Página {page} de {totalPages} · {totalCount} vendas
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {editSale && (
+        <Dialog open onOpenChange={(o) => !o && setEditSale(null)}>
+          <SaleDialog
+            mode="edit"
+            sale={editSale}
+            projects={projects}
+            onDone={() => {
+              setEditSale(null);
+              fetchSales();
+            }}
+          />
+        </Dialog>
+      )}
+
+      {attachmentsSale && (
+        <AttachmentsDialog
+          sale={attachmentsSale}
+          onClose={() => setAttachmentsSale(null)}
+        />
+      )}
+
+      <AlertDialog open={!!deleteSale} onOpenChange={(o) => !o && setDeleteSale(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A venda de <strong>{deleteSale?.cliente_nome}</strong> ({deleteSale && brl(Number(deleteSale.valor))}) e todos os seus anexos serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deleteSale) return;
+                const { error } = await supabase.from("sales").delete().eq("id", deleteSale.id);
+                if (error) return toast.error("Não foi possível excluir", { description: error.message });
+                toast.success("Venda excluída");
+                setDeleteSale(null);
+                fetchSales();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+}) {
+  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-medium transition",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+      <Icon className="size-3" />
+    </button>
   );
 }
 
@@ -331,49 +672,60 @@ function SummaryCard({
   );
 }
 
-function NewSaleDialog({
+function SaleDialog({
+  mode,
+  sale,
   projects,
-  onCreated,
+  onDone,
 }: {
+  mode: "create" | "edit";
+  sale?: Sale;
   projects: ProjectLite[];
-  onCreated: () => void;
+  onDone: () => void;
 }) {
-  const [projectId, setProjectId] = useState<string>("");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [contato, setContato] = useState("");
-  const [valor, setValor] = useState("");
-  const [status, setStatus] = useState<SaleStatus>("pendente");
-  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
-  const [obs, setObs] = useState("");
+  const [projectId, setProjectId] = useState<string>(sale?.project_id ?? "");
+  const [nome, setNome] = useState(sale?.cliente_nome ?? "");
+  const [email, setEmail] = useState(sale?.cliente_email ?? "");
+  const [contato, setContato] = useState(sale?.cliente_contato ?? "");
+  const [valor, setValor] = useState(sale ? String(sale.valor).replace(".", ",") : "");
+  const [status, setStatus] = useState<SaleStatus>(sale?.status ?? "pendente");
+  const [data, setData] = useState(sale?.data ?? new Date().toISOString().slice(0, 10));
+  const [obs, setObs] = useState(sale?.observacoes ?? "");
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!projectId) return toast.error("Selecione um projeto");
     setLoading(true);
-    const { data: sess } = await supabase.auth.getSession();
-    const { error } = await supabase.from("sales").insert({
+    const payload = {
       project_id: projectId,
       cliente_nome: nome,
       cliente_email: email || null,
       cliente_contato: contato || null,
-      valor: Number(valor.replace(",", ".")) || 0,
+      valor: Number(String(valor).replace(",", ".")) || 0,
       status,
       data,
       observacoes: obs || null,
-      created_by: sess.session?.user.id,
-    });
+    };
+    let error;
+    if (mode === "edit" && sale) {
+      ({ error } = await supabase.from("sales").update(payload).eq("id", sale.id));
+    } else {
+      const { data: sess } = await supabase.auth.getSession();
+      ({ error } = await supabase
+        .from("sales")
+        .insert({ ...payload, created_by: sess.session?.user.id }));
+    }
     setLoading(false);
-    if (error) return toast.error("Não foi possível registrar", { description: error.message });
-    toast.success("Venda registrada");
-    onCreated();
+    if (error) return toast.error("Não foi possível salvar", { description: error.message });
+    toast.success(mode === "edit" ? "Venda atualizada" : "Venda registrada");
+    onDone();
   }
 
   return (
     <DialogContent className="max-w-lg">
       <DialogHeader>
-        <DialogTitle>Nova venda</DialogTitle>
+        <DialogTitle>{mode === "edit" ? "Editar venda" : "Nova venda"}</DialogTitle>
       </DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-1.5">
@@ -411,13 +763,13 @@ function NewSaleDialog({
             <Input
               id="s-email"
               type="email"
-              value={email}
+              value={email ?? ""}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="s-contato">Contato</Label>
-            <Input id="s-contato" value={contato} onChange={(e) => setContato(e.target.value)} />
+            <Input id="s-contato" value={contato ?? ""} onChange={(e) => setContato(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
@@ -445,15 +797,160 @@ function NewSaleDialog({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="s-obs">Observações</Label>
-          <Textarea id="s-obs" rows={3} value={obs} onChange={(e) => setObs(e.target.value)} />
+          <Textarea id="s-obs" rows={3} value={obs ?? ""} onChange={(e) => setObs(e.target.value)} />
         </div>
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
-            Registrar venda
+            {mode === "edit" ? "Salvar alterações" : "Registrar venda"}
           </Button>
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+function AttachmentsDialog({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+  const [items, setItems] = useState<Attachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("sale_attachments")
+      .select("*")
+      .eq("sale_id", sale.id)
+      .order("created_at", { ascending: false });
+    if (error) toast.error("Erro ao carregar anexos", { description: error.message });
+    setItems((data ?? []) as Attachment[]);
+    setLoading(false);
+  }, [sale.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      return toast.error("Arquivo muito grande", { description: "Máximo 25 MB." });
+    }
+    setUploading(true);
+    const { data: sess } = await supabase.auth.getSession();
+    const uid = sess.session?.user.id;
+    const safe = file.name.replace(/[^\w.\-]+/g, "_");
+    const path = `${sale.id}/${Date.now()}-${safe}`;
+    const up = await supabase.storage.from("sale-attachments").upload(path, file, {
+      contentType: file.type || "application/octet-stream",
+    });
+    if (up.error) {
+      setUploading(false);
+      return toast.error("Falha no upload", { description: up.error.message });
+    }
+    const { error } = await supabase.from("sale_attachments").insert({
+      sale_id: sale.id,
+      nome: file.name,
+      path,
+      size: file.size,
+      mime: file.type || null,
+      uploaded_by: uid,
+    });
+    setUploading(false);
+    if (error) {
+      await supabase.storage.from("sale-attachments").remove([path]);
+      return toast.error("Falha ao registrar anexo", { description: error.message });
+    }
+    toast.success("Anexo enviado");
+    load();
+  }
+
+  async function download(a: Attachment) {
+    const { data, error } = await supabase.storage
+      .from("sale-attachments")
+      .createSignedUrl(a.path, 60);
+    if (error || !data) return toast.error("Falha ao abrir arquivo", { description: error?.message });
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function remove(a: Attachment) {
+    const { error } = await supabase.from("sale_attachments").delete().eq("id", a.id);
+    if (error) return toast.error("Não foi possível excluir", { description: error.message });
+    await supabase.storage.from("sale-attachments").remove([a.path]);
+    toast.success("Anexo removido");
+    load();
+  }
+
+  function fmtSize(n: number | null) {
+    if (!n) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Anexos · {sale.cliente_nome}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-card/40 p-4 text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground">
+            {uploading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Upload className="size-4" />
+            )}
+            {uploading ? "Enviando…" : "Selecionar arquivo (até 25 MB)"}
+            <input
+              type="file"
+              className="hidden"
+              onChange={onUpload}
+              disabled={uploading}
+            />
+          </label>
+
+          {loading ? (
+            <div className="flex justify-center py-8 text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Nenhum anexo ainda.
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/50 rounded-xl border border-border/50">
+              {items.map((a) => (
+                <li key={a.id} className="flex items-center gap-3 p-3">
+                  <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <button
+                      onClick={() => download(a)}
+                      className="block truncate text-sm font-medium hover:text-primary"
+                    >
+                      {a.nome}
+                    </button>
+                    <div className="text-[11px] text-muted-foreground">
+                      {fmtSize(a.size)} ·{" "}
+                      {new Date(a.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => remove(a)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
