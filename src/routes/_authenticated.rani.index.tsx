@@ -20,11 +20,8 @@ export const Route = createFileRoute("/_authenticated/rani/")({
 
 function RaniHome() {
   const navigate = useNavigate();
-  const { profile } = useProfile();
+  const { firstName } = useProfile();
   const [creating, setCreating] = useState(false);
-
-  const firstName =
-    profile?.nome?.trim().split(/\s+/)[0] ?? profile?.email?.split("@")[0] ?? "por aqui";
 
   async function startWith(message: string) {
     const text = message.trim();
