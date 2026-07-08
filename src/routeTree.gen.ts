@@ -23,6 +23,7 @@ import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authentica
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
 import { Route as AuthenticatedRaniIndexRouteImport } from './routes/_authenticated.rani.index'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
+import { Route as ApiRaniChatRouteImport } from './routes/api/rani.chat'
 import { Route as AuthenticatedRaniThreadIdRouteImport } from './routes/_authenticated.rani.$threadId'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
 
@@ -97,6 +98,11 @@ const AuthenticatedProjetosIndexRoute =
     path: '/projetos/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiRaniChatRoute = ApiRaniChatRouteImport.update({
+  id: '/api/rani/chat',
+  path: '/api/rani/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRaniThreadIdRoute =
   AuthenticatedRaniThreadIdRouteImport.update({
     id: '/$threadId',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/rani': typeof AuthenticatedRaniRouteWithChildren
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
+  '/api/rani/chat': typeof ApiRaniChatRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/rani/': typeof AuthenticatedRaniIndexRoute
 }
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
+  '/api/rani/chat': typeof ApiRaniChatRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
   '/rani': typeof AuthenticatedRaniIndexRoute
 }
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/rani': typeof AuthenticatedRaniRouteWithChildren
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
+  '/api/rani/chat': typeof ApiRaniChatRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/_authenticated/rani/': typeof AuthenticatedRaniIndexRoute
 }
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/rani'
     | '/projetos/$id'
     | '/rani/$threadId'
+    | '/api/rani/chat'
     | '/projetos/'
     | '/rani/'
   fileRoutesByTo: FileRoutesByTo
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/projetos/$id'
     | '/rani/$threadId'
+    | '/api/rani/chat'
     | '/projetos'
     | '/rani'
   id:
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rani'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/rani/$threadId'
+    | '/api/rani/chat'
     | '/_authenticated/projetos/'
     | '/_authenticated/rani/'
   fileRoutesById: FileRoutesById
@@ -218,6 +230,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  ApiRaniChatRoute: typeof ApiRaniChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/rani/chat': {
+      id: '/api/rani/chat'
+      path: '/api/rani/chat'
+      fullPath: '/api/rani/chat'
+      preLoaderRoute: typeof ApiRaniChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/rani/$threadId': {
       id: '/_authenticated/rani/$threadId'
       path: '/$threadId'
@@ -387,6 +407,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  ApiRaniChatRoute: ApiRaniChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
