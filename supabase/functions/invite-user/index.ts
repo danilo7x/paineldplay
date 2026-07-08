@@ -41,19 +41,23 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Somente admin" }, 403);
 
     const body = await req.json();
-    const { email, nome, cargo, role } = body as {
+    const { email, nome, cargo, role, password } = body as {
       email?: string;
       nome?: string;
       cargo?: string;
       role?: "admin" | "staff";
+      password?: string;
     };
     if (!email || !nome || !role) return json({ error: "Campos obrigatórios: email, nome, role" }, 400);
     if (role !== "admin" && role !== "staff") return json({ error: "role inválido" }, 400);
+    if (password && password.length < 8) return json({ error: "Senha deve ter no mínimo 8 caracteres" }, 400);
 
     const admin = createClient(url, serviceKey);
 
-    // create user with a random temporary password
-    const tempPassword = crypto.randomUUID().replace(/-/g, "") + "A1!";
+    // use provided password or generate a random temporary one
+    const tempPassword = password && password.length >= 8
+      ? password
+      : crypto.randomUUID().replace(/-/g, "") + "A1!";
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password: tempPassword,
