@@ -220,13 +220,13 @@ function RaniThreadPage() {
             </h1>
             <Badge
               variant="secondary"
-              className="rounded-full border border-[#057EF3]/30 bg-[#057EF3]/10 text-[10px] text-[#057EF3]"
+              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-400"
             >
-              Em breve
+              Ativa
             </Badge>
           </div>
           <p className="truncate text-xs text-muted-foreground">
-            Rani ainda não está ativa — suas mensagens ficam salvas para quando ela ligar.
+            Conectada aos seus dados: vendas, despesas, projetos e avisos.
           </p>
         </div>
       </header>
