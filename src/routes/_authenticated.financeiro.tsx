@@ -151,16 +151,21 @@ function FinanceiroPage() {
   const inRange = <T extends { data: string }>(row: T) =>
     row.data >= range.from && row.data <= range.to;
 
-  const receitaTotal = sales
-    .filter((s) => s.status !== "cancelado" && inRange(s))
-    .reduce((a, s) => a + Number(s.valor), 0);
+  // Sales só sofrem filtro por projeto (não têm categoria).
+  const filteredSales = sales.filter((s) => {
+    if (s.status === "cancelado") return false;
+    if (!inRange(s)) return false;
+    if (projeto !== "todos" && s.project_id !== projeto) return false;
+    return true;
+  });
   const filteredExpenses = expenses.filter((e) => {
     if (!inRange(e)) return false;
     if (categoria !== "todas" && e.categoria !== categoria) return false;
     if (projeto !== "todos" && e.project_id !== projeto) return false;
     return true;
   });
-  const despesaTotalPeriodo = expenses.filter(inRange).reduce((a, e) => a + Number(e.valor), 0);
+  const receitaTotal = filteredSales.reduce((a, s) => a + Number(s.valor), 0);
+  const despesaTotalPeriodo = filteredExpenses.reduce((a, e) => a + Number(e.valor), 0);
   const lucro = receitaTotal - despesaTotalPeriodo;
   const margem = receitaTotal > 0 ? (lucro / receitaTotal) * 100 : 0;
 
@@ -185,30 +190,35 @@ function FinanceiroPage() {
       cur.setMonth(cur.getMonth() + 1);
     }
     const map = new Map(buckets.map((b) => [b.key, b] as const));
-    sales
-      .filter((s) => s.status !== "cancelado" && inRange(s))
-      .forEach((s) => {
-        const b = map.get(s.data.slice(0, 7));
-        if (b) b.receita += Number(s.valor);
-      });
-    expenses.filter(inRange).forEach((e) => {
+    filteredSales.forEach((s) => {
+      const b = map.get(s.data.slice(0, 7));
+      if (b) b.receita += Number(s.valor);
+    });
+    filteredExpenses.forEach((e) => {
       const b = map.get(e.data.slice(0, 7));
       if (b) b.despesa += Number(e.valor);
     });
     return buckets;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sales, expenses, range]);
+  }, [sales, expenses, range, categoria, projeto]);
 
   const byCategory = useMemo(() => {
     const m = new Map<string, number>();
-    expenses.filter(inRange).forEach((e) => {
+    // Donut mostra só o filtro de período + projeto; o filtro de categoria
+    // é a própria dimensão do gráfico, então NÃO deve reduzir a legenda.
+    const source = expenses.filter((e) => {
+      if (!inRange(e)) return false;
+      if (projeto !== "todos" && e.project_id !== projeto) return false;
+      return true;
+    });
+    source.forEach((e) => {
       m.set(e.categoria, (m.get(e.categoria) ?? 0) + Number(e.valor));
     });
     return Array.from(m.entries())
       .map(([key, value]) => ({ key, label: CATEGORY_LABEL.get(key) ?? key, value }))
       .sort((a, b) => b.value - a.value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expenses, range]);
+  }, [expenses, range, projeto]);
 
   async function deleteExpense(id: string) {
     if (!confirm("Excluir esta despesa?")) return;
@@ -300,7 +310,7 @@ function FinanceiroPage() {
           label="Despesa"
           value={brl(despesaTotalPeriodo)}
           icon={ArrowDownRight}
-          hint={`${expenses.filter(inRange).length} lançamentos`}
+          hint={`${filteredExpenses.length} lançamento${filteredExpenses.length === 1 ? "" : "s"}`}
           accent="text-rose-300"
         />
         <SummaryCard

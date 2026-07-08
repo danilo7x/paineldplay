@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, DollarSign, FolderKanban, TrendingUp, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowUpRight, DollarSign, FolderKanban, PiggyBank, TrendingUp, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/lib/profile-context";
 import {
   Area,
   AreaChart,
@@ -54,22 +57,46 @@ function buildChart(
 }
 
 function DashboardPage() {
-  const { user, isAdmin } = Route.useRouteContext();
+  const { isAdmin } = Route.useRouteContext();
+  const { firstName } = useProfile();
   const [period, setPeriod] = useState<Period>("1M");
+  const [loading, setLoading] = useState(true);
   const [projectStats, setProjectStats] = useState<{ total: number; ativos: number }>({
     total: 0,
     ativos: 0,
   });
   const [teamCount, setTeamCount] = useState(0);
   const [sales, setSales] = useState<{ valor: number; data: string; status: string }[]>([]);
+  const [expensesMes, setExpensesMes] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Welcome animation once per session
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const seen = sessionStorage.getItem("dplay_welcome_seen");
+    if (!seen) {
+      setShowWelcome(true);
+      sessionStorage.setItem("dplay_welcome_seen", "1");
+      const t = setTimeout(() => setShowWelcome(false), 2200);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const [projectsRes, salesRes, teamRes] = await Promise.all([
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      const monthKey = monthStart.toISOString().slice(0, 10);
+      const [projectsRes, salesRes, teamRes, expRes] = await Promise.all([
         supabase.from("projects").select("status"),
         supabase.from("sales").select("valor, data, status"),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("ativo", true),
+        isAdmin
+          ? supabase.from("expenses").select("valor").gte("data", monthKey)
+          : Promise.resolve({ data: [] as { valor: number }[] } as const),
       ]);
+      if (!alive) return;
       const rows = projectsRes.data ?? [];
       setProjectStats({
         total: rows.length,
@@ -77,16 +104,23 @@ function DashboardPage() {
       });
       setSales((salesRes.data ?? []) as { valor: number; data: string; status: string }[]);
       setTeamCount(teamRes.count ?? 0);
+      const eList = (expRes.data ?? []) as { valor: number }[];
+      setExpensesMes(eList.reduce((a, e) => a + Number(e.valor), 0));
+      setLoading(false);
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [isAdmin]);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthKey = monthStart.toISOString().slice(0, 10);
   const salesMes = sales.filter((s) => s.data >= monthKey && s.status !== "cancelado");
   const receitaMes = salesMes.reduce((a, s) => a + Number(s.valor), 0);
+  const lucroMes = receitaMes - expensesMes;
 
-  const kpis = [
+  const baseKpis = [
     {
       key: "receita",
       label: isAdmin ? "Receita do mês" : "Sua receita no mês",
@@ -117,16 +151,72 @@ function DashboardPage() {
       hint: "Ativos no CRM",
     },
   ];
+  const kpis = isAdmin
+    ? [
+        baseKpis[0],
+        {
+          key: "lucro",
+          label: "Lucro do mês",
+          value: brl(lucroMes),
+          icon: PiggyBank,
+          hint:
+            receitaMes === 0
+              ? "Sem receita ainda"
+              : `${((lucroMes / receitaMes) * 100).toFixed(1)}% de margem`,
+        },
+        baseKpis[1],
+        baseKpis[2],
+        baseKpis[3],
+      ]
+    : baseKpis;
 
   const chartData = useMemo(() => buildChart(sales, period), [sales, period]);
 
   return (
-    <div className="space-y-8">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+    <>
+      <AnimatePresence>
+        {showWelcome && (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-background/70 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -10 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="text-center"
+            >
+              <p className="text-xs uppercase tracking-[0.3em] text-primary/80">DPlay Solutions</p>
+              <h1 className="mt-3 bg-gradient-to-br from-white via-white to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
+                Bem-vindo, {firstName}
+              </h1>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+    <motion.div
+      className="space-y-8"
+      initial="hidden"
+      animate="show"
+      variants={{
+        hidden: {},
+        show: { transition: { staggerChildren: 0.06, delayChildren: showWelcome ? 0.6 : 0 } },
+      }}
+    >
+      <motion.header
+        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"
+      >
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Visão geral</p>
           <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight">
-            Olá, {user.email?.split("@")[0]} 👋
+            Olá, {firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
@@ -137,10 +227,26 @@ function DashboardPage() {
         <span className="shrink-0 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
           {isAdmin ? "Administrador" : "Colaborador"}
         </span>
-      </header>
+      </motion.header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((k) => (
+      <motion.div
+        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+        className={cn(
+          "grid gap-4 sm:grid-cols-2",
+          isAdmin ? "xl:grid-cols-5" : "xl:grid-cols-4",
+        )}
+      >
+        {loading
+          ? Array.from({ length: isAdmin ? 5 : 4 }).map((_, i) => (
+              <Card key={i} className="rounded-2xl border-border/50 bg-card/40 backdrop-blur-xl">
+                <CardContent className="p-6">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="mt-4 h-8 w-32" />
+                  <Skeleton className="mt-4 h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))
+          : kpis.map((k) => (
           <Card
             key={k.key}
             className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition hover:border-primary/40"
@@ -163,8 +269,9 @@ function DashboardPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </motion.div>
 
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}>
       <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -198,6 +305,9 @@ function DashboardPage() {
           </div>
 
           <div className="mt-6 h-72 w-full">
+            {loading ? (
+              <Skeleton className="h-full w-full rounded-xl" />
+            ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                 <defs>
@@ -239,9 +349,12 @@ function DashboardPage() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
-    </div>
+      </motion.div>
+    </motion.div>
+    </>
   );
 }
