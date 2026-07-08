@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -320,8 +320,3 @@ function normalizeMessage(row: unknown): RaniMessage {
     created_at: r.created_at,
   };
 }
-
-// Kept to silence unused imports if type-narrowing lint flags them.
-export type __UnusedRaniTypes = { m: RaniMessage; a: RaniAttachment; t: RaniThread };
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const __unusedMemo = useMemo;

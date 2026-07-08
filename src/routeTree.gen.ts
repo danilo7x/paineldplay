@@ -23,6 +23,7 @@ import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authentica
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
 import { Route as AuthenticatedRaniIndexRouteImport } from './routes/_authenticated.rani.index'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
+import { Route as AuthenticatedRaniThreadIdRouteImport } from './routes/_authenticated.rani.$threadId'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -96,6 +97,12 @@ const AuthenticatedProjetosIndexRoute =
     path: '/projetos/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRaniThreadIdRoute =
+  AuthenticatedRaniThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => AuthenticatedRaniRoute,
+  } as any)
 const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   id: '/projetos/$id',
   path: '/projetos/$id',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/rani': typeof AuthenticatedRaniRouteWithChildren
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/rani/': typeof AuthenticatedRaniIndexRoute
 }
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/projetos': typeof AuthenticatedProjetosIndexRoute
   '/rani': typeof AuthenticatedRaniIndexRoute
 }
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/rani': typeof AuthenticatedRaniRouteWithChildren
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/_authenticated/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/_authenticated/projetos/': typeof AuthenticatedProjetosIndexRoute
   '/_authenticated/rani/': typeof AuthenticatedRaniIndexRoute
 }
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/rani'
     | '/projetos/$id'
+    | '/rani/$threadId'
     | '/projetos/'
     | '/rani/'
   fileRoutesByTo: FileRoutesByTo
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/notas'
     | '/perfil'
     | '/projetos/$id'
+    | '/rani/$threadId'
     | '/projetos'
     | '/rani'
   id:
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/rani'
     | '/_authenticated/projetos/$id'
+    | '/_authenticated/rani/$threadId'
     | '/_authenticated/projetos/'
     | '/_authenticated/rani/'
   fileRoutesById: FileRoutesById
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/rani/$threadId': {
+      id: '/_authenticated/rani/$threadId'
+      path: '/$threadId'
+      fullPath: '/rani/$threadId'
+      preLoaderRoute: typeof AuthenticatedRaniThreadIdRouteImport
+      parentRoute: typeof AuthenticatedRaniRoute
+    }
     '/_authenticated/projetos/$id': {
       id: '/_authenticated/projetos/$id'
       path: '/projetos/$id'
@@ -318,10 +338,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRaniRouteChildren {
+  AuthenticatedRaniThreadIdRoute: typeof AuthenticatedRaniThreadIdRoute
   AuthenticatedRaniIndexRoute: typeof AuthenticatedRaniIndexRoute
 }
 
 const AuthenticatedRaniRouteChildren: AuthenticatedRaniRouteChildren = {
+  AuthenticatedRaniThreadIdRoute: AuthenticatedRaniThreadIdRoute,
   AuthenticatedRaniIndexRoute: AuthenticatedRaniIndexRoute,
 }
 
