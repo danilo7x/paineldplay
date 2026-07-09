@@ -1,9 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, DollarSign, FolderKanban, PiggyBank, TrendingUp, Users } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  DollarSign,
+  FolderKanban,
+  Megaphone,
+  PiggyBank,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/lib/profile-context";
 import {
@@ -68,6 +80,23 @@ function DashboardPage() {
   const [teamCount, setTeamCount] = useState(0);
   const [sales, setSales] = useState<{ valor: number; data: string; status: string }[]>([]);
   const [expensesMes, setExpensesMes] = useState(0);
+  const [projectsList, setProjectsList] = useState<
+    { id: string; nome: string; cliente: string | null; status: string; updated_at: string }[]
+  >([]);
+  const [activities, setActivities] = useState<
+    {
+      id: string;
+      acao: string;
+      entity_type: string;
+      entity_name: string | null;
+      created_at: string;
+      actor_id: string | null;
+    }[]
+  >([]);
+  const [actorMap, setActorMap] = useState<Record<string, string>>({});
+  const [recentNotices, setRecentNotices] = useState<
+    { id: string; titulo: string; created_at: string; prioridade: string; critico: boolean }[]
+  >([]);
   const [showWelcome, setShowWelcome] = useState(() => {
     if (typeof window === "undefined") return false;
     return !sessionStorage.getItem("dplay_welcome_seen");
@@ -87,24 +116,61 @@ function DashboardPage() {
       const monthStart = new Date();
       monthStart.setDate(1);
       const monthKey = monthStart.toISOString().slice(0, 10);
-      const [projectsRes, salesRes, teamRes, expRes] = await Promise.all([
-        supabase.from("projects").select("status"),
+      const [projectsRes, salesRes, teamRes, expRes, actRes, notRes] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("id, nome, cliente, status, updated_at")
+          .order("updated_at", { ascending: false }),
         supabase.from("sales").select("valor, data, status"),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("ativo", true),
         isFinance
           ? supabase.from("expenses").select("valor").gte("data", monthKey)
           : Promise.resolve({ data: [] as { valor: number }[] } as const),
+        supabase
+          .from("activity_logs")
+          .select("id, acao, entity_type, entity_name, created_at, actor_id")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("notices")
+          .select("id, titulo, created_at, prioridade, critico")
+          .order("created_at", { ascending: false })
+          .limit(4),
       ]);
       if (!alive) return;
-      const rows = projectsRes.data ?? [];
+      const rows = (projectsRes.data ?? []) as {
+        id: string;
+        nome: string;
+        cliente: string | null;
+        status: string;
+        updated_at: string;
+      }[];
       setProjectStats({
         total: rows.length,
         ativos: rows.filter((r) => r.status !== "concluido" && r.status !== "pausado").length,
       });
+      setProjectsList(rows);
       setSales((salesRes.data ?? []) as { valor: number; data: string; status: string }[]);
       setTeamCount(teamRes.count ?? 0);
       const eList = (expRes.data ?? []) as { valor: number }[];
       setExpensesMes(eList.reduce((a, e) => a + Number(e.valor), 0));
+      const acts = (actRes.data ?? []) as typeof activities;
+      setActivities(acts);
+      setRecentNotices((notRes.data ?? []) as typeof recentNotices);
+      const actorIds = Array.from(
+        new Set(acts.map((a) => a.actor_id).filter(Boolean) as string[]),
+      );
+      if (actorIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome, email")
+          .in("id", actorIds);
+        const map: Record<string, string> = {};
+        (profs ?? []).forEach((p) => {
+          map[p.id] = p.nome ?? p.email ?? "Alguém";
+        });
+        if (alive) setActorMap(map);
+      }
       setLoading(false);
     })();
     return () => {
@@ -170,6 +236,14 @@ function DashboardPage() {
     : baseKpis;
 
   const chartData = useMemo(() => buildChart(sales, period), [sales, period]);
+
+  const attentionProjects = useMemo(
+    () =>
+      projectsList
+        .filter((p) => p.status === "em_manutencao" || p.status === "pausado")
+        .slice(0, 5),
+    [projectsList],
+  );
 
   return (
     <>
