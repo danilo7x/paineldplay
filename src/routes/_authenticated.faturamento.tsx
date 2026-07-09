@@ -24,6 +24,12 @@ import {
   Pause,
   Play,
   StopCircle,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  RefreshCw,
+  FileText,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
