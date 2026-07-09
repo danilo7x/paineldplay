@@ -734,11 +734,51 @@ function SaleDialog({
   const [data, setData] = useState(sale?.data ?? new Date().toISOString().slice(0, 10));
   const [obs, setObs] = useState(sale?.observacoes ?? "");
   const [loading, setLoading] = useState(false);
+  const canPickType = mode === "create";
+  const [tipo, setTipo] = useState<"avulsa" | "assinatura">("avulsa");
+  const [valorMensal, setValorMensal] = useState("");
+  const [diaCobranca, setDiaCobranca] = useState<string>(String(new Date().getDate()));
+  const [continua, setContinua] = useState(true);
+  const [duracao, setDuracao] = useState<string>("12");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!projectId) return toast.error("Selecione um projeto");
     setLoading(true);
+    const { data: sess } = await supabase.auth.getSession();
+
+    if (canPickType && tipo === "assinatura") {
+      const mensal = Number(String(valorMensal).replace(",", ".")) || 0;
+      if (mensal <= 0) {
+        setLoading(false);
+        return toast.error("Informe o valor mensal da assinatura.");
+      }
+      const dia = Math.min(31, Math.max(1, Number(diaCobranca) || 1));
+      const insertSub = await supabase.from("sale_subscriptions").insert({
+        project_id: projectId,
+        cliente_nome: nome,
+        cliente_email: email || null,
+        cliente_contato: contato || null,
+        valor_inicial: Number(String(valor).replace(",", ".")) || 0,
+        valor_mensal: mensal,
+        dia_cobranca: dia,
+        data_inicio: data,
+        duracao_meses: continua ? null : Math.max(1, Number(duracao) || 1),
+        status: "ativa",
+        observacoes: obs || null,
+        created_by: sess.session?.user.id,
+      });
+      if (insertSub.error) {
+        setLoading(false);
+        return toast.error("Erro ao criar assinatura", { description: insertSub.error.message });
+      }
+      await supabase.rpc("generate_recurrences");
+      setLoading(false);
+      toast.success("Assinatura criada");
+      onDone();
+      return;
+    }
+
     const payload = {
       project_id: projectId,
       cliente_nome: nome,
@@ -753,7 +793,6 @@ function SaleDialog({
     if (mode === "edit" && sale) {
       ({ error } = await supabase.from("sales").update(payload).eq("id", sale.id));
     } else {
-      const { data: sess } = await supabase.auth.getSession();
       ({ error } = await supabase
         .from("sales")
         .insert({ ...payload, created_by: sess.session?.user.id }));
@@ -770,6 +809,25 @@ function SaleDialog({
         <DialogTitle>{mode === "edit" ? "Editar venda" : "Nova venda"}</DialogTitle>
       </DialogHeader>
       <form onSubmit={submit} className="space-y-4">
+        {canPickType && (
+          <div className="inline-flex rounded-full border border-border/50 bg-card/60 p-1">
+            {(["avulsa", "assinatura"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTipo(t)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition",
+                  tipo === t
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t === "avulsa" ? "Avulsa" : "Assinatura"}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label>Projeto</Label>
           <Select value={projectId} onValueChange={setProjectId}>
@@ -791,13 +849,16 @@ function SaleDialog({
             <Input id="s-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="s-valor">Valor (R$)</Label>
+            <Label htmlFor="s-valor">
+              {tipo === "assinatura" ? "Valor inicial (R$)" : "Valor (R$)"}
+            </Label>
             <Input
               id="s-valor"
               inputMode="decimal"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
-              required
+              required={tipo === "avulsa"}
+              placeholder={tipo === "assinatura" ? "0,00 (opcional)" : ""}
             />
           </div>
           <div className="space-y-1.5">
@@ -813,6 +874,8 @@ function SaleDialog({
             <Label htmlFor="s-contato">Contato</Label>
             <Input id="s-contato" value={contato ?? ""} onChange={(e) => setContato(e.target.value)} />
           </div>
+          {tipo === "avulsa" && (
+            <>
           <div className="space-y-1.5">
             <Label>Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as SaleStatus)}>
@@ -836,6 +899,61 @@ function SaleDialog({
               required
             />
           </div>
+            </>
+          )}
+          {tipo === "assinatura" && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="s-mensal">Valor mensal (R$)</Label>
+                <Input
+                  id="s-mensal"
+                  inputMode="decimal"
+                  value={valorMensal}
+                  onChange={(e) => setValorMensal(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="s-dia">Dia da cobrança</Label>
+                <Input
+                  id="s-dia"
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={diaCobranca}
+                  onChange={(e) => setDiaCobranca(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="s-inicio">Início</Label>
+                <Input
+                  id="s-inicio"
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Duração</Label>
+                <div className="flex items-center gap-2 h-10">
+                  <Switch checked={continua} onCheckedChange={setContinua} />
+                  <span className="text-xs text-muted-foreground">Contínua</span>
+                  {!continua && (
+                    <Input
+                      type="number"
+                      min={1}
+                      value={duracao}
+                      onChange={(e) => setDuracao(e.target.value)}
+                      className="ml-auto w-20"
+                    />
+                  )}
+                  {!continua && <span className="text-xs text-muted-foreground">meses</span>}
+                </div>
+              </div>
+            </>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="s-obs">Observações</Label>
@@ -844,11 +962,112 @@ function SaleDialog({
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
-            {mode === "edit" ? "Salvar alterações" : "Registrar venda"}
+            {mode === "edit"
+              ? "Salvar alterações"
+              : tipo === "assinatura"
+                ? "Criar assinatura"
+                : "Registrar venda"}
           </Button>
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+function SubscriptionsCard({
+  subscriptions,
+  projectMap,
+  onChanged,
+}: {
+  subscriptions: Subscription[];
+  projectMap: Map<string, ProjectLite>;
+  onChanged: () => void;
+}) {
+  const active = subscriptions.filter((s) => s.status !== "encerrada");
+
+  async function setStatus(id: string, status: Subscription["status"]) {
+    const { error } = await supabase.from("sale_subscriptions").update({ status }).eq("id", id);
+    if (error) return toast.error("Erro ao atualizar", { description: error.message });
+    toast.success(
+      status === "pausada" ? "Assinatura pausada" : status === "ativa" ? "Assinatura retomada" : "Assinatura encerrada",
+    );
+    if (status === "ativa") await supabase.rpc("generate_recurrences");
+    onChanged();
+  }
+
+  return (
+    <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <CardContent className="space-y-3 p-5">
+        <div className="flex items-center gap-2">
+          <Repeat className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Assinaturas
+          </h2>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {active.length} ativa{active.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          {active.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/40 p-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{s.cliente_nome}</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {projectMap.get(s.project_id)?.nome ?? "—"} · {brl(Number(s.valor_mensal))}/mês · dia {s.dia_cobranca}
+                  {s.duracao_meses ? ` · ${s.duracao_meses} meses` : " · contínua"}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  s.status === "ativa"
+                    ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                    : "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
+                )}
+              >
+                {s.status}
+              </span>
+              {s.status === "ativa" ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  title="Pausar"
+                  onClick={() => setStatus(s.id, "pausada")}
+                >
+                  <Pause className="size-3.5" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  title="Retomar"
+                  onClick={() => setStatus(s.id, "ativa")}
+                >
+                  <Play className="size-3.5" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-rose-300 hover:text-rose-200"
+                title="Encerrar"
+                onClick={() => {
+                  if (confirm("Encerrar esta assinatura? Vendas já geradas serão mantidas."))
+                    setStatus(s.id, "encerrada");
+                }}
+              >
+                <StopCircle className="size-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
