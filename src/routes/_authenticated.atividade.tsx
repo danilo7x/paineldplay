@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -277,16 +277,36 @@ function AtividadePage() {
                     const initials = (name ?? "?").slice(0, 2).toUpperCase();
                     return (
                       <li key={a.id} className="flex items-start gap-3 p-4">
-                        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-medium text-primary">
-                          {p?.avatar_url ? (
-                            <img src={p.avatar_url} alt="" className="size-9 rounded-full object-cover" />
-                          ) : (
-                            initials
-                          )}
-                        </div>
+                        {a.actor_id ? (
+                          <Link
+                            to="/membros/$id"
+                            params={{ id: a.actor_id }}
+                            className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-medium text-primary hover:opacity-90"
+                          >
+                            {p?.avatar_url ? (
+                              <img src={p.avatar_url} alt="" className="size-9 rounded-full object-cover" />
+                            ) : (
+                              initials
+                            )}
+                          </Link>
+                        ) : (
+                          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-xs font-medium text-primary">
+                            {initials}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm">
-                            <span className="font-medium">{name}</span>{" "}
+                            {a.actor_id ? (
+                              <Link
+                                to="/membros/$id"
+                                params={{ id: a.actor_id }}
+                                className="font-medium hover:underline"
+                              >
+                                {name}
+                              </Link>
+                            ) : (
+                              <span className="font-medium">{name}</span>
+                            )}{" "}
                             <span className="text-muted-foreground">
                               {ACTION_LABEL[a.acao] ?? a.acao}
                             </span>{" "}
