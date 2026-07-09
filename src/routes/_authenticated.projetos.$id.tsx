@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ConfirmPasswordDialog } from "@/components/ConfirmPasswordDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,7 +80,9 @@ export const Route = createFileRoute("/_authenticated/projetos/$id")({
 function ProjectDetail() {
   const { id } = Route.useParams();
   const { user, isAdmin } = Route.useRouteContext();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -151,6 +154,17 @@ function ProjectDetail() {
     if (error) return toast.error("Erro ao atualizar", { description: error.message });
     setProject({ ...project, status: newStatus });
     toast.success("Status atualizado");
+  }
+
+  async function handleDeleteProject() {
+    if (!project) return;
+    const { error } = await supabase.rpc("admin_delete_project", { _project_id: project.id });
+    if (error) {
+      toast.error("Não foi possível apagar", { description: error.message });
+      return;
+    }
+    toast.success("Projeto apagado");
+    navigate({ to: "/projetos" });
   }
 
   if (loading) {
