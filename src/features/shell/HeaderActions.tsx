@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Bell, LogOut, Settings, UserRound } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCheck,
+  LogIn,
+  LogOut,
+  Megaphone,
+  Settings,
+  ShoppingCart,
+  UserPlus,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -18,46 +29,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Priority = "info" | "alerta" | "urgente";
-type NoticeItem = {
+type NotificationItem = {
   id: string;
+  tipo: string;
   titulo: string;
+  link: string | null;
+  lida_em: string | null;
   created_at: string;
-  prioridade: Priority;
-  critico: boolean;
 };
 
-const PRIORITY_DOT: Record<Priority, string> = {
-  info: "bg-sky-400",
-  alerta: "bg-amber-400",
-  urgente: "bg-rose-400",
-};
+function iconFor(tipo: string) {
+  switch (tipo) {
+    case "aviso_critico":
+      return <AlertTriangle className="size-3.5 text-rose-300" />;
+    case "aviso":
+      return <Megaphone className="size-3.5 text-sky-300" />;
+    case "novo_login":
+      return <LogIn className="size-3.5 text-amber-300" />;
+    case "projeto_membro":
+      return <UserPlus className="size-3.5 text-emerald-300" />;
+    case "venda":
+      return <ShoppingCart className="size-3.5 text-primary" />;
+    default:
+      return <Bell className="size-3.5 text-muted-foreground" />;
+  }
+}
 
 export function HeaderActions() {
   const { user, isAdmin } = AuthRoute.useRouteContext();
   const { profile, firstName, initials } = useProfile();
   const navigate = useNavigate();
-  const [notices, setNotices] = useState<NoticeItem[]>([]);
-  const [unread, setUnread] = useState(0);
+  const [items, setItems] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     let alive = true;
     async function load() {
-      const [nRes, rRes] = await Promise.all([
-        supabase
-          .from("notices")
-          .select("id, titulo, created_at, prioridade, critico")
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("notice_reads")
-          .select("id", { head: true, count: "exact" })
-          .eq("user_id", user.id),
-      ]);
+      const { data } = await supabase
+        .from("notifications")
+        .select("id, tipo, titulo, link, lida_em, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (!alive) return;
-      const list = (nRes.data ?? []) as NoticeItem[];
-      setNotices(list);
-      setUnread(Math.max(0, list.length - (rRes.count ?? 0)));
+      setItems((data ?? []) as NotificationItem[]);
     }
     void load();
     const t = setInterval(load, 60_000);
@@ -69,6 +83,25 @@ export function HeaderActions() {
       window.removeEventListener("focus", onFocus);
     };
   }, [user.id]);
+
+  const unread = items.filter((i) => !i.lida_em).length;
+
+  async function markAllRead() {
+    const ids = items.filter((i) => !i.lida_em).map((i) => i.id);
+    if (ids.length === 0) return;
+    const now = new Date().toISOString();
+    setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, lida_em: now } : i)));
+    await supabase.from("notifications").update({ lida_em: now }).in("id", ids);
+  }
+
+  async function handleClick(n: NotificationItem) {
+    if (!n.lida_em) {
+      const now = new Date().toISOString();
+      setItems((prev) => prev.map((i) => (i.id === n.id ? { ...i, lida_em: now } : i)));
+      await supabase.from("notifications").update({ lida_em: now }).eq("id", n.id);
+    }
+    if (n.link) navigate({ to: n.link });
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -96,38 +129,53 @@ export function HeaderActions() {
         <DropdownMenuContent align="end" className="w-80">
           <DropdownMenuLabel className="flex items-center justify-between">
             <span>Notificações</span>
-            {unread > 0 && (
-              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
-                {unread} nova{unread > 1 ? "s" : ""}
-              </span>
+            {unread > 0 ? (
+              <button
+                type="button"
+                onClick={markAllRead}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary transition hover:bg-primary/25"
+              >
+                <CheckCheck className="size-3" /> Marcar todas
+              </button>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">Tudo em dia</span>
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {notices.length === 0 ? (
-            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-              Sem notificações no momento.
+          {items.length === 0 ? (
+            <div className="px-3 py-8 text-center text-xs text-muted-foreground">
+              <Bell className="mx-auto mb-2 size-5 opacity-40" />
+              Nada por aqui ainda.
             </div>
           ) : (
-            <div className="max-h-72 overflow-y-auto">
-              {notices.slice(0, 6).map((n) => (
-                <Link
+            <div className="max-h-80 overflow-y-auto">
+              {items.slice(0, 10).map((n) => (
+                <button
                   key={n.id}
-                  to="/avisos"
-                  className="block px-3 py-2 text-sm transition hover:bg-accent/60"
+                  type="button"
+                  onClick={() => handleClick(n)}
+                  className={`flex w-full items-start gap-2 px-3 py-2 text-left text-sm transition hover:bg-accent/60 ${
+                    n.lida_em ? "opacity-70" : "bg-primary/5"
+                  }`}
                 >
-                  <p className="flex items-center gap-2 font-medium">
-                    <span className={`size-1.5 rounded-full ${PRIORITY_DOT[n.prioridade] ?? PRIORITY_DOT.info}`} />
-                    <span className="line-clamp-1">{n.titulo}</span>
-                    {n.critico && (
-                      <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-rose-300">
-                        crítico
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
-                  </p>
-                </Link>
+                  <span className="mt-0.5 grid size-6 place-items-center rounded-full bg-card/60">
+                    {iconFor(n.tipo)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      {!n.lida_em && (
+                        <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                      )}
+                      <span className="line-clamp-2 font-medium">{n.titulo}</span>
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                      {formatDistanceToNow(new Date(n.created_at), {
+                        addSuffix: true,
+                        locale: ptBR,
+                      })}
+                    </span>
+                  </span>
+                </button>
               ))}
             </div>
           )}
