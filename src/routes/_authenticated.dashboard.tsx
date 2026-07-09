@@ -335,7 +335,7 @@ function DashboardPage() {
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     {k.label}
                   </p>
-                  <p className="mt-3 text-3xl font-semibold tracking-tight">{k.value}</p>
+                  <p className={cn("mt-3 text-3xl font-semibold tracking-tight", (k as { accent?: string }).accent)}>{k.value}</p>
                 </div>
                 <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
                   <k.icon className="size-4" />
