@@ -60,11 +60,13 @@ export const Route = createFileRoute("/api/rani/chat")({
         const userId = claims.claims.sub as string;
 
         // Discover role via RPC (respects RLS; uses user's token)
-        const { data: isAdminRes } = await supabase.rpc("has_role", {
-          _user_id: userId,
-          _role: "admin",
-        });
+        const [{ data: isAdminRes }, { data: isContadorRes }] = await Promise.all([
+          supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+          supabase.rpc("has_role", { _user_id: userId, _role: "contador" }),
+        ]);
         const isAdmin = isAdminRes === true;
+        const isContador = isContadorRes === true;
+        const isFinance = isAdmin || isContador;
 
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) return new Response("messages required", { status: 400 });
