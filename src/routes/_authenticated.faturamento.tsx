@@ -987,6 +987,22 @@ function SaleDialog({
           <Label htmlFor="s-obs">Observações</Label>
           <Textarea id="s-obs" rows={3} value={obs ?? ""} onChange={(e) => setObs(e.target.value)} />
         </div>
+        {tipo === "avulsa" && (
+          <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+            <div className="flex items-center gap-3">
+              <Switch id="s-nf" checked={nfEmitida} onCheckedChange={setNfEmitida} />
+              <Label htmlFor="s-nf" className="cursor-pointer text-sm">Nota fiscal emitida</Label>
+              {nfEmitida && (
+                <Input
+                  placeholder="Número da NF"
+                  value={nfNumero}
+                  onChange={(e) => setNfNumero(e.target.value)}
+                  className="ml-auto h-9 max-w-[180px]"
+                />
+              )}
+            </div>
+          </div>
+        )}
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
