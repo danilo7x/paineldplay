@@ -355,6 +355,16 @@ function ProjectDetail() {
           </TabsContent>
         )}
       </Tabs>
+
+      <ConfirmPasswordDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Apagar projeto"
+        description={`Confirme sua senha para apagar "${project.nome}". Todas as etapas, notas, credenciais e vínculos serão removidos. Vendas e despesas ficarão desvinculadas.`}
+        confirmLabel="Apagar projeto"
+        danger
+        onConfirmed={handleDeleteProject}
+      />
     </div>
   );
 }
