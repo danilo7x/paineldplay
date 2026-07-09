@@ -43,6 +43,51 @@ const brl = (n: number) => {
   return n < 0 ? `-${abs}` : abs;
 };
 
+const ENTITY_LABEL: Record<string, string> = {
+  membro: "membro",
+  venda: "venda",
+  despesa: "despesa",
+  projeto: "projeto",
+  cliente: "cliente",
+  etapa: "etapa",
+  aviso: "aviso",
+  arquivo: "arquivo",
+  nota: "nota",
+  assinatura: "assinatura",
+  usuario: "usuário",
+  perfil: "perfil",
+};
+
+function friendlyAction(acao: string, entity: string): string {
+  const ent = ENTITY_LABEL[entity] ?? entity;
+  const key = acao.toLowerCase();
+  const [verb, ...rest] = key.split("_");
+  const target = rest.join(" ");
+  // If the action already mentions the entity (e.g. "adicionou_membro"), don't repeat it.
+  if (target && (target === entity || target === ent)) {
+    return `${verb} ${ent}`;
+  }
+  const verbs: Record<string, string> = {
+    criou: "criou",
+    adicionou: "adicionou",
+    atualizou: "atualizou",
+    editou: "editou",
+    removeu: "removeu",
+    excluiu: "excluiu",
+    deletou: "excluiu",
+    ativou: "ativou",
+    desativou: "desativou",
+    pausou: "pausou",
+    encerrou: "encerrou",
+    convidou: "convidou",
+    enviou: "enviou",
+    marcou: "marcou",
+    concluiu: "concluiu",
+  };
+  const v = verbs[verb] ?? verb.replace(/-/g, " ");
+  return target ? `${v} ${target}` : `${v} ${ent}`;
+}
+
 function buildChart(
   sales: { valor: number; data: string; status: string }[],
   period: Period,
