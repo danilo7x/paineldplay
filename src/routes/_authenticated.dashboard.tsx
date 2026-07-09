@@ -289,7 +289,7 @@ function DashboardPage() {
     >
       <motion.header
         variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-        className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"
+        className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
       >
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Visão geral</p>

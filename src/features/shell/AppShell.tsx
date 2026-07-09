@@ -26,17 +26,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           }}
         />
         <AppSidebar />
-        <div className="relative z-10 flex flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border/40 bg-background/60 px-3 backdrop-blur-xl sm:gap-3 sm:px-4">
-            <SidebarTrigger />
-            <div className="hidden max-w-sm flex-1 md:block">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 flex h-14 min-w-0 items-center gap-1.5 border-b border-border/40 bg-background/60 px-2 backdrop-blur-xl sm:gap-3 sm:px-4">
+            <SidebarTrigger className="shrink-0" />
+            <div className="hidden min-w-0 max-w-sm flex-1 md:block">
               <GlobalSearchTrigger />
             </div>
             <HeaderActions />
             <GlobalSearch />
           </header>
-          <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <main className="min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-8">
+            <div className="mx-auto w-full min-w-0 max-w-7xl">{children}</div>
           </main>
         </div>
       </div>

@@ -125,7 +125,7 @@ function ArquivosPage() {
 
   return (
     <div className="space-y-6">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+      <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Pessoal</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">Meus arquivos</h1>
