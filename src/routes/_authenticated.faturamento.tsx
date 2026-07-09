@@ -516,6 +516,11 @@ function FaturamentoPage() {
                           {s.cliente_email && (
                             <div className="text-xs text-muted-foreground">{s.cliente_email}</div>
                           )}
+                          {s.subscription_id && (
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/20">
+                              <Repeat className="size-3" /> Assinatura
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {proj?.nome ?? "—"}
