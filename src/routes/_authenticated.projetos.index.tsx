@@ -235,19 +235,30 @@ function ProjetosIndex() {
 
 function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
   const [nome, setNome] = useState("");
-  const [cliente, setCliente] = useState("");
+  const [clientId, setClientId] = useState<string>("");
+  const [clients, setClients] = useState<Array<{ id: string; nome: string }>>([]);
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("em_desenvolvimento");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("clients")
+      .select("id, nome")
+      .order("nome")
+      .then(({ data }) => setClients((data ?? []) as Array<{ id: string; nome: string }>));
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const { data: sess } = await supabase.auth.getSession();
     const userId = sess.session?.user.id;
+    const chosen = clients.find((c) => c.id === clientId);
     const { error } = await supabase.from("projects").insert({
       nome,
-      cliente: cliente || null,
+      cliente: chosen?.nome ?? null,
+      client_id: clientId || null,
       descricao: descricao || null,
       status,
       created_by: userId,
@@ -260,7 +271,7 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
     toast.success("Projeto criado");
     onCreated();
     setNome("");
-    setCliente("");
+    setClientId("");
     setDescricao("");
     setStatus("em_desenvolvimento");
   }
@@ -277,7 +288,17 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="p-cliente">Cliente</Label>
-          <Input id="p-cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger id="p-cliente">
+              <SelectValue placeholder={clients.length ? "Selecione um cliente" : "Nenhum cliente cadastrado"} />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">Cadastre novos clientes em Clientes.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="p-desc">Descrição</Label>
