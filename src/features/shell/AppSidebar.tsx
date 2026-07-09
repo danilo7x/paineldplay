@@ -7,6 +7,7 @@ import {
   LineChart,
   Banknote,
   Users,
+  Contact,
   FolderLock,
   StickyNote,
   Megaphone,
@@ -48,6 +49,7 @@ const workspace: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
+  { title: "Clientes", url: "/clientes", icon: Contact },
   { title: "Analytics", url: "/analytics", icon: LineChart },
 ];
 
