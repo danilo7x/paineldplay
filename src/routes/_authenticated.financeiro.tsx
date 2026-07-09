@@ -395,6 +395,50 @@ function FinanceiroPage() {
       </div>
 
       <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <CardContent className="p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Reservas sobre a receita
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight">
+                Provisões de imposto e caixa
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cálculo automático a partir da receita bruta do período selecionado.
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Sobra líquida sugerida</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-emerald-300">
+                {brl(receitaTotal * (1 - TAX_RATE - RESERVE_RATE))}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-amber-200/80">
+                Imposto ({(TAX_RATE * 100).toFixed(0)}%)
+              </p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-amber-200">
+                {brl(receitaTotal * TAX_RATE)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Provisão para tributos.</p>
+            </div>
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-sky-200/80">
+                Reserva de caixa ({(RESERVE_RATE * 100).toFixed(0)}%)
+              </p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-sky-200">
+                {brl(receitaTotal * RESERVE_RATE)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Fundo estratégico da operação.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
         <CardContent className="space-y-5 p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
