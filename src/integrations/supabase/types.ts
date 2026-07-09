@@ -118,6 +118,47 @@ export type Database = {
         }
         Relationships: []
       }
+      notice_attachments: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          notice_id: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          notice_id: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          notice_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notice_attachments_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "notices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notice_reads: {
         Row: {
           id: string
@@ -151,22 +192,28 @@ export type Database = {
         Row: {
           autor_id: string | null
           created_at: string
+          critico: boolean
           id: string
           mensagem: string
+          prioridade: string
           titulo: string
         }
         Insert: {
           autor_id?: string | null
           created_at?: string
+          critico?: boolean
           id?: string
           mensagem: string
+          prioridade?: string
           titulo: string
         }
         Update: {
           autor_id?: string | null
           created_at?: string
+          critico?: boolean
           id?: string
           mensagem?: string
+          prioridade?: string
           titulo?: string
         }
         Relationships: []
