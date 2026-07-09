@@ -220,6 +220,17 @@ function AtividadePage() {
                 <SelectItem value="365">Último ano</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="h-9 w-[160px] rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Toda severidade</SelectItem>
+                <SelectItem value="critical">Crítico</SelectItem>
+                <SelectItem value="warn">Atenção</SelectItem>
+                <SelectItem value="info">Info</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Card className="rounded-2xl">
@@ -256,6 +267,14 @@ function AtividadePage() {
                             </Badge>{" "}
                             <span className="font-medium">{a.entity_name ?? ""}</span>
                           </p>
+                          {a.severity && a.severity !== "info" && (
+                            <Badge
+                              variant="outline"
+                              className={`mt-1 rounded-full border text-[10px] ${SEVERITY_META[a.severity]?.className ?? ""}`}
+                            >
+                              {SEVERITY_META[a.severity]?.label ?? a.severity}
+                            </Badge>
+                          )}
                           {a.details && (
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {typeof a.details === "object"
