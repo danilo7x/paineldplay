@@ -45,11 +45,13 @@ Deno.serve(async (req) => {
       email?: string;
       nome?: string;
       cargo?: string;
-      role?: "admin" | "staff";
+      role?: "admin" | "staff" | "contador";
       password?: string;
     };
     if (!email || !nome || !role) return json({ error: "Campos obrigatórios: email, nome, role" }, 400);
-    if (role !== "admin" && role !== "staff") return json({ error: "role inválido" }, 400);
+    if (role !== "admin" && role !== "staff" && role !== "contador") {
+      return json({ error: "role inválido" }, 400);
+    }
     if (password && password.length < 8) return json({ error: "Senha deve ter no mínimo 8 caracteres" }, 400);
 
     const admin = createClient(url, serviceKey);
