@@ -176,7 +176,146 @@ function EquipePage() {
         </Button>
       </header>
 
-      <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/50 backdrop-blur">
+      {/* Mobile: cards empilhados */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className="rounded-xl border border-border/50 bg-card/50 p-6 text-center text-muted-foreground">
+            <Loader2 className="mx-auto size-4 animate-spin" />
+          </div>
+        ) : members.length === 0 ? (
+          <div className="rounded-xl border border-border/50 bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Nenhum colaborador ainda.
+          </div>
+        ) : (
+          members.map((m) => {
+            const isSelf = m.id === user.id;
+            const last = lastAccess[m.id];
+            return (
+              <div
+                key={m.id}
+                className="rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <Avatar className="size-10 shrink-0">
+                    <AvatarImage src={m.avatar_url ?? undefined} alt={m.nome ?? ""} />
+                    <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
+                      {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {m.nome ?? "—"}
+                      {isSelf && (
+                        <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                          você
+                        </span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8 shrink-0">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Papel</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        disabled={m.role === "admin"}
+                        onClick={() => changeRole(m, "admin")}
+                      >
+                        Tornar admin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={m.role === "staff"}
+                        onClick={() => changeRole(m, "staff")}
+                      >
+                        Tornar colaborador
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={m.role === "contador"}
+                        onClick={() => changeRole(m, "contador")}
+                      >
+                        Tornar contadora
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={isSelf}
+                        onClick={() => toggleAtivo(m, !m.ativo)}
+                      >
+                        {m.ativo ? "Desativar" : "Ativar"}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setResetMember(m)}>
+                        <KeyRound className="mr-2 size-4" /> Redefinir senha
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setResetMember(m)}>
+                        <MailPlus className="mr-2 size-4" /> Reenviar convite
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div className="min-w-0">
+                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Cargo
+                    </dt>
+                    <dd className="truncate text-foreground/90">{m.cargo ?? "—"}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Papel
+                    </dt>
+                    <dd>
+                      <Badge
+                        variant={m.role === "admin" ? "default" : "secondary"}
+                        className={
+                          m.role === "admin"
+                            ? "bg-primary/20 text-primary hover:bg-primary/30"
+                            : m.role === "contador"
+                              ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                              : ""
+                        }
+                      >
+                        {m.role ? ROLE_LABEL[m.role] : "—"}
+                      </Badge>
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Último acesso
+                    </dt>
+                    <dd className="truncate text-muted-foreground">
+                      {last
+                        ? formatDistanceToNow(new Date(last), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })
+                        : "Nunca"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Ativo
+                    </dt>
+                    <dd>
+                      <Switch
+                        checked={m.ativo}
+                        disabled={isSelf}
+                        onCheckedChange={(v) => toggleAtivo(m, v)}
+                      />
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop: tabela */}
+      <div className="hidden overflow-x-auto rounded-xl border border-border/50 bg-card/50 backdrop-blur md:block">
         <Table>
           <TableHeader>
             <TableRow>
