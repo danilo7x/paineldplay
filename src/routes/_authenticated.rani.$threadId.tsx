@@ -169,14 +169,27 @@ function RaniThreadPage() {
 
     let fullText = "";
     try {
-      const history = [
-        ...messages,
-        normalizeMessage(userInsert.data),
-      ].map((m) => ({
-        id: m.id,
-        role: m.role,
-        parts: [{ type: "text", text: m.content }],
-      }));
+      const allMessages = [...messages, normalizeMessage(userInsert.data)];
+      const history = await Promise.all(
+        allMessages.map(async (m) => {
+          const parts: Array<
+            | { type: "text"; text: string }
+            | { type: "file"; mediaType: string; url: string }
+          > = [];
+          if (m.content) parts.push({ type: "text", text: m.content });
+          for (const a of m.attachments) {
+            if (!a.mime?.startsWith("image/")) continue;
+            const { data } = await supabase.storage
+              .from("rani-attachments")
+              .createSignedUrl(a.path, 60 * 10);
+            if (data?.signedUrl) {
+              parts.push({ type: "file", mediaType: a.mime, url: data.signedUrl });
+            }
+          }
+          if (parts.length === 0) parts.push({ type: "text", text: "" });
+          return { id: m.id, role: m.role, parts };
+        }),
+      );
 
       const resp = await fetch("/api/rani/chat", {
         method: "POST",
