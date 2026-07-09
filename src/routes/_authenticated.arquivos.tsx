@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 type PF = {
   id: string;
@@ -267,21 +268,99 @@ function UploadDialog({ userId, onDone }: { userId: string; onDone: () => void }
   const [descricao, setDescricao] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+  const ALLOWED = [
+    "image/",
+    "video/",
+    "audio/",
+    "application/pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-rar-compressed",
+    "application/vnd.rar",
+    "application/x-7z-compressed",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/",
+  ];
+
+  function validateFile(f: File): string | null {
+    if (f.size > MAX_SIZE) {
+      return `Arquivo muito grande (${(f.size / 1024 / 1024).toFixed(1)} MB). Limite: 50 MB.`;
+    }
+    const type = f.type || "";
+    const ok = type && ALLOWED.some((p) => (p.endsWith("/") ? type.startsWith(p) : type === p));
+    if (!ok) {
+      return "Tipo de arquivo não permitido. Envie imagens, vídeos, áudios, PDFs, ZIP/RAR ou documentos Office.";
+    }
+    return null;
+  }
+
+  function pickFile(f: File | null) {
+    setFile(f);
+    setProgress(0);
+    if (!f) {
+      setFileError(null);
+      return;
+    }
+    const err = validateFile(f);
+    setFileError(err);
+    if (!titulo) setTitulo(f.name.replace(/\.[^/.]+$/, ""));
+  }
+
+  function uploadWithProgress(url: string, token: string, f: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("x-upsert", "false");
+      if (f.type) xhr.setRequestHeader("Content-Type", f.type);
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) setProgress(Math.round((evt.loaded / evt.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`Falha no upload (HTTP ${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error("Falha de rede durante o upload"));
+      xhr.onabort = () => reject(new Error("Upload cancelado"));
+      xhr.send(f);
+    });
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return toast.error("Selecione um arquivo");
+    const err = validateFile(file);
+    if (err) {
+      setFileError(err);
+      return toast.error(err);
+    }
     setLoading(true);
+    setProgress(0);
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${userId}/${Date.now()}-${safeName}`;
-    const up = await supabase.storage.from("personal-files").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || undefined,
-    });
-    if (up.error) {
+    const signed = await supabase.storage.from("personal-files").createSignedUploadUrl(path);
+    if (signed.error || !signed.data) {
       setLoading(false);
-      return toast.error("Falha no upload", { description: up.error.message });
+      return toast.error("Não foi possível iniciar o upload", {
+        description: signed.error?.message,
+      });
+    }
+    try {
+      await uploadWithProgress(signed.data.signedUrl, signed.data.token, file);
+    } catch (e) {
+      setLoading(false);
+      return toast.error("Falha no upload", {
+        description: e instanceof Error ? e.message : "Tente novamente",
+      });
     }
     const { error } = await supabase.from("personal_files").insert({
       owner_id: userId,
@@ -330,12 +409,27 @@ function UploadDialog({ userId, onDone }: { userId: string; onDone: () => void }
           <Input
             id="f-file"
             type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
             required
           />
+          {file && !fileError && (
+            <p className="text-xs text-muted-foreground">
+              {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+          )}
+          {fileError && <p className="text-xs text-rose-400">{fileError}</p>}
+          <p className="text-[10px] text-muted-foreground">
+            Até 50 MB. Imagens, vídeos, áudios, PDFs, ZIP/RAR ou Office.
+          </p>
         </div>
+        {loading && (
+          <div className="space-y-1">
+            <Progress value={progress} className="h-2" />
+            <p className="text-[10px] text-muted-foreground">Enviando… {progress}%</p>
+          </div>
+        )}
         <DialogFooter>
-          <Button type="submit" disabled={loading} className="w-full gap-2">
+          <Button type="submit" disabled={loading || !!fileError} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
             Enviar
           </Button>
