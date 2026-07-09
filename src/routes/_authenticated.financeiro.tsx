@@ -755,3 +755,273 @@ function ExpenseDialog({
     </DialogContent>
   );
 }
+
+function CategoryBadge({ cat, slug }: { cat: Category | undefined; slug: string }) {
+  const cor = cat?.cor ?? FALLBACK_COLOR;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+      style={{
+        background: `${cor}22`,
+        color: cor,
+        boxShadow: `inset 0 0 0 1px ${cor}55`,
+      }}
+    >
+      <span className="size-1.5 rounded-full" style={{ background: cor }} />
+      {cat?.nome ?? slug}
+    </span>
+  );
+}
+
+function GoalRow({
+  label,
+  real,
+  meta,
+  pct,
+  accent,
+  barClass,
+}: {
+  label: string;
+  real: number;
+  meta: number;
+  pct: number;
+  accent?: string;
+  barClass?: string;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border/50 bg-card/40 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className={cn("text-sm font-semibold", accent)}>{brl(real)}</span>
+      </div>
+      <Progress value={pct} className={cn("h-2", barClass && `[&>div]:${barClass}`)} />
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>Meta: {meta > 0 ? brl(meta) : "—"}</span>
+        <span>{meta > 0 ? `${pct.toFixed(0)}%` : "sem meta"}</span>
+      </div>
+    </div>
+  );
+}
+
+function CategoriesDialog({
+  categories,
+  onSaved,
+}: {
+  categories: Category[];
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [cor, setCor] = useState("#057EF3");
+  const [saving, setSaving] = useState(false);
+
+  function slugify(s: string) {
+    return s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || `cat_${Date.now()}`;
+  }
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nome.trim()) return;
+    setSaving(true);
+    const { data: sess } = await supabase.auth.getSession();
+    const { error } = await supabase.from("expense_categories").insert({
+      slug: slugify(nome),
+      nome: nome.trim(),
+      cor,
+      created_by: sess.session?.user.id,
+    });
+    setSaving(false);
+    if (error) return toast.error("Erro ao criar", { description: error.message });
+    toast.success("Categoria criada");
+    setNome("");
+    setCor("#057EF3");
+    onSaved();
+  }
+
+  async function updateCor(id: string, novaCor: string) {
+    const { error } = await supabase.from("expense_categories").update({ cor: novaCor }).eq("id", id);
+    if (error) return toast.error("Erro ao salvar cor", { description: error.message });
+    onSaved();
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Excluir esta categoria? Despesas existentes manterão o rótulo pelo slug.")) return;
+    const { error } = await supabase.from("expense_categories").delete().eq("id", id);
+    if (error) return toast.error("Erro ao excluir", { description: error.message });
+    toast.success("Categoria removida");
+    onSaved();
+  }
+
+  return (
+    <DialogContent className="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Categorias de despesa</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="rounded-xl border border-border/50">
+          {categories.length === 0 ? (
+            <p className="p-4 text-center text-xs text-muted-foreground">
+              Nenhuma categoria cadastrada.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/50">
+              {categories.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 p-3">
+                  <input
+                    type="color"
+                    value={c.cor}
+                    onChange={(e) => updateCor(c.id, e.target.value)}
+                    className="h-8 w-10 cursor-pointer rounded border border-border/50 bg-transparent"
+                    aria-label={`Cor de ${c.nome}`}
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{c.nome}</p>
+                    <p className="text-[10px] text-muted-foreground">{c.slug}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-rose-300 hover:text-rose-200"
+                    onClick={() => remove(c.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <form onSubmit={add} className="flex items-end gap-2">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="c-nome">Nova categoria</Label>
+            <Input
+              id="c-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex.: Assinaturas"
+            />
+          </div>
+          <input
+            type="color"
+            value={cor}
+            onChange={(e) => setCor(e.target.value)}
+            className="h-10 w-12 cursor-pointer rounded border border-border/50 bg-transparent"
+            aria-label="Cor da nova categoria"
+          />
+          <Button type="submit" disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+            Adicionar
+          </Button>
+        </form>
+      </div>
+    </DialogContent>
+  );
+}
+
+function GoalsDialog({
+  goals,
+  defaultMonth,
+  onSaved,
+}: {
+  goals: Goal[];
+  defaultMonth: string;
+  onSaved: () => void;
+}) {
+  const [mes, setMes] = useState(defaultMonth.slice(0, 7));
+  const existing = useMemo(
+    () => goals.find((g) => g.mes.slice(0, 7) === mes) ?? null,
+    [goals, mes],
+  );
+  const [receita, setReceita] = useState("");
+  const [lucro, setLucro] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setReceita(existing ? String(existing.receita_meta) : "");
+    setLucro(existing ? String(existing.lucro_meta) : "");
+  }, [existing]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const { data: sess } = await supabase.auth.getSession();
+    const payload = {
+      mes: `${mes}-01`,
+      receita_meta: Number(receita.replace(",", ".")) || 0,
+      lucro_meta: Number(lucro.replace(",", ".")) || 0,
+    };
+    const res = existing
+      ? await supabase.from("financial_goals").update(payload).eq("id", existing.id)
+      : await supabase
+          .from("financial_goals")
+          .insert({ ...payload, created_by: sess.session?.user.id });
+    setSaving(false);
+    if (res.error) return toast.error("Erro ao salvar meta", { description: res.error.message });
+    toast.success("Meta salva");
+    onSaved();
+  }
+
+  async function remove() {
+    if (!existing) return;
+    if (!confirm("Remover a meta deste mês?")) return;
+    const { error } = await supabase.from("financial_goals").delete().eq("id", existing.id);
+    if (error) return toast.error("Erro ao excluir", { description: error.message });
+    toast.success("Meta removida");
+    onSaved();
+  }
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Metas mensais</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={save} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="g-mes">Mês</Label>
+          <Input
+            id="g-mes"
+            type="month"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="g-rec">Receita meta (R$)</Label>
+            <Input
+              id="g-rec"
+              inputMode="decimal"
+              value={receita}
+              onChange={(e) => setReceita(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="g-luc">Lucro meta (R$)</Label>
+            <Input
+              id="g-luc"
+              inputMode="decimal"
+              value={lucro}
+              onChange={(e) => setLucro(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:justify-between">
+          {existing ? (
+            <Button type="button" variant="ghost" onClick={remove} className="text-rose-300">
+              Remover meta
+            </Button>
+          ) : <span />}
+          <Button type="submit" disabled={saving} className="gap-2">
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            {existing ? "Atualizar" : "Definir meta"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
