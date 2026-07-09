@@ -744,7 +744,7 @@ function SaleDialog({
   const [duracao, setDuracao] = useState<string>("12");
 
   // Pré-preencher dados do cliente ao selecionar projeto vinculado (apenas em criação)
-  React.useEffect(() => {
+  useEffect(() => {
     if (mode !== "create" || !projectId) return;
     const proj = projects.find((p) => p.id === projectId);
     if (!proj) return;
@@ -752,13 +752,13 @@ function SaleDialog({
       if (proj.client_id) {
         const { data: c } = await supabase
           .from("clients")
-          .select("nome, email, telefone")
+          .select("nome, email, contato")
           .eq("id", proj.client_id)
           .maybeSingle();
         if (c) {
           if (!nome) setNome(c.nome ?? "");
           if (!email) setEmail(c.email ?? "");
-          if (!contato) setContato((c as { telefone?: string | null }).telefone ?? "");
+          if (!contato) setContato(c.contato ?? "");
           return;
         }
       }
