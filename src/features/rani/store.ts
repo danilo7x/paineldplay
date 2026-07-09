@@ -38,9 +38,6 @@ export type RaniMessage = {
   created_at: string;
 };
 
-export const RANI_PLACEHOLDER_REPLY =
-  "Oi! Eu sou a Rani ✨ Ainda estou sendo ativada e em breve vou poder consultar seus dados e responder de verdade. Seu histórico e permissões vão junto quando eu ligar.";
-
 export const RANI_SUGGESTIONS = [
   "Quanto faturei este mês?",
   "Quais são os gastos do projeto ativo mais caro?",
