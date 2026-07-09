@@ -260,12 +260,20 @@ function ProjectDetail() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex -space-x-2">
               {members.slice(0, 6).map((m) => (
-                <Avatar key={m.id} className="size-8 border-2 border-card">
-                  <AvatarImage src={m.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-primary/20 text-[10px] font-semibold text-primary">
-                    {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <Link
+                  key={m.id}
+                  to="/membros/$id"
+                  params={{ id: m.id }}
+                  title={m.nome ?? m.email ?? ""}
+                  className="transition hover:z-10 hover:scale-105"
+                >
+                  <Avatar className="size-8 border-2 border-card">
+                    <AvatarImage src={m.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-primary/20 text-[10px] font-semibold text-primary">
+                      {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
               ))}
               {members.length === 0 && (
                 <span className="text-xs text-muted-foreground">Sem membros ainda</span>
@@ -1027,18 +1035,22 @@ function MembersTab({
                 key={m.id}
                 className="flex items-center justify-between rounded-xl border border-border/40 bg-background/40 px-3 py-2"
               >
-                <div className="flex items-center gap-3">
+                <Link
+                  to="/membros/$id"
+                  params={{ id: m.id }}
+                  className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90"
+                >
                   <Avatar className="size-8">
                     <AvatarImage src={m.avatar_url ?? undefined} />
                     <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
                       {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{m.nome ?? "—"}</p>
-                    <p className="text-[11px] text-muted-foreground">{m.email}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{m.nome ?? "—"}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{m.email}</p>
                   </div>
-                </div>
+                </Link>
                 <Button
                   size="icon"
                   variant="ghost"
