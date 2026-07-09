@@ -36,7 +36,13 @@ import logo from "@/assets/dplay-logo-transparent.png.asset.json";
 import { useProfile } from "@/lib/profile-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean };
+type Item = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
+  financeOnly?: boolean;
+};
 
 const workspace: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -46,7 +52,7 @@ const workspace: Item[] = [
 ];
 
 const admin: Item[] = [
-  { title: "Financeiro", url: "/financeiro", icon: Banknote, adminOnly: true },
+  { title: "Financeiro", url: "/financeiro", icon: Banknote, financeOnly: true },
   { title: "Equipe", url: "/equipe", icon: Users, adminOnly: true },
 ];
 
@@ -64,7 +70,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { user, isAdmin } = AuthRoute.useRouteContext();
+  const { user, isAdmin, isFinance, isContador } = AuthRoute.useRouteContext();
   const { profile, firstName, initials } = useProfile();
   const [unread, setUnread] = useState(0);
 
@@ -99,7 +105,9 @@ export function AppSidebar() {
   }
 
   const renderGroup = (label: string, items: Item[]) => {
-    const filtered = items.filter((i) => !i.adminOnly || isAdmin);
+    const filtered = items.filter(
+      (i) => (!i.adminOnly || isAdmin) && (!i.financeOnly || isFinance),
+    );
     if (!filtered.length) return null;
     return (
       <SidebarGroup>
@@ -186,7 +194,12 @@ export function AppSidebar() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{profile?.nome || firstName}</p>
               <p className="truncate text-[10px] text-muted-foreground">
-                {profile?.cargo || (isAdmin ? "Administrador" : "Colaborador")}
+                {profile?.cargo ||
+                  (isAdmin
+                    ? "Administrador"
+                    : isContador
+                      ? "Contadora"
+                      : "Colaborador")}
               </p>
             </div>
             <button
