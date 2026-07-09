@@ -24,6 +24,7 @@ export type Database = {
           entity_name: string | null
           entity_type: string
           id: string
+          severity: string
         }
         Insert: {
           acao: string
@@ -34,6 +35,7 @@ export type Database = {
           entity_name?: string | null
           entity_type: string
           id?: string
+          severity?: string
         }
         Update: {
           acao?: string
@@ -44,6 +46,7 @@ export type Database = {
           entity_name?: string | null
           entity_type?: string
           id?: string
+          severity?: string
         }
         Relationships: []
       }
@@ -947,6 +950,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_project: {
+        Args: { _project_id: string }
+        Returns: undefined
+      }
       admin_set_user_ativo: {
         Args: { _ativo: boolean; _user_id: string }
         Returns: undefined
@@ -971,16 +978,28 @@ export type Database = {
         Returns: boolean
       }
       is_staff_or_admin: { Args: { _user_id: string }; Returns: boolean }
-      log_activity: {
-        Args: {
-          _acao: string
-          _details?: Json
-          _entity_id: string
-          _entity_name: string
-          _entity_type: string
-        }
-        Returns: undefined
-      }
+      log_activity:
+        | {
+            Args: {
+              _acao: string
+              _details?: Json
+              _entity_id: string
+              _entity_name: string
+              _entity_type: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _acao: string
+              _details: Json
+              _entity_id: string
+              _entity_name: string
+              _entity_type: string
+              _severity: string
+            }
+            Returns: undefined
+          }
     }
     Enums: {
       app_role: "admin" | "staff" | "contador"
