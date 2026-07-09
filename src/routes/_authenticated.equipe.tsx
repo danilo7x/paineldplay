@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound, MailPlus } from "lucide-react";
@@ -196,23 +196,29 @@ function EquipePage() {
                 className="rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur"
               >
                 <div className="flex min-w-0 items-start gap-3">
-                  <Avatar className="size-10 shrink-0">
-                    <AvatarImage src={m.avatar_url ?? undefined} alt={m.nome ?? ""} />
-                    <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
-                      {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {m.nome ?? "—"}
-                      {isSelf && (
-                        <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                          você
-                        </span>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">{m.email}</p>
-                  </div>
+                  <Link
+                    to="/membros/$id"
+                    params={{ id: m.id }}
+                    className="flex min-w-0 flex-1 items-start gap-3 rounded-lg -m-1 p-1 hover:bg-accent/40"
+                  >
+                    <Avatar className="size-10 shrink-0">
+                      <AvatarImage src={m.avatar_url ?? undefined} alt={m.nome ?? ""} />
+                      <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
+                        {(m.nome ?? m.email ?? "?")[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {m.nome ?? "—"}
+                        {isSelf && (
+                          <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                            você
+                          </span>
+                        )}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                    </div>
+                  </Link>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="size-8 shrink-0">
@@ -347,7 +353,11 @@ function EquipePage() {
                 return (
                   <TableRow key={m.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <Link
+                        to="/membros/$id"
+                        params={{ id: m.id }}
+                        className="flex items-center gap-3 rounded-lg -m-1 p-1 hover:bg-accent/40"
+                      >
                         <Avatar className="size-9">
                           <AvatarImage src={m.avatar_url ?? undefined} alt={m.nome ?? ""} />
                           <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
@@ -365,7 +375,7 @@ function EquipePage() {
                           </p>
                           <p className="truncate text-xs text-muted-foreground">{m.email}</p>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{m.cargo ?? "—"}</TableCell>
                     <TableCell>
