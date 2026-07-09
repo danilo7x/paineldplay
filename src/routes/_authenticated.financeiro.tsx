@@ -709,7 +709,7 @@ function ExpenseDialog({
     setLoading(true);
     const { data: sess } = await supabase.auth.getSession();
     const dia = diaCobranca ? Math.min(31, Math.max(1, Number(diaCobranca))) : null;
-    const payload: Record<string, unknown> = {
+    const payload = {
       descricao,
       categoria,
       valor: Number(valor.replace(",", ".")) || 0,
