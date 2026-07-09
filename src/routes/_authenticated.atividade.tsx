@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -98,56 +99,82 @@ function DeviceIcon({ type }: { type: string | null }) {
 
 function AtividadePage() {
   const { user, isAdmin } = AuthRoute.useRouteContext();
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
-  const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [entityFilter, setEntityFilter] = useState<string>("todos");
   const [periodFilter, setPeriodFilter] = useState<string>("30");
   const [severityFilter, setSeverityFilter] = useState<string>("todos");
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
   const sessionKey = currentSessionKey();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
+  // Reset page whenever filters change
+  const filterKey = `${entityFilter}|${periodFilter}|${severityFilter}`;
+  useMemo(() => {
+    setPage(0);
+  }, [filterKey]);
+
+  const activitiesQuery = useQuery({
+    queryKey: ["activity_logs", entityFilter, periodFilter, severityFilter, page],
+    queryFn: async () => {
       const since = new Date();
       since.setDate(since.getDate() - Number(periodFilter));
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       let q = supabase
         .from("activity_logs")
-        .select("*")
+        .select("*", { count: "exact" })
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: false })
-        .limit(300);
+        .range(from, to);
       if (entityFilter !== "todos") q = q.eq("entity_type", entityFilter);
       if (severityFilter !== "todos") q = q.eq("severity", severityFilter);
-      const { data: acts } = await q;
-      const { data: sess } = await supabase
+      const { data, count } = await q;
+      return { rows: (data ?? []) as ActivityRow[], total: count ?? 0 };
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 15_000,
+  });
+
+  const sessionsQuery = useQuery({
+    queryKey: ["user_sessions"],
+    queryFn: async () => {
+      const { data } = await supabase
         .from("user_sessions")
         .select("*")
         .order("last_active_at", { ascending: false });
-      const userIds = new Set<string>();
-      acts?.forEach((a) => a.actor_id && userIds.add(a.actor_id));
-      sess?.forEach((s) => userIds.add(s.user_id));
-      let profMap: Record<string, Profile> = {};
-      if (userIds.size) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id,nome,email,avatar_url")
-          .in("id", Array.from(userIds));
-        profs?.forEach((p) => (profMap[p.id] = p as Profile));
-      }
-      if (!mounted) return;
-      setActivities((acts ?? []) as ActivityRow[]);
-      setSessions((sess ?? []) as SessionRow[]);
-      setProfiles(profMap);
-      setLoading(false);
-    }
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [entityFilter, periodFilter, severityFilter]);
+      return (data ?? []) as SessionRow[];
+    },
+    staleTime: 30_000,
+  });
+
+  const activities = activitiesQuery.data?.rows ?? [];
+  const totalActivities = activitiesQuery.data?.total ?? 0;
+  const sessions = sessionsQuery.data ?? [];
+  const loading = activitiesQuery.isLoading;
+
+  const profilesQuery = useQuery({
+    queryKey: [
+      "activity_profiles",
+      activities.map((a) => a.actor_id).filter(Boolean).sort().join(","),
+      sessions.map((s) => s.user_id).sort().join(","),
+    ],
+    enabled: activities.length + sessions.length > 0,
+    queryFn: async () => {
+      const ids = new Set<string>();
+      activities.forEach((a) => a.actor_id && ids.add(a.actor_id));
+      sessions.forEach((s) => ids.add(s.user_id));
+      if (!ids.size) return {} as Record<string, Profile>;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,nome,email,avatar_url")
+        .in("id", Array.from(ids));
+      const map: Record<string, Profile> = {};
+      data?.forEach((p) => (map[p.id] = p as Profile));
+      return map;
+    },
+    staleTime: 60_000,
+  });
+  const profiles = profilesQuery.data ?? {};
 
   const mySessions = useMemo(
     () => sessions.filter((s) => s.user_id === user.id),
@@ -171,7 +198,7 @@ function AtividadePage() {
       await supabase.auth.signOut({ scope: "others" as any });
     } catch {}
     toast.success("Outras sessões encerradas");
-    setSessions((s) => s.filter((x) => x.user_id !== user.id || x.session_key === sessionKey));
+    queryClient.invalidateQueries({ queryKey: ["user_sessions"] });
   }
 
   return (
