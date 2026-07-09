@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          cor: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           categoria: string
@@ -90,6 +120,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lucro_meta: number
+          mes: string
+          receita_meta: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lucro_meta?: number
+          mes: string
+          receita_meta?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lucro_meta?: number
+          mes?: string
+          receita_meta?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       notes: {
         Row: {
