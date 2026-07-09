@@ -734,12 +734,38 @@ function SaleDialog({
   const [data, setData] = useState(sale?.data ?? new Date().toISOString().slice(0, 10));
   const [obs, setObs] = useState(sale?.observacoes ?? "");
   const [loading, setLoading] = useState(false);
+  const [nfEmitida, setNfEmitida] = useState<boolean>(Boolean((sale as unknown as { nf_emitida?: boolean })?.nf_emitida));
+  const [nfNumero, setNfNumero] = useState<string>(String((sale as unknown as { nf_numero?: string | null })?.nf_numero ?? ""));
   const canPickType = mode === "create";
   const [tipo, setTipo] = useState<"avulsa" | "assinatura">("avulsa");
   const [valorMensal, setValorMensal] = useState("");
   const [diaCobranca, setDiaCobranca] = useState<string>(String(new Date().getDate()));
   const [continua, setContinua] = useState(true);
   const [duracao, setDuracao] = useState<string>("12");
+
+  // Pré-preencher dados do cliente ao selecionar projeto vinculado (apenas em criação)
+  React.useEffect(() => {
+    if (mode !== "create" || !projectId) return;
+    const proj = projects.find((p) => p.id === projectId);
+    if (!proj) return;
+    (async () => {
+      if (proj.client_id) {
+        const { data: c } = await supabase
+          .from("clients")
+          .select("nome, email, telefone")
+          .eq("id", proj.client_id)
+          .maybeSingle();
+        if (c) {
+          if (!nome) setNome(c.nome ?? "");
+          if (!email) setEmail(c.email ?? "");
+          if (!contato) setContato((c as { telefone?: string | null }).telefone ?? "");
+          return;
+        }
+      }
+      if (!nome && proj.cliente) setNome(proj.cliente);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -788,6 +814,8 @@ function SaleDialog({
       status,
       data,
       observacoes: obs || null,
+      nf_emitida: nfEmitida,
+      nf_numero: nfEmitida ? (nfNumero || null) : null,
     };
     let error;
     if (mode === "edit" && sale) {
