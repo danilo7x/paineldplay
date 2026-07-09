@@ -24,6 +24,12 @@ import {
   Pause,
   Play,
   StopCircle,
+  ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  RefreshCw,
+  FileText,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -377,6 +383,7 @@ function FaturamentoPage() {
           subscriptions={subscriptions}
           projectMap={projectMap}
           onChanged={fetchSales}
+          onOpenAttachments={setAttachmentsSale}
         />
       )}
 
@@ -1029,12 +1036,15 @@ function SubscriptionsCard({
   subscriptions,
   projectMap,
   onChanged,
+  onOpenAttachments,
 }: {
   subscriptions: Subscription[];
   projectMap: Map<string, ProjectLite>;
   onChanged: () => void;
+  onOpenAttachments: (sale: Sale) => void;
 }) {
   const active = subscriptions.filter((s) => s.status !== "encerrada");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   async function setStatus(id: string, status: Subscription["status"]) {
     const { error } = await supabase.from("sale_subscriptions").update({ status }).eq("id", id);
@@ -1058,70 +1068,344 @@ function SubscriptionsCard({
             {active.length} ativa{active.length === 1 ? "" : "s"}
           </span>
         </div>
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="space-y-2">
           {active.map((s) => (
-            <div
+            <SubscriptionRow
               key={s.id}
-              className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/40 bg-background/40 p-3 sm:flex-row sm:items-center sm:gap-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{s.cliente_nome}</p>
-                <p className="text-[11px] text-muted-foreground break-words">
-                  {projectMap.get(s.project_id)?.nome ?? "—"} · {brl(Number(s.valor_mensal))}/mês · dia {s.dia_cobranca}
-                  {s.duracao_meses ? ` · ${s.duracao_meses} meses` : " · contínua"}
-                </p>
-              </div>
-              <div className="flex items-center justify-end gap-2 sm:gap-1">
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    s.status === "ativa"
-                      ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
-                      : "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
-                  )}
-                >
-                  {s.status}
-                </span>
-                {s.status === "ativa" ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0"
-                    title="Pausar"
-                    onClick={() => setStatus(s.id, "pausada")}
-                  >
-                    <Pause className="size-3.5" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0"
-                    title="Retomar"
-                    onClick={() => setStatus(s.id, "ativa")}
-                  >
-                    <Play className="size-3.5" />
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 shrink-0 text-rose-300 hover:text-rose-200"
-                  title="Encerrar"
-                  onClick={() => {
-                    if (confirm("Encerrar esta assinatura? Vendas já geradas serão mantidas."))
-                      setStatus(s.id, "encerrada");
-                  }}
-                >
-                  <StopCircle className="size-3.5" />
-                </Button>
-              </div>
-            </div>
+              sub={s}
+              projectName={projectMap.get(s.project_id)?.nome ?? "—"}
+              expanded={expandedId === s.id}
+              onToggle={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
+              onSetStatus={setStatus}
+              onOpenAttachments={onOpenAttachments}
+              onChanged={onChanged}
+            />
           ))}
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function SubscriptionRow({
+  sub,
+  projectName,
+  expanded,
+  onToggle,
+  onSetStatus,
+  onOpenAttachments,
+  onChanged,
+}: {
+  sub: Subscription;
+  projectName: string;
+  expanded: boolean;
+  onToggle: () => void;
+  onSetStatus: (id: string, status: Subscription["status"]) => void;
+  onOpenAttachments: (sale: Sale) => void;
+  onChanged: () => void;
+}) {
+  const [items, setItems] = useState<Sale[]>([]);
+  const [attachCounts, setAttachCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("subscription_id", sub.id)
+      .order("data", { ascending: false });
+    if (error) toast.error("Erro ao carregar mensalidades", { description: error.message });
+    const list = (data ?? []) as Sale[];
+    setItems(list);
+    if (list.length > 0) {
+      const { data: atts } = await supabase
+        .from("sale_attachments")
+        .select("sale_id")
+        .in(
+          "sale_id",
+          list.map((s) => s.id),
+        );
+      const counts: Record<string, number> = {};
+      (atts ?? []).forEach((a: { sale_id: string }) => {
+        counts[a.sale_id] = (counts[a.sale_id] ?? 0) + 1;
+      });
+      setAttachCounts(counts);
+    } else {
+      setAttachCounts({});
+    }
+    setLoading(false);
+  }, [sub.id]);
+
+  useEffect(() => {
+    if (expanded) load();
+  }, [expanded, load]);
+
+  async function togglePaid(sale: Sale) {
+    const next: SaleStatus = sale.status === "pago" ? "pendente" : "pago";
+    const { error } = await supabase.from("sales").update({ status: next }).eq("id", sale.id);
+    if (error) return toast.error("Erro ao atualizar", { description: error.message });
+    toast.success(next === "pago" ? "Marcada como paga" : "Marcada como pendente");
+    setItems((prev) => prev.map((s) => (s.id === sale.id ? { ...s, status: next } : s)));
+    onChanged();
+  }
+
+  async function toggleNf(sale: Sale) {
+    const next = !sale.nf_emitida;
+    let numero: string | null = sale.nf_numero ?? null;
+    if (next) {
+      const val = window.prompt("Número da nota fiscal (opcional):", numero ?? "");
+      if (val === null) return;
+      numero = val.trim() || null;
+    } else {
+      numero = null;
+    }
+    const { error } = await supabase
+      .from("sales")
+      .update({ nf_emitida: next, nf_numero: numero })
+      .eq("id", sale.id);
+    if (error) return toast.error("Erro ao atualizar NF", { description: error.message });
+    toast.success(next ? "NF marcada como emitida" : "NF removida");
+    setItems((prev) =>
+      prev.map((s) => (s.id === sale.id ? { ...s, nf_emitida: next, nf_numero: numero } : s)),
+    );
+    onChanged();
+  }
+
+  async function generateNow() {
+    setGenerating(true);
+    const { error } = await supabase.rpc("generate_recurrences");
+    setGenerating(false);
+    if (error) return toast.error("Falha ao gerar mensalidades", { description: error.message });
+    toast.success("Mensalidades atualizadas");
+    load();
+    onChanged();
+  }
+
+  const upcoming = useMemo(() => nextUpcoming(sub, items), [sub, items]);
+
+  const fmtMonth = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(".", "");
+  };
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-background/40">
+      <div className="flex min-w-0 flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          {expanded ? (
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{sub.cliente_nome}</p>
+            <p className="break-words text-[11px] text-muted-foreground">
+              {projectName} · {brl(Number(sub.valor_mensal))}/mês · dia {sub.dia_cobranca}
+              {sub.duracao_meses ? ` · ${sub.duracao_meses} meses` : " · contínua"}
+            </p>
+          </div>
+        </button>
+        <div className="flex items-center justify-end gap-2 sm:gap-1">
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              sub.status === "ativa"
+                ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                : "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
+            )}
+          >
+            {sub.status}
+          </span>
+          {sub.status === "ativa" ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              title="Pausar"
+              onClick={() => onSetStatus(sub.id, "pausada")}
+            >
+              <Pause className="size-3.5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              title="Retomar"
+              onClick={() => onSetStatus(sub.id, "ativa")}
+            >
+              <Play className="size-3.5" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0 text-rose-300 hover:text-rose-200"
+            title="Encerrar"
+            onClick={() => {
+              if (confirm("Encerrar esta assinatura? Vendas já geradas serão mantidas."))
+                onSetStatus(sub.id, "encerrada");
+            }}
+          >
+            <StopCircle className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-border/40 p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Mensalidades
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-xs"
+              onClick={generateNow}
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3" />
+              )}
+              Gerar / atualizar
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-6 text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+            </div>
+          ) : items.length === 0 ? (
+            <p className="py-4 text-center text-xs text-muted-foreground">
+              Nenhuma mensalidade gerada ainda. Use "Gerar / atualizar".
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/40 rounded-lg border border-border/40">
+              {items.map((sale) => {
+                const comp = sale.competencia ?? sale.data;
+                const count = attachCounts[sale.id] ?? 0;
+                return (
+                  <li
+                    key={sale.id}
+                    className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium capitalize">{fmtMonth(comp)}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {brl(Number(sale.valor))} ·{" "}
+                        {new Date(sale.data).toLocaleDateString("pt-BR")}
+                        {sale.nf_numero ? ` · NF ${sale.nf_numero}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          STATUS_META[sale.status].className,
+                        )}
+                      >
+                        {STATUS_META[sale.status].label}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-xs"
+                        title={sale.status === "pago" ? "Marcar pendente" : "Marcar pago"}
+                        onClick={() => togglePaid(sale)}
+                      >
+                        {sale.status === "pago" ? (
+                          <>
+                            <Circle className="size-3" /> Pendente
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="size-3" /> Pagar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-7 gap-1 px-2 text-xs",
+                          sale.nf_emitida && "text-emerald-300",
+                        )}
+                        title="Nota fiscal emitida"
+                        onClick={() => toggleNf(sale)}
+                      >
+                        <FileText className="size-3" />
+                        {sale.nf_emitida ? "NF ✓" : "NF"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-xs"
+                        title="Anexos"
+                        onClick={() => onOpenAttachments(sale)}
+                      >
+                        <Paperclip className="size-3" />
+                        {count > 0 ? count : "Anexo"}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {upcoming.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                Próximas competências
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {upcoming.map((d) => (
+                  <span
+                    key={d.toISOString()}
+                    className="rounded-full border border-border/50 bg-card/40 px-2 py-0.5 text-[10px] capitalize text-muted-foreground"
+                  >
+                    {d
+                      .toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
+                      .replace(".", "")}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function nextUpcoming(sub: Subscription, existing: Sale[]): Date[] {
+  const have = new Set(
+    existing
+      .map((s) => (s.competencia ?? s.data).slice(0, 7))
+      .filter(Boolean),
+  );
+  const start = new Date(sub.data_inicio);
+  const today = new Date();
+  const end = sub.duracao_meses
+    ? new Date(start.getFullYear(), start.getMonth() + sub.duracao_meses, 1)
+    : new Date(today.getFullYear(), today.getMonth() + 4, 1);
+  const out: Date[] = [];
+  let cursor = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  while (cursor < end && out.length < 3) {
+    const key = cursor.toISOString().slice(0, 7);
+    if (!have.has(key)) out.push(new Date(cursor));
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  return out;
 }
 
 function AttachmentsDialog({ sale, onClose }: { sale: Sale; onClose: () => void }) {
