@@ -232,6 +232,7 @@ function DashboardPage() {
             receitaMes === 0
               ? "Sem receita ainda"
               : `${((lucroMes / receitaMes) * 100).toFixed(1)}% de margem`,
+          accent: lucroMes < 0 ? "text-rose-300" : undefined,
         },
         baseKpis[1],
         baseKpis[2],
