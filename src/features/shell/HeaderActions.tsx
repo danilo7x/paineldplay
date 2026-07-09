@@ -110,7 +110,16 @@ export function HeaderActions() {
   }
 
   return (
-    <div className="ml-auto flex items-center gap-1">
+    <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+      {/* Botão de busca (mobile) */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("dplay:open-search"))}
+        className="grid size-8 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
+        aria-label="Buscar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
       {/* Sino de notificações */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

@@ -270,7 +270,7 @@ function DashboardPage() {
               className="text-center"
             >
               <p className="text-xs uppercase tracking-[0.3em] text-primary/80">DPlay Solutions</p>
-              <h1 className="mt-3 bg-gradient-to-br from-white via-white to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
+              <h1 className="mt-3 bg-gradient-to-br from-white via-white to-primary bg-clip-text px-6 text-4xl font-semibold tracking-tight text-transparent sm:text-5xl md:text-6xl">
                 Bem-vindo, {firstName}
               </h1>
             </motion.div>
@@ -291,9 +291,9 @@ function DashboardPage() {
         variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
         className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"
       >
-        <div>
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Visão geral</p>
-          <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight">
+          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
             Olá, {firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -310,7 +310,7 @@ function DashboardPage() {
       <motion.div
         variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
         className={cn(
-          "grid gap-4 sm:grid-cols-2",
+          "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4",
           isFinance ? "xl:grid-cols-5" : "xl:grid-cols-4",
         )}
       >
@@ -329,19 +329,24 @@ function DashboardPage() {
             key={k.key}
             className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition hover:border-primary/40"
           >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {k.label}
-                  </p>
-                  <p className={cn("mt-3 text-3xl font-semibold tracking-tight", (k as { accent?: string }).accent)}>{k.value}</p>
-                </div>
-                <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {k.label}
+                </p>
+                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
                   <k.icon className="size-4" />
                 </div>
               </div>
-              <p className="mt-4 flex items-center gap-1 text-xs text-muted-foreground">
+              <p
+                className={cn(
+                  "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+                  (k as { accent?: string }).accent,
+                )}
+              >
+                {k.value}
+              </p>
+              <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
                 <ArrowUpRight className="size-3" /> {k.hint}
               </p>
             </CardContent>
