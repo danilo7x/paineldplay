@@ -30,6 +30,33 @@ aos sócios e ofereça ajudar com o que ele tem acesso (receita dos projetos
 dele, andamento das etapas, avisos, notas). Nunca revele números de
 despesas ou lucro, mesmo que ferramentas retornem dados por engano.`;
 
+// --- Ad-hoc rate limiter (per-worker instance) ---
+// 20 requests per rolling 60s window per user. Stateless across worker instances,
+// but adequate as a first line of defense against runaway loops and abusive prompts.
+const RANI_WINDOW_MS = 60_000;
+const RANI_LIMIT = 20;
+const rateBuckets = new Map<string, number[]>();
+function checkRateLimit(userId: string): { ok: boolean; retryAfter: number } {
+  const now = Date.now();
+  const bucket = (rateBuckets.get(userId) ?? []).filter((t) => now - t < RANI_WINDOW_MS);
+  if (bucket.length >= RANI_LIMIT) {
+    const retryAfter = Math.ceil((RANI_WINDOW_MS - (now - bucket[0])) / 1000);
+    rateBuckets.set(userId, bucket);
+    return { ok: false, retryAfter };
+  }
+  bucket.push(now);
+  rateBuckets.set(userId, bucket);
+  // Opportunistic cleanup to prevent unbounded growth
+  if (rateBuckets.size > 500) {
+    for (const [k, v] of rateBuckets) {
+      const kept = v.filter((t) => now - t < RANI_WINDOW_MS);
+      if (kept.length === 0) rateBuckets.delete(k);
+      else rateBuckets.set(k, kept);
+    }
+  }
+  return { ok: true, retryAfter: 0 };
+}
+
 export const Route = createFileRoute("/api/rani/chat")({
   server: {
     handlers: {
@@ -58,6 +85,23 @@ export const Route = createFileRoute("/api/rani/chat")({
           return new Response("Unauthorized", { status: 401 });
         }
         const userId = claims.claims.sub as string;
+
+        const rl = checkRateLimit(userId);
+        if (!rl.ok) {
+          return new Response(
+            JSON.stringify({
+              error: "rate_limited",
+              message: `Muitas mensagens em pouco tempo. Tente novamente em ${rl.retryAfter}s.`,
+            }),
+            {
+              status: 429,
+              headers: {
+                "content-type": "application/json",
+                "retry-after": String(rl.retryAfter),
+              },
+            },
+          );
+        }
 
         // Discover role via RPC (respects RLS; uses user's token)
         const [{ data: isAdminRes }, { data: isContadorRes }] = await Promise.all([
