@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/rani/chat")({
 
         const tools = {
           resumo_financeiro: tool({
-            description: isAdmin
+            description: isFinance
               ? "Retorna receita (vendas), despesas e lucro do mês atual da empresa. Use para perguntas sobre faturamento, gastos ou lucro do mês."
               : "Retorna a receita do mês atual dos projetos do usuário. Use para perguntas sobre o faturamento dos projetos dele.",
             inputSchema: z.object({}),
@@ -93,7 +93,7 @@ export const Route = createFileRoute("/api/rani/chat")({
                 .gte("data", start.slice(0, 10))
                 .lt("data", end.slice(0, 10));
               const receita = (salesRes.data ?? []).reduce((s, r) => s + Number(r.valor ?? 0), 0);
-              if (!isAdmin) {
+              if (!isFinance) {
                 return {
                   mes: start.slice(0, 7),
                   receita,
@@ -155,7 +155,7 @@ export const Route = createFileRoute("/api/rani/chat")({
               return { projetos: data ?? [] };
             },
           }),
-          ...(isAdmin
+          ...(isFinance
             ? {
                 listar_despesas: tool({
                   description:
@@ -212,7 +212,7 @@ export const Route = createFileRoute("/api/rani/chat")({
         const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: isAdmin ? ADMIN_PROMPT : COLLAB_PROMPT,
+          system: isFinance ? ADMIN_PROMPT : COLLAB_PROMPT,
           messages: modelMessages,
           tools,
           stopWhen: stepCountIs(8),
