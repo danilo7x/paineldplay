@@ -712,16 +712,23 @@ function SummaryCard({
 }) {
   return (
     <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-            <p className={cn("mt-3 text-2xl font-semibold tracking-tight", accent)}>{value}</p>
-          </div>
-          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {label}
+          </p>
+          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
             <Icon className="size-4" />
           </div>
         </div>
+        <p
+          className={cn(
+            "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+            accent,
+          )}
+        >
+          {value}
+        </p>
         <p className="mt-3 text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
