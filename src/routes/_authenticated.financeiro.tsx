@@ -57,7 +57,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   beforeLoad: ({ context }) => {
-    if (!context.isAdmin) throw redirect({ to: "/dashboard" });
+    if (!context.isFinance) throw redirect({ to: "/dashboard" });
   },
   component: FinanceiroPage,
 });
