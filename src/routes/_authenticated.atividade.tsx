@@ -323,6 +323,36 @@ function AtividadePage() {
               )}
             </CardContent>
           </Card>
+          {totalActivities > PAGE_SIZE && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Página {page + 1} de {Math.max(1, Math.ceil(totalActivities / PAGE_SIZE))}
+                {" · "}
+                {totalActivities} registros
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0 || activitiesQuery.isFetching}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    (page + 1) * PAGE_SIZE >= totalActivities ||
+                    activitiesQuery.isFetching
+                  }
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="dispositivos" className="space-y-4">
