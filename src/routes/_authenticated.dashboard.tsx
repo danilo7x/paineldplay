@@ -36,8 +36,12 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const periods = ["1D", "1S", "1M", "6M", "1A"] as const;
 type Period = (typeof periods)[number];
 
-const brl = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+const brl = (n: number) => {
+  const abs = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    Math.abs(n),
+  );
+  return n < 0 ? `-${abs}` : abs;
+};
 
 function buildChart(
   sales: { valor: number; data: string; status: string }[],
