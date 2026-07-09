@@ -50,6 +50,7 @@ type Project = {
   id: string;
   nome: string;
   cliente: string | null;
+  client_id: string | null;
   descricao: string | null;
   status: ProjectStatus;
 };
@@ -98,7 +99,7 @@ function ProjectDetail() {
   async function fetchAll() {
     setLoading(true);
     const [projRes, membersRes, stepsRes, notesRes, credsRes, teamRes] = await Promise.all([
-      supabase.from("projects").select("id, nome, cliente, descricao, status").eq("id", id).maybeSingle(),
+      supabase.from("projects").select("id, nome, cliente, client_id, descricao, status").eq("id", id).maybeSingle(),
       supabase.from("project_members").select("user_id").eq("project_id", id),
       supabase.from("project_steps").select("*").eq("project_id", id).order("ordem"),
       supabase.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: false }),
@@ -204,9 +205,18 @@ function ProjectDetail() {
         <CardContent className="space-y-5 p-6">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {project.cliente ?? "Sem cliente"}
-              </p>
+              {project.client_id ? (
+                <Link
+                  to="/clientes"
+                  className="text-[10px] uppercase tracking-[0.14em] text-primary hover:underline"
+                >
+                  {project.cliente ?? "Cliente"}
+                </Link>
+              ) : (
+                <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {project.cliente ?? "Sem cliente"}
+                </p>
+              )}
               <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight">
                 {project.nome}
               </h1>
