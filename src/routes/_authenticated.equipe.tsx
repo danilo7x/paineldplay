@@ -176,7 +176,7 @@ function EquipePage() {
         </Button>
       </header>
 
-      <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur">
+      <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/50 backdrop-blur">
         <Table>
           <TableHeader>
             <TableRow>

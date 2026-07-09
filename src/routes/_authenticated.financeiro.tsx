@@ -287,9 +287,9 @@ function FinanceiroPage() {
   return (
     <div className="space-y-6">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Administração</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Financeiro</h1>
+          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">Financeiro</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Visão global de receitas e despesas da empresa.
           </p>
@@ -364,7 +364,7 @@ function FinanceiroPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <SummaryCard
           label="Receita"
           value={brl(receitaTotal)}
@@ -714,18 +714,23 @@ function SummaryCard({
 }) {
   return (
     <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              {label}
-            </p>
-            <p className={cn("mt-3 text-2xl font-semibold tracking-tight", accent)}>{value}</p>
-          </div>
-          <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {label}
+          </p>
+          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
             <Icon className="size-4" />
           </div>
         </div>
+        <p
+          className={cn(
+            "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+            accent,
+          )}
+        >
+          {value}
+        </p>
         <p className="mt-3 text-xs text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>

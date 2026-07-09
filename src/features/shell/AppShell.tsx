@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ProfileProvider userId={user.id} email={user.email ?? null}>
     <SidebarProvider>
-      <div className="relative flex min-h-screen w-full bg-background text-foreground">
+      <div className="relative flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
         {/* Ambient radial glow */}
         <div
           aria-hidden
@@ -27,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
         <AppSidebar />
         <div className="relative z-10 flex flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border/40 bg-background/60 px-4 backdrop-blur-xl">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border/40 bg-background/60 px-3 backdrop-blur-xl sm:gap-3 sm:px-4">
             <SidebarTrigger />
             <div className="hidden max-w-sm flex-1 md:block">
               <GlobalSearchTrigger />
@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <HeaderActions />
             <GlobalSearch />
           </header>
-          <main className="flex-1 px-6 py-8">
+          <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>
