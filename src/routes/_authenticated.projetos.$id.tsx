@@ -216,7 +216,8 @@ function ProjectDetail() {
             </div>
             <div className="shrink-0">
               {isAdmin ? (
-                <Select value={project.status} onValueChange={(v) => updateStatus(v as ProjectStatus)}>
+                <div className="flex items-center gap-2">
+                  <Select value={project.status} onValueChange={(v) => updateStatus(v as ProjectStatus)}>
                   <SelectTrigger className={`h-8 rounded-full border-0 px-3 text-xs ${meta.className}`}>
                     <SelectValue />
                   </SelectTrigger>
@@ -227,7 +228,17 @@ function ProjectDetail() {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                    title="Apagar projeto"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               ) : (
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.className}`}>
                   {meta.label}
