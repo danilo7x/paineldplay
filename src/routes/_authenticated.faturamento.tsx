@@ -531,6 +531,11 @@ function FaturamentoPage() {
                               <Repeat className="size-3" /> Assinatura
                             </span>
                           )}
+                          {s.nf_emitida && (
+                            <span className="ml-1 mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 ring-1 ring-emerald-500/30">
+                              NF{s.nf_numero ? ` · ${s.nf_numero}` : ""}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {proj?.nome ?? "—"}
