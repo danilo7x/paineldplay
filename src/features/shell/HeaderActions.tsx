@@ -18,7 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type NoticeItem = { id: string; titulo: string; created_at: string };
+type Priority = "info" | "alerta" | "urgente";
+type NoticeItem = {
+  id: string;
+  titulo: string;
+  created_at: string;
+  prioridade: Priority;
+  critico: boolean;
+};
+
+const PRIORITY_DOT: Record<Priority, string> = {
+  info: "bg-sky-400",
+  alerta: "bg-amber-400",
+  urgente: "bg-rose-400",
+};
 
 export function HeaderActions() {
   const { user, isAdmin } = AuthRoute.useRouteContext();
@@ -33,7 +46,7 @@ export function HeaderActions() {
       const [nRes, rRes] = await Promise.all([
         supabase
           .from("notices")
-          .select("id, titulo, created_at")
+          .select("id, titulo, created_at, prioridade, critico")
           .order("created_at", { ascending: false })
           .limit(10),
         supabase
@@ -102,7 +115,15 @@ export function HeaderActions() {
                   to="/avisos"
                   className="block px-3 py-2 text-sm transition hover:bg-accent/60"
                 >
-                  <p className="line-clamp-1 font-medium">{n.titulo}</p>
+                  <p className="flex items-center gap-2 font-medium">
+                    <span className={`size-1.5 rounded-full ${PRIORITY_DOT[n.prioridade] ?? PRIORITY_DOT.info}`} />
+                    <span className="line-clamp-1">{n.titulo}</span>
+                    {n.critico && (
+                      <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-rose-300">
+                        crítico
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: ptBR })}
                   </p>
