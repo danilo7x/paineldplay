@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          contato: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          contato?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contato?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           cor: string
@@ -534,6 +567,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          client_id: string | null
           cliente: string | null
           created_at: string
           created_by: string | null
@@ -544,6 +578,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_id?: string | null
           cliente?: string | null
           created_at?: string
           created_by?: string | null
@@ -554,6 +589,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_id?: string | null
           cliente?: string | null
           created_at?: string
           created_by?: string | null
@@ -563,7 +599,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rani_messages: {
         Row: {
@@ -670,6 +714,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          client_id: string | null
           cliente_contato: string | null
           cliente_email: string | null
           cliente_nome: string
@@ -684,6 +729,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          client_id?: string | null
           cliente_contato?: string | null
           cliente_email?: string | null
           cliente_nome: string
@@ -698,6 +744,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          client_id?: string | null
           cliente_contato?: string | null
           cliente_email?: string | null
           cliente_nome?: string
@@ -712,6 +759,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_project_id_fkey"
             columns: ["project_id"]
