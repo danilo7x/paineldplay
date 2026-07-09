@@ -60,11 +60,13 @@ export const Route = createFileRoute("/api/rani/chat")({
         const userId = claims.claims.sub as string;
 
         // Discover role via RPC (respects RLS; uses user's token)
-        const { data: isAdminRes } = await supabase.rpc("has_role", {
-          _user_id: userId,
-          _role: "admin",
-        });
+        const [{ data: isAdminRes }, { data: isContadorRes }] = await Promise.all([
+          supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+          supabase.rpc("has_role", { _user_id: userId, _role: "contador" }),
+        ]);
         const isAdmin = isAdminRes === true;
+        const isContador = isContadorRes === true;
+        const isFinance = isAdmin || isContador;
 
         const body = (await request.json()) as { messages?: UIMessage[] };
         if (!Array.isArray(body.messages)) return new Response("messages required", { status: 400 });
@@ -79,7 +81,7 @@ export const Route = createFileRoute("/api/rani/chat")({
 
         const tools = {
           resumo_financeiro: tool({
-            description: isAdmin
+            description: isFinance
               ? "Retorna receita (vendas), despesas e lucro do mês atual da empresa. Use para perguntas sobre faturamento, gastos ou lucro do mês."
               : "Retorna a receita do mês atual dos projetos do usuário. Use para perguntas sobre o faturamento dos projetos dele.",
             inputSchema: z.object({}),
@@ -91,7 +93,7 @@ export const Route = createFileRoute("/api/rani/chat")({
                 .gte("data", start.slice(0, 10))
                 .lt("data", end.slice(0, 10));
               const receita = (salesRes.data ?? []).reduce((s, r) => s + Number(r.valor ?? 0), 0);
-              if (!isAdmin) {
+              if (!isFinance) {
                 return {
                   mes: start.slice(0, 7),
                   receita,
@@ -153,7 +155,7 @@ export const Route = createFileRoute("/api/rani/chat")({
               return { projetos: data ?? [] };
             },
           }),
-          ...(isAdmin
+          ...(isFinance
             ? {
                 listar_despesas: tool({
                   description:
@@ -210,7 +212,7 @@ export const Route = createFileRoute("/api/rani/chat")({
         const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: isAdmin ? ADMIN_PROMPT : COLLAB_PROMPT,
+          system: isFinance ? ADMIN_PROMPT : COLLAB_PROMPT,
           messages: modelMessages,
           tools,
           stopWhen: stepCountIs(8),
