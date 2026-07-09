@@ -43,6 +43,51 @@ const brl = (n: number) => {
   return n < 0 ? `-${abs}` : abs;
 };
 
+const ENTITY_LABEL: Record<string, string> = {
+  membro: "membro",
+  venda: "venda",
+  despesa: "despesa",
+  projeto: "projeto",
+  cliente: "cliente",
+  etapa: "etapa",
+  aviso: "aviso",
+  arquivo: "arquivo",
+  nota: "nota",
+  assinatura: "assinatura",
+  usuario: "usuário",
+  perfil: "perfil",
+};
+
+function friendlyAction(acao: string, entity: string): string {
+  const ent = ENTITY_LABEL[entity] ?? entity;
+  const key = acao.toLowerCase();
+  const [verb, ...rest] = key.split("_");
+  const target = rest.join(" ");
+  // If the action already mentions the entity (e.g. "adicionou_membro"), don't repeat it.
+  if (target && (target === entity || target === ent)) {
+    return `${verb} ${ent}`;
+  }
+  const verbs: Record<string, string> = {
+    criou: "criou",
+    adicionou: "adicionou",
+    atualizou: "atualizou",
+    editou: "editou",
+    removeu: "removeu",
+    excluiu: "excluiu",
+    deletou: "excluiu",
+    ativou: "ativou",
+    desativou: "desativou",
+    pausou: "pausou",
+    encerrou: "encerrou",
+    convidou: "convidou",
+    enviou: "enviou",
+    marcou: "marcou",
+    concluiu: "concluiu",
+  };
+  const v = verbs[verb] ?? verb.replace(/-/g, " ");
+  return target ? `${v} ${target}` : `${v} ${ent}`;
+}
+
 function buildChart(
   sales: { valor: number; data: string; status: string }[],
   period: Period,
@@ -445,7 +490,7 @@ function DashboardPage() {
         className="grid gap-4 lg:grid-cols-3"
       >
         {/* Últimas atividades */}
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="min-w-0 rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -471,9 +516,9 @@ function DashboardPage() {
                 {isAdmin ? "Nenhuma atividade ainda." : "Nada por aqui — suas ações aparecerão aqui."}
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="min-w-0 space-y-3">
                 {activities.map((a) => (
-                  <li key={a.id} className="flex items-start gap-3 text-xs">
+                  <li key={a.id} className="flex min-w-0 items-start gap-3 text-xs">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/60" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate">
@@ -481,9 +526,14 @@ function DashboardPage() {
                           {a.actor_id ? actorMap[a.actor_id] ?? "Alguém" : "Sistema"}
                         </span>{" "}
                         <span className="text-muted-foreground">
-                          {a.acao.replace(/_/g, " ")} {a.entity_type}
-                        </span>{" "}
-                        <span className="text-foreground/80">{a.entity_name ?? ""}</span>
+                          {friendlyAction(a.acao, a.entity_type)}
+                        </span>
+                        {a.entity_name ? (
+                          <>
+                            {" "}
+                            <span className="text-foreground/80">{a.entity_name}</span>
+                          </>
+                        ) : null}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(a.created_at), {

@@ -135,7 +135,12 @@ export function HeaderActions() {
             )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80">
+        <DropdownMenuContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className="w-[min(20rem,calc(100vw-1.5rem))]"
+        >
           <DropdownMenuLabel className="flex items-center justify-between">
             <span>Notificações</span>
             {unread > 0 ? (
