@@ -28,6 +28,7 @@ import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authen
 import { Route as ApiRaniChatRouteImport } from './routes/api/rani.chat'
 import { Route as AuthenticatedRaniThreadIdRouteImport } from './routes/_authenticated.rani.$threadId'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
+import { Route as AuthenticatedMembrosIdRouteImport } from './routes/_authenticated.membros.$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -126,6 +127,11 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   path: '/projetos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMembrosIdRoute = AuthenticatedMembrosIdRouteImport.update({
+  id: '/membros/$id',
+  path: '/membros/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/rani': typeof AuthenticatedRaniRouteWithChildren
+  '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/api/rani/chat': typeof ApiRaniChatRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/api/rani/chat': typeof ApiRaniChatRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/rani': typeof AuthenticatedRaniRouteWithChildren
+  '/_authenticated/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
   '/api/rani/chat': typeof ApiRaniChatRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/notas'
     | '/perfil'
     | '/rani'
+    | '/membros/$id'
     | '/projetos/$id'
     | '/rani/$threadId'
     | '/api/rani/chat'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/notas'
     | '/perfil'
+    | '/membros/$id'
     | '/projetos/$id'
     | '/rani/$threadId'
     | '/api/rani/chat'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notas'
     | '/_authenticated/perfil'
     | '/_authenticated/rani'
+    | '/_authenticated/membros/$id'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/rani/$threadId'
     | '/api/rani/chat'
@@ -392,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/membros/$id': {
+      id: '/_authenticated/membros/$id'
+      path: '/membros/$id'
+      fullPath: '/membros/$id'
+      preLoaderRoute: typeof AuthenticatedMembrosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -421,6 +440,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedRaniRoute: typeof AuthenticatedRaniRouteWithChildren
+  AuthenticatedMembrosIdRoute: typeof AuthenticatedMembrosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
 }
@@ -438,6 +458,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedRaniRoute: AuthenticatedRaniRouteWithChildren,
+  AuthenticatedMembrosIdRoute: AuthenticatedMembrosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,
 }
