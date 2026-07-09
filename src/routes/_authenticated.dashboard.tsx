@@ -445,7 +445,7 @@ function DashboardPage() {
         className="grid gap-4 lg:grid-cols-3"
       >
         {/* Últimas atividades */}
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="min-w-0 rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -471,9 +471,9 @@ function DashboardPage() {
                 {isAdmin ? "Nenhuma atividade ainda." : "Nada por aqui — suas ações aparecerão aqui."}
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="min-w-0 space-y-3">
                 {activities.map((a) => (
-                  <li key={a.id} className="flex items-start gap-3 text-xs">
+                  <li key={a.id} className="flex min-w-0 items-start gap-3 text-xs">
                     <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/60" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate">
@@ -481,9 +481,14 @@ function DashboardPage() {
                           {a.actor_id ? actorMap[a.actor_id] ?? "Alguém" : "Sistema"}
                         </span>{" "}
                         <span className="text-muted-foreground">
-                          {a.acao.replace(/_/g, " ")} {a.entity_type}
-                        </span>{" "}
-                        <span className="text-foreground/80">{a.entity_name ?? ""}</span>
+                          {friendlyAction(a.acao, a.entity_type)}
+                        </span>
+                        {a.entity_name ? (
+                          <>
+                            {" "}
+                            <span className="text-foreground/80">{a.entity_name}</span>
+                          </>
+                        ) : null}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(a.created_at), {
