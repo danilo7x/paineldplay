@@ -57,8 +57,24 @@ function firstDayOfMonth(offsetMonths = 0) {
   return d;
 }
 function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
 }
+function addDays(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return toISODate(d);
+}
+
+const TOOLTIP_STYLE = {
+  background: "rgba(11,15,26,0.95)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 12,
+  color: "#fff",
+  fontSize: 12,
+} as const;
+const TOOLTIP_LABEL = { color: "rgba(255,255,255,0.7)" } as const;
+const TOOLTIP_ITEM = { color: "#fff" } as const;
 
 type Period = "mes" | "ano" | "custom";
 
@@ -91,12 +107,13 @@ function AnalyticsPage() {
       setLoading(true);
       const fromISO = toISODate(from);
       const toISO = toISODate(to);
+      const toExclusive = addDays(toISO, 1); // inclusive .lt() next day
       const [s, p, st, m, pr] = await Promise.all([
         supabase
           .from("sales")
           .select("valor, data, project_id, status")
           .gte("data", fromISO)
-          .lte("data", toISO),
+          .lt("data", toExclusive),
         supabase.from("projects").select("id, nome, status"),
         supabase
           .from("project_steps")
