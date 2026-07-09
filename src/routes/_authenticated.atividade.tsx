@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -108,10 +108,9 @@ function AtividadePage() {
   const queryClient = useQueryClient();
 
   // Reset page whenever filters change
-  const filterKey = `${entityFilter}|${periodFilter}|${severityFilter}`;
-  useMemo(() => {
+  useEffect(() => {
     setPage(0);
-  }, [filterKey]);
+  }, [entityFilter, periodFilter, severityFilter]);
 
   const activitiesQuery = useQuery({
     queryKey: ["activity_logs", entityFilter, periodFilter, severityFilter, page],
