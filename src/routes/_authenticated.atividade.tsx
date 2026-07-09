@@ -103,6 +103,7 @@ function AtividadePage() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [entityFilter, setEntityFilter] = useState<string>("todos");
   const [periodFilter, setPeriodFilter] = useState<string>("30");
+  const [severityFilter, setSeverityFilter] = useState<string>("todos");
   const [loading, setLoading] = useState(true);
   const sessionKey = currentSessionKey();
 
@@ -119,6 +120,7 @@ function AtividadePage() {
         .order("created_at", { ascending: false })
         .limit(300);
       if (entityFilter !== "todos") q = q.eq("entity_type", entityFilter);
+      if (severityFilter !== "todos") q = q.eq("severity", severityFilter);
       const { data: acts } = await q;
       const { data: sess } = await supabase
         .from("user_sessions")
@@ -145,7 +147,7 @@ function AtividadePage() {
     return () => {
       mounted = false;
     };
-  }, [entityFilter, periodFilter]);
+  }, [entityFilter, periodFilter, severityFilter]);
 
   const mySessions = useMemo(
     () => sessions.filter((s) => s.user_id === user.id),
