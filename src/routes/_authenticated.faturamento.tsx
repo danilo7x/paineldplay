@@ -20,6 +20,10 @@ import {
   Upload,
   Wallet,
   X,
+  Repeat,
+  Pause,
+  Play,
+  StopCircle,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +73,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 type SaleStatus = "pendente" | "pago" | "cancelado";
 type Sale = {
@@ -81,8 +86,24 @@ type Sale = {
   status: SaleStatus;
   data: string;
   observacoes: string | null;
+  subscription_id?: string | null;
+  competencia?: string | null;
 };
 type ProjectLite = { id: string; nome: string; cliente: string | null };
+type Subscription = {
+  id: string;
+  project_id: string;
+  cliente_nome: string;
+  cliente_email: string | null;
+  cliente_contato: string | null;
+  valor_inicial: number;
+  valor_mensal: number;
+  dia_cobranca: number;
+  data_inicio: string;
+  duracao_meses: number | null;
+  status: "ativa" | "pausada" | "encerrada";
+  observacoes: string | null;
+};
 type Attachment = {
   id: string;
   sale_id: string;
@@ -174,6 +195,7 @@ function FaturamentoPage() {
   const [editSale, setEditSale] = useState<Sale | null>(null);
   const [deleteSale, setDeleteSale] = useState<Sale | null>(null);
   const [attachmentsSale, setAttachmentsSale] = useState<Sale | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -207,6 +229,8 @@ function FaturamentoPage() {
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
+    // Gera ocorrências pendentes antes de listar (idempotente).
+    await supabase.rpc("generate_recurrences");
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
     const pageRes = await buildBaseQuery()
@@ -227,6 +251,11 @@ function FaturamentoPage() {
       pendente: all.filter((s) => s.status === "pendente").reduce((a, s) => a + Number(s.valor), 0),
       count: all.length,
     });
+    const subRes = await supabase
+      .from("sale_subscriptions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setSubscriptions((subRes.data ?? []) as Subscription[]);
     setLoading(false);
   }, [buildBaseQuery, page, sortKey, sortDir]);
 
