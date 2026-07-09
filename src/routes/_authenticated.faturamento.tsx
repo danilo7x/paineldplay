@@ -89,7 +89,7 @@ type Sale = {
   subscription_id?: string | null;
   competencia?: string | null;
 };
-type ProjectLite = { id: string; nome: string; cliente: string | null };
+type ProjectLite = { id: string; nome: string; cliente: string | null; client_id: string | null };
 type Subscription = {
   id: string;
   project_id: string;
@@ -223,7 +223,7 @@ function FaturamentoPage() {
   }, [range.from, statusFilter, projectFilter, debouncedQuery]);
 
   const fetchProjects = useCallback(async () => {
-    const { data } = await supabase.from("projects").select("id, nome, cliente").order("nome");
+    const { data } = await supabase.from("projects").select("id, nome, cliente, client_id").order("nome");
     setProjects((data ?? []) as ProjectLite[]);
   }, []);
 
