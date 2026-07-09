@@ -380,40 +380,22 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
  const [files, setFiles] = React.useState<File[]>([]);
  const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({});
  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
- const [isRecording, setIsRecording] = React.useState(false);
- const [showSearch, setShowSearch] = React.useState(false);
- const [showThink, setShowThink] = React.useState(false);
- const [showCanvas, setShowCanvas] = React.useState(false);
  const uploadInputRef = React.useRef<HTMLInputElement>(null);
  const promptBoxRef = React.useRef<HTMLDivElement>(null);
 
- const handleToggleChange = (value: string) => {
- if (value === "search") {
- setShowSearch((prev) => !prev);
- setShowThink(false);
- } else if (value === "think") {
- setShowThink((prev) => !prev);
- setShowSearch(false);
- }
- };
-
- const handleCanvasToggle = () => setShowCanvas((prev) => !prev);
-
  const isImageFile = (file: File) => file.type.startsWith("image/");
 
- const processFile = (file: File) => {
- if (!isImageFile(file)) {
- console.log("Only image files are allowed");
- return;
- }
- if (file.size > 10 * 1024 * 1024) {
- console.log("File too large (max 10MB)");
- return;
- }
- setFiles([file]);
+ const processFiles = (incoming: File[]) => {
+ if (incoming.length === 0) return;
+ setFiles((prev) => [...prev, ...incoming]);
+ incoming.forEach((file) => {
+ if (isImageFile(file)) {
  const reader = new FileReader();
- reader.onload = (e) => setFilePreviews({ [file.name]: e.target?.result as string });
+ reader.onload = (e) =>
+ setFilePreviews((prev) => ({ ...prev, [file.name]: e.target?.result as string }));
  reader.readAsDataURL(file);
+ }
+ });
  };
 
  const handleDragOver = React.useCallback((e: React.DragEvent) => {
@@ -429,15 +411,20 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
  const handleDrop = React.useCallback((e: React.DragEvent) => {
  e.preventDefault();
  e.stopPropagation();
- const files = Array.from(e.dataTransfer.files);
- const imageFiles = files.filter((file) => isImageFile(file));
- if (imageFiles.length > 0) processFile(imageFiles[0]);
+ const dropped = Array.from(e.dataTransfer.files);
+ if (dropped.length > 0) processFiles(dropped);
  }, []);
 
  const handleRemoveFile = (index: number) => {
  const fileToRemove = files[index];
- if (fileToRemove && filePreviews[fileToRemove.name]) setFilePreviews({});
- setFiles([]);
+ if (fileToRemove) {
+ setFilePreviews((prev) => {
+ const next = { ...prev };
+ delete next[fileToRemove.name];
+ return next;
+ });
+ }
+ setFiles((prev) => prev.filter((_, i) => i !== index));
  };
 
  const openImageModal = (imageUrl: string) => setSelectedImage(imageUrl);
@@ -445,15 +432,16 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
  const handlePaste = React.useCallback((e: ClipboardEvent) => {
  const items = e.clipboardData?.items;
  if (!items) return;
+ const pasted: File[] = [];
  for (let i = 0; i < items.length; i++) {
- if (items[i].type.indexOf("image") !== -1) {
+ if (items[i].kind === "file") {
  const file = items[i].getAsFile();
- if (file) {
+ if (file) pasted.push(file);
+ }
+ }
+ if (pasted.length > 0) {
  e.preventDefault();
- processFile(file);
- break;
- }
- }
+ processFiles(pasted);
  }
  }, []);
 
@@ -464,24 +452,11 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
 
  const handleSubmit = () => {
  if (input.trim() || files.length > 0) {
- let messagePrefix = "";
- if (showSearch) messagePrefix = "[Search: ";
- else if (showThink) messagePrefix = "[Think: ";
- else if (showCanvas) messagePrefix = "[Canvas: ";
- const formattedInput = messagePrefix ? `${messagePrefix}${input}]` : input;
- onSend(formattedInput, files);
+ onSend(input, files);
  setInput("");
  setFiles([]);
  setFilePreviews({});
  }
- };
-
- const handleStartRecording = () => console.log("Started recording");
-
- const handleStopRecording = (duration: number) => {
- console.log(`Stopped recording after ${duration} seconds`);
- setIsRecording(false);
- onSend(`[Voice message - ${duration} seconds]`, []);
  };
 
  const hasContent = input.trim() !== "" || files.length > 0;
