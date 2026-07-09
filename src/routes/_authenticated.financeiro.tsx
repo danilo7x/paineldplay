@@ -25,6 +25,8 @@ import {
   Wallet,
   Target,
   Tag,
+  Repeat,
+  StopCircle,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +59,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   beforeLoad: ({ context }) => {
@@ -72,6 +75,11 @@ type Expense = {
   valor: number;
   data: string;
   project_id: string | null;
+  recorrente?: boolean | null;
+  recorrencia?: string | null;
+  dia_cobranca?: number | null;
+  recorrencia_ate?: string | null;
+  origem_id?: string | null;
 };
 type Sale = { id: string; valor: number; data: string; status: string; project_id: string };
 type ProjectLite = { id: string; nome: string };
@@ -127,6 +135,8 @@ function FinanceiroPage() {
 
   async function fetchAll() {
     setLoading(true);
+    // Gera ocorrências pendentes antes de carregar (idempotente).
+    await supabase.rpc("generate_recurrences");
     const [expRes, salesRes, projRes, catRes, goalRes] = await Promise.all([
       supabase.from("expenses").select("*").order("data", { ascending: false }),
       supabase.from("sales").select("id, valor, data, status, project_id"),
@@ -251,6 +261,19 @@ function FinanceiroPage() {
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) return toast.error("Não foi possível excluir", { description: error.message });
     toast.success("Despesa excluída");
+    fetchAll();
+  }
+
+  async function encerrarRecorrencia(exp: Expense) {
+    if (!confirm(`Encerrar a recorrência de "${exp.descricao}"? Novas ocorrências deixam de ser geradas.`))
+      return;
+    const templateId = exp.origem_id ?? exp.id;
+    const { error } = await supabase
+      .from("expenses")
+      .update({ recorrencia_ate: new Date().toISOString().slice(0, 10) })
+      .eq("id", templateId);
+    if (error) return toast.error("Erro ao encerrar", { description: error.message });
+    toast.success("Recorrência encerrada");
     fetchAll();
   }
 
@@ -533,7 +556,16 @@ function FinanceiroPage() {
                 <TableBody>
                   {filteredExpenses.map((e) => (
                     <TableRow key={e.id} className="border-border/50">
-                      <TableCell className="font-medium">{e.descricao}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{e.descricao}</span>
+                          {(e.recorrente || e.origem_id) && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary ring-1 ring-primary/20">
+                              <Repeat className="size-3" /> Recorrente
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <CategoryBadge cat={catBySlug.get(e.categoria)} slug={e.categoria} />
                       </TableCell>
@@ -548,6 +580,17 @@ function FinanceiroPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          {(e.recorrente || e.origem_id) && !e.recorrencia_ate && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-amber-300 hover:text-amber-200"
+                              title="Encerrar recorrência"
+                              onClick={() => encerrarRecorrencia(e)}
+                            >
+                              <StopCircle className="size-3.5" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -651,23 +694,43 @@ function ExpenseDialog({
   const [data, setData] = useState(expense?.data ?? new Date().toISOString().slice(0, 10));
   const [projectId, setProjectId] = useState<string>(expense?.project_id ?? "none");
   const [loading, setLoading] = useState(false);
+  const isChild = !!expense?.origem_id;
+  const [recorrente, setRecorrente] = useState<boolean>(!!expense?.recorrente);
+  const [recorrencia, setRecorrencia] = useState<"mensal" | "anual">(
+    (expense?.recorrencia as "mensal" | "anual") ?? "mensal",
+  );
+  const [diaCobranca, setDiaCobranca] = useState<string>(
+    expense?.dia_cobranca ? String(expense.dia_cobranca) : "",
+  );
+  const [recorrenciaAte, setRecorrenciaAte] = useState<string>(expense?.recorrencia_ate ?? "");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const { data: sess } = await supabase.auth.getSession();
-    const payload = {
+    const dia = diaCobranca ? Math.min(31, Math.max(1, Number(diaCobranca))) : null;
+    const payload: Record<string, unknown> = {
       descricao,
       categoria,
       valor: Number(valor.replace(",", ".")) || 0,
       data,
       project_id: projectId === "none" ? null : projectId,
+      recorrente,
+      recorrencia: recorrente ? recorrencia : null,
+      dia_cobranca: recorrente
+        ? (dia ?? Number(new Date(data + "T00:00:00").getDate()))
+        : null,
+      recorrencia_ate: recorrente ? (recorrenciaAte || null) : null,
     };
     const res = expense
       ? await supabase.from("expenses").update(payload).eq("id", expense.id)
       : await supabase
           .from("expenses")
           .insert({ ...payload, created_by: sess.session?.user.id });
+    if (!res.error) {
+      // Se marcada como recorrente, gera as ocorrências passadas até hoje.
+      if (recorrente) await supabase.rpc("generate_recurrences");
+    }
     setLoading(false);
     if (res.error) return toast.error("Não foi possível salvar", { description: res.error.message });
     toast.success(expense ? "Despesa atualizada" : "Despesa registrada");
@@ -745,6 +808,60 @@ function ExpenseDialog({
             </Select>
           </div>
         </div>
+        {isChild ? (
+          <div className="rounded-xl border border-border/50 bg-primary/5 p-3 text-xs text-muted-foreground">
+            Esta linha foi gerada automaticamente por uma despesa recorrente. Para alterar a recorrência edite a despesa de origem.
+          </div>
+        ) : (
+          <div className="space-y-3 rounded-xl border border-border/50 bg-card/40 p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Despesa recorrente</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Gera as ocorrências automaticamente todos os meses/anos.
+                </p>
+              </div>
+              <Switch checked={recorrente} onCheckedChange={setRecorrente} />
+            </div>
+            {recorrente && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Frequência</Label>
+                  <Select value={recorrencia} onValueChange={(v) => setRecorrencia(v as "mensal" | "anual")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="e-dia">Dia da cobrança</Label>
+                  <Input
+                    id="e-dia"
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={diaCobranca}
+                    onChange={(ev) => setDiaCobranca(ev.target.value)}
+                    placeholder={String(new Date(data + "T00:00:00").getDate())}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="e-ate">Até (opcional)</Label>
+                  <Input
+                    id="e-ate"
+                    type="date"
+                    value={recorrenciaAte}
+                    onChange={(ev) => setRecorrenciaAte(ev.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
