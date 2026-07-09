@@ -88,6 +88,8 @@ type Sale = {
   observacoes: string | null;
   subscription_id?: string | null;
   competencia?: string | null;
+  nf_emitida?: boolean | null;
+  nf_numero?: string | null;
 };
 type ProjectLite = { id: string; nome: string; cliente: string | null; client_id: string | null };
 type Subscription = {
