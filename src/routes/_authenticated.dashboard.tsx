@@ -415,8 +415,10 @@ function DashboardPage() {
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: 12,
                     fontSize: 12,
+                    color: "#fff",
                   }}
-                  labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                  labelStyle={{ color: "rgba(255,255,255,0.7)" }}
+                  itemStyle={{ color: "#fff" }}
                 />
                 <Area
                   type="monotone"
