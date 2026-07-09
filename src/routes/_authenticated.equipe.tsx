@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ConfirmPasswordDialog } from "@/components/ConfirmPasswordDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,12 @@ function EquipePage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [resetMember, setResetMember] = useState<Member | null>(null);
   const [lastAccess, setLastAccess] = useState<Record<string, string>>({});
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    run: () => Promise<void>;
+  } | null>(null);
 
   async function fetchMembers() {
     setLoading(true);
@@ -113,29 +120,45 @@ function EquipePage() {
   }, []);
 
   async function toggleAtivo(m: Member, ativo: boolean) {
-    const { error } = await supabase.rpc("admin_set_user_ativo", {
-      _user_id: m.id,
-      _ativo: ativo,
+    setConfirmAction({
+      title: ativo ? "Ativar usuário" : "Desativar usuário",
+      description: ativo
+        ? `Confirme sua senha para reativar ${m.nome ?? m.email}.`
+        : `Confirme sua senha para desativar ${m.nome ?? m.email}. Ele(a) não conseguirá mais acessar o sistema.`,
+      confirmLabel: ativo ? "Ativar" : "Desativar",
+      run: async () => {
+        const { error } = await supabase.rpc("admin_set_user_ativo", {
+          _user_id: m.id,
+          _ativo: ativo,
+        });
+        if (error) {
+          toast.error("Não foi possível alterar", { description: error.message });
+          return;
+        }
+        toast.success(ativo ? "Usuário ativado" : "Usuário desativado");
+        fetchMembers();
+      },
     });
-    if (error) {
-      toast.error("Não foi possível alterar", { description: error.message });
-      return;
-    }
-    toast.success(ativo ? "Usuário ativado" : "Usuário desativado");
-    fetchMembers();
   }
 
   async function changeRole(m: Member, role: Role) {
-    const { error } = await supabase.rpc("admin_set_user_role", {
-      _user_id: m.id,
-      _role: role,
+    setConfirmAction({
+      title: "Trocar papel",
+      description: `Confirme sua senha para tornar ${m.nome ?? m.email} ${ROLE_LABEL[role]}.`,
+      confirmLabel: "Trocar papel",
+      run: async () => {
+        const { error } = await supabase.rpc("admin_set_user_role", {
+          _user_id: m.id,
+          _role: role,
+        });
+        if (error) {
+          toast.error("Não foi possível alterar papel", { description: error.message });
+          return;
+        }
+        toast.success("Papel atualizado");
+        fetchMembers();
+      },
     });
-    if (error) {
-      toast.error("Não foi possível alterar papel", { description: error.message });
-      return;
-    }
-    toast.success("Papel atualizado");
-    fetchMembers();
   }
 
   return (
@@ -303,6 +326,20 @@ function EquipePage() {
         member={resetMember}
         onOpenChange={(v) => {
           if (!v) setResetMember(null);
+        }}
+      />
+
+      <ConfirmPasswordDialog
+        open={!!confirmAction}
+        onOpenChange={(v) => {
+          if (!v) setConfirmAction(null);
+        }}
+        title={confirmAction?.title ?? ""}
+        description={confirmAction?.description ?? ""}
+        confirmLabel={confirmAction?.confirmLabel ?? "Confirmar"}
+        danger
+        onConfirmed={async () => {
+          await confirmAction?.run();
         }}
       />
     </div>

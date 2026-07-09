@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ConfirmPasswordDialog } from "@/components/ConfirmPasswordDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,7 +80,9 @@ export const Route = createFileRoute("/_authenticated/projetos/$id")({
 function ProjectDetail() {
   const { id } = Route.useParams();
   const { user, isAdmin } = Route.useRouteContext();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -153,6 +156,17 @@ function ProjectDetail() {
     toast.success("Status atualizado");
   }
 
+  async function handleDeleteProject() {
+    if (!project) return;
+    const { error } = await supabase.rpc("admin_delete_project", { _project_id: project.id });
+    if (error) {
+      toast.error("Não foi possível apagar", { description: error.message });
+      return;
+    }
+    toast.success("Projeto apagado");
+    navigate({ to: "/projetos" });
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-16 text-muted-foreground">
@@ -202,7 +216,8 @@ function ProjectDetail() {
             </div>
             <div className="shrink-0">
               {isAdmin ? (
-                <Select value={project.status} onValueChange={(v) => updateStatus(v as ProjectStatus)}>
+                <div className="flex items-center gap-2">
+                  <Select value={project.status} onValueChange={(v) => updateStatus(v as ProjectStatus)}>
                   <SelectTrigger className={`h-8 rounded-full border-0 px-3 text-xs ${meta.className}`}>
                     <SelectValue />
                   </SelectTrigger>
@@ -213,7 +228,17 @@ function ProjectDetail() {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                    title="Apagar projeto"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               ) : (
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.className}`}>
                   {meta.label}
@@ -330,6 +355,16 @@ function ProjectDetail() {
           </TabsContent>
         )}
       </Tabs>
+
+      <ConfirmPasswordDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Apagar projeto"
+        description={`Confirme sua senha para apagar "${project.nome}". Todas as etapas, notas, credenciais e vínculos serão removidos. Vendas e despesas ficarão desvinculadas.`}
+        confirmLabel="Apagar projeto"
+        danger
+        onConfirmed={handleDeleteProject}
+      />
     </div>
   );
 }

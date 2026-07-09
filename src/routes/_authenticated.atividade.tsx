@@ -39,6 +39,7 @@ type ActivityRow = {
   entity_name: string | null;
   details: any;
   created_at: string;
+  severity?: string | null;
 };
 
 type SessionRow = {
@@ -71,6 +72,21 @@ const ACTION_LABEL: Record<string, string> = {
   excluiu: "excluiu",
   mudou_status: "mudou o status de",
   adicionou_membro: "adicionou um membro em",
+  mudou_papel: "trocou o papel de",
+  ativou: "reativou",
+  desativou: "desativou",
+};
+
+const SEVERITY_META: Record<string, { label: string; className: string }> = {
+  critical: {
+    label: "Crítico",
+    className: "bg-destructive/20 text-destructive border-destructive/30",
+  },
+  warn: {
+    label: "Atenção",
+    className: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  },
+  info: { label: "Info", className: "" },
 };
 
 function DeviceIcon({ type }: { type: string | null }) {
@@ -87,6 +103,7 @@ function AtividadePage() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [entityFilter, setEntityFilter] = useState<string>("todos");
   const [periodFilter, setPeriodFilter] = useState<string>("30");
+  const [severityFilter, setSeverityFilter] = useState<string>("todos");
   const [loading, setLoading] = useState(true);
   const sessionKey = currentSessionKey();
 
@@ -103,6 +120,7 @@ function AtividadePage() {
         .order("created_at", { ascending: false })
         .limit(300);
       if (entityFilter !== "todos") q = q.eq("entity_type", entityFilter);
+      if (severityFilter !== "todos") q = q.eq("severity", severityFilter);
       const { data: acts } = await q;
       const { data: sess } = await supabase
         .from("user_sessions")
@@ -129,7 +147,7 @@ function AtividadePage() {
     return () => {
       mounted = false;
     };
-  }, [entityFilter, periodFilter]);
+  }, [entityFilter, periodFilter, severityFilter]);
 
   const mySessions = useMemo(
     () => sessions.filter((s) => s.user_id === user.id),
@@ -204,6 +222,17 @@ function AtividadePage() {
                 <SelectItem value="365">Último ano</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="h-9 w-[160px] rounded-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Toda severidade</SelectItem>
+                <SelectItem value="critical">Crítico</SelectItem>
+                <SelectItem value="warn">Atenção</SelectItem>
+                <SelectItem value="info">Info</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Card className="rounded-2xl">
@@ -240,6 +269,14 @@ function AtividadePage() {
                             </Badge>{" "}
                             <span className="font-medium">{a.entity_name ?? ""}</span>
                           </p>
+                          {a.severity && a.severity !== "info" && (
+                            <Badge
+                              variant="outline"
+                              className={`mt-1 rounded-full border text-[10px] ${SEVERITY_META[a.severity]?.className ?? ""}`}
+                            >
+                              {SEVERITY_META[a.severity]?.label ?? a.severity}
+                            </Badge>
+                          )}
                           {a.details && (
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {typeof a.details === "object"
