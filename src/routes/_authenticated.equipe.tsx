@@ -1,7 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound } from "lucide-react";
+import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound, MailPlus } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -73,21 +75,33 @@ function EquipePage() {
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [resetMember, setResetMember] = useState<Member | null>(null);
+  const [lastAccess, setLastAccess] = useState<Record<string, string>>({});
 
   async function fetchMembers() {
     setLoading(true);
-    const { data: profiles, error } = await supabase
+    const [{ data: profiles, error }, { data: roles }, { data: sessions }] = await Promise.all([
+      supabase
       .from("profiles")
       .select("id, nome, email, cargo, avatar_url, ativo")
-      .order("nome", { ascending: true });
+        .order("nome", { ascending: true }),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase
+        .from("user_sessions")
+        .select("user_id, last_active_at")
+        .order("last_active_at", { ascending: false }),
+    ]);
     if (error) {
       toast.error("Erro ao carregar equipe", { description: error.message });
       setLoading(false);
       return;
     }
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     const roleMap = new Map<string, Role>();
     (roles ?? []).forEach((r) => roleMap.set(r.user_id, r.role as Role));
+    const accessMap: Record<string, string> = {};
+    (sessions ?? []).forEach((s) => {
+      if (!accessMap[s.user_id]) accessMap[s.user_id] = s.last_active_at;
+    });
+    setLastAccess(accessMap);
     setMembers(
       (profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.id) ?? null })),
     );
@@ -146,6 +160,7 @@ function EquipePage() {
               <TableHead>Colaborador</TableHead>
               <TableHead>Cargo</TableHead>
               <TableHead>Papel</TableHead>
+              <TableHead>Último acesso</TableHead>
               <TableHead>Ativo</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -153,19 +168,20 @@ function EquipePage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                   <Loader2 className="mx-auto size-4 animate-spin" />
                 </TableCell>
               </TableRow>
             ) : members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                   Nenhum colaborador ainda.
                 </TableCell>
               </TableRow>
             ) : (
               members.map((m) => {
                 const isSelf = m.id === user.id;
+                const last = lastAccess[m.id];
                 return (
                   <TableRow key={m.id}>
                     <TableCell>
@@ -203,6 +219,18 @@ function EquipePage() {
                       >
                         {m.role ? ROLE_LABEL[m.role] : "—"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {last ? (
+                        <span title={new Date(last).toLocaleString("pt-BR")}>
+                          {formatDistanceToNow(new Date(last), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/60">Nunca acessou</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -248,6 +276,9 @@ function EquipePage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => setResetMember(m)}>
                             <KeyRound className="mr-2 size-4" /> Redefinir senha
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setResetMember(m)}>
+                            <MailPlus className="mr-2 size-4" /> Reenviar convite / redefinir acesso
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
