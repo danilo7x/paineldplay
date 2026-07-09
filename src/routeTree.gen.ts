@@ -21,6 +21,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated.avisos'
 import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authenticated.atividade'
 import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
 import { Route as AuthenticatedRaniIndexRouteImport } from './routes/_authenticated.rani.index'
 import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
 import { Route as ApiRaniChatRouteImport } from './routes/api/rani.chat'
@@ -87,6 +88,11 @@ const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
   path: '/arquivos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedRaniIndexRoute = AuthenticatedRaniIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -117,6 +123,7 @@ const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/atividade': typeof AuthenticatedAtividadeRoute
   '/avisos': typeof AuthenticatedAvisosRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/arquivos': typeof AuthenticatedArquivosRoute
   '/atividade': typeof AuthenticatedAtividadeRoute
   '/avisos': typeof AuthenticatedAvisosRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/arquivos': typeof AuthenticatedArquivosRoute
   '/_authenticated/atividade': typeof AuthenticatedAtividadeRoute
   '/_authenticated/avisos': typeof AuthenticatedAvisosRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
     | '/arquivos'
     | '/atividade'
     | '/avisos'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analytics'
     | '/arquivos'
     | '/atividade'
     | '/avisos'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_authenticated/analytics'
     | '/_authenticated/arquivos'
     | '/_authenticated/atividade'
     | '/_authenticated/avisos'
@@ -319,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArquivosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/rani/': {
       id: '/_authenticated/rani/'
       path: '/'
@@ -371,6 +390,7 @@ const AuthenticatedRaniRouteWithChildren =
   AuthenticatedRaniRoute._addFileChildren(AuthenticatedRaniRouteChildren)
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedArquivosRoute: typeof AuthenticatedArquivosRoute
   AuthenticatedAtividadeRoute: typeof AuthenticatedAtividadeRoute
   AuthenticatedAvisosRoute: typeof AuthenticatedAvisosRoute
@@ -386,6 +406,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedArquivosRoute: AuthenticatedArquivosRoute,
   AuthenticatedAtividadeRoute: AuthenticatedAtividadeRoute,
   AuthenticatedAvisosRoute: AuthenticatedAvisosRoute,
