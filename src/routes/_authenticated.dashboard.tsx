@@ -57,7 +57,7 @@ function buildChart(
 }
 
 function DashboardPage() {
-  const { isAdmin } = Route.useRouteContext();
+  const { isAdmin, isFinance } = Route.useRouteContext();
   const { firstName } = useProfile();
   const [period, setPeriod] = useState<Period>("1M");
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ function DashboardPage() {
         supabase.from("projects").select("status"),
         supabase.from("sales").select("valor, data, status"),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("ativo", true),
-        isAdmin
+        isFinance
           ? supabase.from("expenses").select("valor").gte("data", monthKey)
           : Promise.resolve({ data: [] as { valor: number }[] } as const),
       ]);
@@ -110,7 +110,7 @@ function DashboardPage() {
     return () => {
       alive = false;
     };
-  }, [isAdmin]);
+  }, [isFinance]);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -122,7 +122,7 @@ function DashboardPage() {
   const baseKpis = [
     {
       key: "receita",
-      label: isAdmin ? "Receita do mês" : "Sua receita no mês",
+      label: isFinance ? "Receita do mês" : "Sua receita no mês",
       value: brl(receitaMes),
       icon: DollarSign,
       hint: salesMes.length === 0 ? "Nenhuma venda" : `${salesMes.length} vendas no mês`,
@@ -150,7 +150,7 @@ function DashboardPage() {
       hint: "Ativos no CRM",
     },
   ];
-  const kpis = isAdmin
+  const kpis = isFinance
     ? [
         baseKpis[0],
         {
@@ -218,13 +218,13 @@ function DashboardPage() {
             Olá, {firstName} 👋
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isAdmin
+            {isFinance
               ? "Você tem acesso total ao painel."
               : "Seus projetos e faturamento aparecerão aqui."}
           </p>
         </div>
         <span className="shrink-0 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-          {isAdmin ? "Administrador" : "Colaborador"}
+          {isAdmin ? "Administrador" : isFinance ? "Contadora" : "Colaborador"}
         </span>
       </motion.header>
 
@@ -232,11 +232,11 @@ function DashboardPage() {
         variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
         className={cn(
           "grid gap-4 sm:grid-cols-2",
-          isAdmin ? "xl:grid-cols-5" : "xl:grid-cols-4",
+          isFinance ? "xl:grid-cols-5" : "xl:grid-cols-4",
         )}
       >
         {loading
-          ? Array.from({ length: isAdmin ? 5 : 4 }).map((_, i) => (
+          ? Array.from({ length: isFinance ? 5 : 4 }).map((_, i) => (
               <Card key={i} className="rounded-2xl border-border/50 bg-card/40 backdrop-blur-xl">
                 <CardContent className="p-6">
                   <Skeleton className="h-3 w-24" />
