@@ -6,11 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { Badge } from "@/components/ui/badge";
 import { useProfile } from "@/lib/profile-context";
-import {
-  emitRaniThreadsChanged,
-  RANI_PLACEHOLDER_REPLY,
-  RANI_SUGGESTIONS,
-} from "@/features/rani/store";
+import { emitRaniThreadsChanged, RANI_SUGGESTIONS } from "@/features/rani/store";
 import { RaniMark } from "./_authenticated.rani";
 
 export const Route = createFileRoute("/_authenticated/rani/")({
@@ -46,18 +42,16 @@ function RaniHome() {
     const msgErr = (
       await supabase.from("rani_messages").insert([
         { thread_id: thread.id, user_id: uid, role: "user", content: text },
-        {
-          thread_id: thread.id,
-          user_id: uid,
-          role: "assistant",
-          content: RANI_PLACEHOLDER_REPLY,
-        },
       ])
     ).error;
     if (msgErr) toast.error("Falha ao salvar mensagem", { description: msgErr.message });
     emitRaniThreadsChanged();
     setCreating(false);
-    navigate({ to: "/rani/$threadId", params: { threadId: thread.id } });
+    navigate({
+      to: "/rani/$threadId",
+      params: { threadId: thread.id },
+      search: { send: 1 },
+    });
   }
 
   return (
