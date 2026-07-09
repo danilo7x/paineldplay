@@ -1,8 +1,7 @@
 import React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ArrowUp, Paperclip, Square, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowUp, Paperclip, Square, X, File as FileIcon } from "lucide-react";
 
 // Utility function for className merging
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(" ");
@@ -354,18 +353,6 @@ const PromptInputAction: React.FC<PromptInputActionProps> = ({
  </Tooltip>
  );
 };
-
-// Custom Divider Component
-const CustomDivider: React.FC = () => (
- <div className="relative h-6 w-[1.5px] mx-1">
- <div
- className="absolute inset-0 bg-gradient-to-t from-transparent via-[#9b87f5]/70 to-transparent rounded-full"
- style={{
- clipPath: "polygon(0% 0%, 100% 0%, 100% 40%, 140% 50%, 100% 60%, 100% 100%, 0% 100%, 0% 60%, -40% 50%, 0% 40%)",
- }}
- />
- </div>
-);
 
 // Main PromptInputBox Component
 interface PromptInputBoxProps {
