@@ -17,6 +17,8 @@ export function LoginPage() {
   const [setupMode, setSetupMode] = useState(false);
   const [setupNome, setSetupNome] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
+  const [mfaStep, setMfaStep] = useState<{ factorId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
 
   const blobsData = useMemo(
     () =>
@@ -71,13 +73,61 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error("Não foi possível entrar", { description: error.message });
       return;
     }
+    // Check if MFA challenge is required
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
+      const { data: fac } = await supabase.auth.mfa.listFactors();
+      const totp = (fac?.totp ?? []).find((f) => f.status === "verified");
+      if (totp) {
+        setMfaStep({ factorId: totp.id });
+        setMfaCode("");
+        setLoading(false);
+        return;
+      }
+    }
+    setLoading(false);
     toast.success("Bem-vindo!");
     navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function handleMfaVerify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaStep) return;
+    if (mfaCode.length < 6) return;
+    setLoading(true);
+    const { data: chal, error: chalErr } = await supabase.auth.mfa.challenge({
+      factorId: mfaStep.factorId,
+    });
+    if (chalErr || !chal) {
+      setLoading(false);
+      toast.error("Falha no desafio", { description: chalErr?.message });
+      return;
+    }
+    const { error: verErr } = await supabase.auth.mfa.verify({
+      factorId: mfaStep.factorId,
+      challengeId: chal.id,
+      code: mfaCode,
+    });
+    setLoading(false);
+    if (verErr) {
+      toast.error("Código incorreto", { description: verErr.message });
+      return;
+    }
+    toast.success("Bem-vindo!");
+    setMfaStep(null);
+    navigate({ to: "/dashboard", replace: true });
+  }
+
+  async function handleMfaCancel() {
+    await supabase.auth.signOut();
+    setMfaStep(null);
+    setMfaCode("");
+    setPassword("");
   }
 
   async function handleSetup(e: React.FormEvent) {
@@ -322,7 +372,43 @@ export function LoginPage() {
           <p>{setupMode ? "Configuração inicial" : "Somente colaboradores"}</p>
         </header>
 
-        {setupMode ? (
+        {mfaStep ? (
+          <form onSubmit={handleMfaVerify} autoComplete="off">
+            <div className="form-group">
+              <label>Código do autenticador</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                maxLength={6}
+                autoFocus
+                required
+                style={{ letterSpacing: "0.4em", fontFamily: "'Space Mono', monospace" }}
+              />
+              <div className="input-glow" />
+            </div>
+            <div className="submit-wrap">
+              <div className="mercury-drop" />
+              <button
+                type="submit"
+                className="btn-base"
+                disabled={loading || mfaCode.length < 6}
+              >
+                {loading && <Loader2 className="size-4 animate-spin" />}
+                Verificar
+              </button>
+            </div>
+            <div className="footer-nav">
+              <button type="button" onClick={handleMfaCancel}>
+                ← Cancelar
+              </button>
+              <span>2FA obrigatório</span>
+            </div>
+          </form>
+        ) : setupMode ? (
           <form onSubmit={handleSetup} autoComplete="off">
             <div className="form-group">
               <label>Nome</label>
