@@ -383,6 +383,7 @@ function FaturamentoPage() {
           subscriptions={subscriptions}
           projectMap={projectMap}
           onChanged={fetchSales}
+          onOpenAttachments={setAttachmentsSale}
         />
       )}
 
