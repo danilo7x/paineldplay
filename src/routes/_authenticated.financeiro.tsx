@@ -88,8 +88,15 @@ type Goal = { id: string; mes: string; receita_meta: number; lucro_meta: number 
 
 const FALLBACK_COLOR = "#64748B";
 
-const brl = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+const brl = (n: number) => {
+  const abs = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    Math.abs(n),
+  );
+  return n < 0 ? `-${abs}` : abs;
+};
+
+const TAX_RATE = 0.06;
+const RESERVE_RATE = 0.15;
 
 type PresetKey = "mes" | "anterior" | "ano" | "custom";
 
