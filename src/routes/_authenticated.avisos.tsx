@@ -1,7 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Loader2,
+  Megaphone,
+  Paperclip,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +21,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -19,15 +39,44 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+type Priority = "info" | "alerta" | "urgente";
 type Notice = {
   id: string;
   titulo: string;
   mensagem: string;
   autor_id: string | null;
   created_at: string;
+  prioridade: Priority;
+  critico: boolean;
 };
 type Read = { notice_id: string; user_id: string; read_at: string };
 type Prof = { id: string; nome: string | null; email: string | null; avatar_url: string | null; ativo: boolean };
+type Attachment = {
+  id: string;
+  notice_id: string;
+  storage_path: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+};
+
+const PRIORITY_META: Record<Priority, { label: string; className: string; dot: string }> = {
+  info: {
+    label: "Info",
+    className: "border-sky-500/40 bg-sky-500/10 text-sky-300",
+    dot: "bg-sky-400",
+  },
+  alerta: {
+    label: "Alerta",
+    className: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    dot: "bg-amber-400",
+  },
+  urgente: {
+    label: "Urgente",
+    className: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+    dot: "bg-rose-400",
+  },
+};
 
 export const Route = createFileRoute("/_authenticated/avisos")({
   component: AvisosPage,
@@ -38,20 +87,24 @@ function AvisosPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [reads, setReads] = useState<Read[]>([]);
   const [team, setTeam] = useState<Prof[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Notice | null>(null);
+  const [ackBusy, setAckBusy] = useState<string | null>(null);
 
   async function fetchAll() {
     setLoading(true);
-    const [nRes, rRes, tRes] = await Promise.all([
+    const [nRes, rRes, tRes, aRes] = await Promise.all([
       supabase.from("notices").select("*").order("created_at", { ascending: false }),
       supabase.from("notice_reads").select("notice_id, user_id, read_at"),
       supabase.from("profiles").select("id, nome, email, avatar_url, ativo"),
+      supabase.from("notice_attachments").select("*"),
     ]);
     setNotices((nRes.data ?? []) as Notice[]);
     setReads((rRes.data ?? []) as Read[]);
     setTeam((tRes.data ?? []) as Prof[]);
+    setAttachments((aRes.data ?? []) as Attachment[]);
     setLoading(false);
   }
 
@@ -59,11 +112,11 @@ function AvisosPage() {
     fetchAll();
   }, []);
 
-  // mark as read: any notice the current user hasn't yet
+  // Auto-marca como lido apenas avisos NÃO críticos. Críticos exigem confirmação explícita.
   useEffect(() => {
     if (loading || notices.length === 0) return;
     const mine = new Set(reads.filter((r) => r.user_id === user.id).map((r) => r.notice_id));
-    const missing = notices.filter((n) => !mine.has(n.id));
+    const missing = notices.filter((n) => !n.critico && !mine.has(n.id));
     if (missing.length === 0) return;
     (async () => {
       const { error } = await supabase
@@ -89,7 +142,43 @@ function AvisosPage() {
     return m;
   }, [reads]);
 
+  const attachmentsByNotice = useMemo(() => {
+    const m = new Map<string, Attachment[]>();
+    attachments.forEach((a) => {
+      const arr = m.get(a.notice_id) ?? [];
+      arr.push(a);
+      m.set(a.notice_id, arr);
+    });
+    return m;
+  }, [attachments]);
+
   const activeTeam = useMemo(() => team.filter((t) => t.ativo), [team]);
+
+  const myReads = useMemo(
+    () => new Set(reads.filter((r) => r.user_id === user.id).map((r) => r.notice_id)),
+    [reads, user.id],
+  );
+
+  async function acknowledge(noticeId: string) {
+    setAckBusy(noticeId);
+    const { error } = await supabase
+      .from("notice_reads")
+      .insert({ notice_id: noticeId, user_id: user.id });
+    setAckBusy(null);
+    if (error) return toast.error("Não foi possível confirmar", { description: error.message });
+    toast.success("Confirmação registrada");
+    fetchAll();
+  }
+
+  async function downloadAttachment(a: Attachment) {
+    const { data, error } = await supabase.storage
+      .from("notice-attachments")
+      .createSignedUrl(a.storage_path, 60);
+    if (error || !data?.signedUrl) {
+      return toast.error("Erro ao baixar anexo", { description: error?.message });
+    }
+    window.open(data.signedUrl, "_blank", "noopener");
+  }
 
   async function remove(id: string) {
     if (!confirm("Excluir este aviso?")) return;
@@ -149,15 +238,36 @@ function AvisosPage() {
             const readers = activeTeam.filter((t) => readSet.has(t.id));
             const nonReaders = activeTeam.filter((t) => !readSet.has(t.id));
             const author = n.autor_id ? authorMap.get(n.autor_id) : null;
+            const meta = PRIORITY_META[n.prioridade] ?? PRIORITY_META.info;
+            const noticeAttachments = attachmentsByNotice.get(n.id) ?? [];
+            const needsAck = n.critico && !myReads.has(n.id);
             return (
               <Card
                 key={n.id}
-                className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl"
+                className={`rounded-2xl bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl ${
+                  needsAck
+                    ? "border-rose-500/50 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]"
+                    : "border-border/50"
+                }`}
               >
                 <CardContent className="space-y-4 p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <h2 className="text-lg font-semibold tracking-tight">{n.titulo}</h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-semibold tracking-tight">{n.titulo}</h2>
+                        <Badge variant="outline" className={`gap-1.5 ${meta.className}`}>
+                          <span className={`size-1.5 rounded-full ${meta.dot}`} />
+                          {meta.label}
+                        </Badge>
+                        {n.critico && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 border-rose-500/40 bg-rose-500/10 text-rose-300"
+                          >
+                            <AlertTriangle className="size-3" /> Leitura obrigatória
+                          </Badge>
+                        )}
+                      </div>
                       <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <Avatar className="size-5">
                           <AvatarImage src={author?.avatar_url ?? undefined} />
@@ -193,6 +303,45 @@ function AvisosPage() {
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-foreground/90">{n.mensagem}</p>
 
+                  {noticeAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {noticeAttachments.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => downloadAttachment(a)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card/60 px-3 py-1.5 text-xs transition hover:border-primary/50 hover:text-foreground"
+                        >
+                          <Paperclip className="size-3.5" />
+                          <span className="max-w-[220px] truncate">{a.filename}</span>
+                          <Download className="size-3.5 opacity-60" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {needsAck && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4">
+                      <p className="flex items-center gap-2 text-xs text-rose-100">
+                        <AlertTriangle className="size-4" />
+                        Este aviso exige confirmação de leitura.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => acknowledge(n.id)}
+                        disabled={ackBusy === n.id}
+                        className="gap-2 bg-rose-500/90 text-white hover:bg-rose-500"
+                      >
+                        {ackBusy === n.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="size-3.5" />
+                        )}
+                        Li e entendi
+                      </Button>
+                    </div>
+                  )}
+
                   {isAdmin && activeTeam.length > 0 && (
                     <div className="rounded-xl border border-border/50 bg-card/40 p-4">
                       <div className="mb-3 flex items-center justify-between text-xs">
@@ -210,7 +359,7 @@ function AvisosPage() {
                     </div>
                   )}
 
-                  {!isAdmin && (
+                  {!isAdmin && !needsAck && myReads.has(n.id) && (
                     <p className="flex items-center gap-1.5 text-[11px] text-emerald-300">
                       <CheckCircle2 className="size-3.5" /> Marcado como lido
                     </p>
@@ -288,16 +437,87 @@ function NoticeDialog({
 }) {
   const [titulo, setTitulo] = useState(notice?.titulo ?? "");
   const [mensagem, setMensagem] = useState(notice?.mensagem ?? "");
+  const [prioridade, setPrioridade] = useState<Priority>(notice?.prioridade ?? "info");
+  const [critico, setCritico] = useState<boolean>(notice?.critico ?? false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [existing, setExisting] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!notice) {
+      setExisting([]);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("notice_attachments")
+        .select("*")
+        .eq("notice_id", notice.id);
+      setExisting((data ?? []) as Attachment[]);
+    })();
+  }, [notice]);
+
+  async function removeExisting(a: Attachment) {
+    if (!confirm(`Remover "${a.filename}"?`)) return;
+    const [{ error: dbErr }, { error: stErr }] = await Promise.all([
+      supabase.from("notice_attachments").delete().eq("id", a.id),
+      supabase.storage.from("notice-attachments").remove([a.storage_path]),
+    ]);
+    if (dbErr || stErr) return toast.error("Erro ao remover anexo");
+    setExisting((prev) => prev.filter((x) => x.id !== a.id));
+  }
+
+  async function uploadAttachments(noticeId: string) {
+    if (files.length === 0) return;
+    for (const file of files) {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${noticeId}/${crypto.randomUUID()}-${safe}`;
+      const { error: upErr } = await supabase.storage
+        .from("notice-attachments")
+        .upload(path, file, { contentType: file.type || undefined });
+      if (upErr) {
+        toast.error(`Falha ao enviar ${file.name}`, { description: upErr.message });
+        continue;
+      }
+      const { error: dbErr } = await supabase.from("notice_attachments").insert({
+        notice_id: noticeId,
+        storage_path: path,
+        filename: file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        uploaded_by: userId,
+      });
+      if (dbErr) toast.error(`Falha ao registrar ${file.name}`, { description: dbErr.message });
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = notice
-      ? await supabase.from("notices").update({ titulo, mensagem }).eq("id", notice.id)
-      : await supabase.from("notices").insert({ titulo, mensagem, autor_id: userId });
+    let noticeId = notice?.id;
+    if (notice) {
+      const { error } = await supabase
+        .from("notices")
+        .update({ titulo, mensagem, prioridade, critico })
+        .eq("id", notice.id);
+      if (error) {
+        setLoading(false);
+        return toast.error("Erro ao salvar", { description: error.message });
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("notices")
+        .insert({ titulo, mensagem, autor_id: userId, prioridade, critico })
+        .select("id")
+        .single();
+      if (error || !data) {
+        setLoading(false);
+        return toast.error("Erro ao salvar", { description: error?.message });
+      }
+      noticeId = data.id;
+    }
+    if (noticeId) await uploadAttachments(noticeId);
     setLoading(false);
-    if (res.error) return toast.error("Erro ao salvar", { description: res.error.message });
     toast.success(notice ? "Aviso atualizado" : "Aviso publicado");
     onSaved();
   }
@@ -327,6 +547,72 @@ function NoticeDialog({
             required
           />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Prioridade</Label>
+            <Select value={prioridade} onValueChange={(v) => setPrioridade(v as Priority)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PRIORITY_META) as Priority[]).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    <span className="flex items-center gap-2">
+                      <span className={`size-2 rounded-full ${PRIORITY_META[p].dot}`} />
+                      {PRIORITY_META[p].label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end justify-between rounded-lg border border-border/50 bg-card/40 px-3 py-2">
+            <div>
+              <Label htmlFor="n-critico" className="text-xs">
+                Aviso crítico
+              </Label>
+              <p className="text-[10px] text-muted-foreground">Exige confirmação de leitura</p>
+            </div>
+            <Switch id="n-critico" checked={critico} onCheckedChange={setCritico} />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Anexos</Label>
+          {existing.length > 0 && (
+            <ul className="space-y-1">
+              {existing.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-card/40 px-2 py-1 text-xs"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <Paperclip className="size-3.5" /> {a.filename}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-rose-300 hover:text-rose-200"
+                    onClick={() => removeExisting(a)}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Input
+            type="file"
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            className="cursor-pointer"
+          />
+          {files.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {files.length} arquivo{files.length > 1 ? "s" : ""} para enviar
+            </p>
+          )}
+        </div>
+
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}
