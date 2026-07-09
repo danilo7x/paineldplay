@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Wallet,
@@ -74,11 +74,9 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, isAdmin, isFinance, isContador } = AuthRoute.useRouteContext();
   const { profile, firstName, initials } = useProfile();
-  const [unread, setUnread] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
+  const { data: unread = 0 } = useQuery({
+    queryKey: ["sidebar-unread", user.id],
+    queryFn: async () => {
       const [n, r] = await Promise.all([
         supabase.from("notices").select("id", { head: true, count: "exact" }),
         supabase
@@ -86,19 +84,12 @@ export function AppSidebar() {
           .select("id", { head: true, count: "exact" })
           .eq("user_id", user.id),
       ]);
-      if (!mounted) return;
-      setUnread(Math.max(0, (n.count ?? 0) - (r.count ?? 0)));
-    }
-    load();
-    const t = setInterval(load, 30_000);
-    const onFocus = () => load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      mounted = false;
-      clearInterval(t);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [user.id, pathname]);
+      return Math.max(0, (n.count ?? 0) - (r.count ?? 0));
+    },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
 
   async function handleSignOut() {
     await supabase.auth.signOut();
