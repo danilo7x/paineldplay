@@ -370,6 +370,14 @@ function FaturamentoPage() {
         </div>
       </header>
 
+      {subscriptions.filter((s) => s.status !== "encerrada").length > 0 && (
+        <SubscriptionsCard
+          subscriptions={subscriptions}
+          projectMap={projectMap}
+          onChanged={fetchSales}
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard
           label={isAdmin ? "Total do período" : "Seu total no período"}
