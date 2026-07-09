@@ -39,6 +39,7 @@ type ActivityRow = {
   entity_name: string | null;
   details: any;
   created_at: string;
+  severity?: string | null;
 };
 
 type SessionRow = {
@@ -71,6 +72,21 @@ const ACTION_LABEL: Record<string, string> = {
   excluiu: "excluiu",
   mudou_status: "mudou o status de",
   adicionou_membro: "adicionou um membro em",
+  mudou_papel: "trocou o papel de",
+  ativou: "reativou",
+  desativou: "desativou",
+};
+
+const SEVERITY_META: Record<string, { label: string; className: string }> = {
+  critical: {
+    label: "Crítico",
+    className: "bg-destructive/20 text-destructive border-destructive/30",
+  },
+  warn: {
+    label: "Atenção",
+    className: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  },
+  info: { label: "Info", className: "" },
 };
 
 function DeviceIcon({ type }: { type: string | null }) {
