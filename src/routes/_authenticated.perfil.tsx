@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ type Profile = {
   telefone: string | null;
   bio: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
 };
 
 function PerfilPage() {
@@ -34,17 +35,20 @@ function PerfilPage() {
     telefone: "",
     bio: "",
     avatar_url: null,
+    cover_url: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("nome, email, cargo, telefone, bio, avatar_url")
+        .select("nome, email, cargo, telefone, bio, avatar_url, cover_url")
         .eq("id", user.id)
         .maybeSingle();
       if (error) toast.error("Erro ao carregar perfil", { description: error.message });
@@ -107,6 +111,51 @@ function PerfilPage() {
     }
   }
 
+  async function handleUploadCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `${user.id}/cover-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: signed } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed?.signedUrl ?? null;
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ cover_url: url })
+        .eq("id", user.id);
+      if (updErr) throw updErr;
+      setProfile((p) => ({ ...p, cover_url: url }));
+      toast.success("Capa atualizada");
+    } catch (err) {
+      toast.error("Falha no upload", {
+        description: err instanceof Error ? err.message : "Tente novamente",
+      });
+    } finally {
+      setUploadingCover(false);
+      if (coverInput.current) coverInput.current.value = "";
+    }
+  }
+
+  async function handleRemoveCover() {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ cover_url: null })
+      .eq("id", user.id);
+    if (error) {
+      toast.error("Erro ao remover capa", { description: error.message });
+      return;
+    }
+    setProfile((p) => ({ ...p, cover_url: null }));
+    toast.success("Capa removida");
+  }
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -128,7 +177,57 @@ function PerfilPage() {
       </header>
 
       <Card className="border-border/50 bg-card/60 backdrop-blur">
-        <CardContent className="p-6">
+        <CardContent className="p-0">
+          <div className="relative h-40 w-full overflow-hidden rounded-t-xl bg-gradient-to-br from-primary/20 via-primary/10 to-background sm:h-52">
+            {profile.cover_url ? (
+              <img
+                src={profile.cover_url}
+                alt="Capa do perfil"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                Adicione uma capa opcional
+              </div>
+            )}
+            <input
+              ref={coverInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleUploadCover}
+            />
+            <div className="absolute right-3 top-3 flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="gap-1.5 bg-background/80 backdrop-blur"
+                onClick={() => coverInput.current?.click()}
+                disabled={uploadingCover}
+              >
+                {uploadingCover ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <ImageIcon className="size-3.5" />
+                )}
+                {profile.cover_url ? "Trocar capa" : "Adicionar capa"}
+              </Button>
+              {profile.cover_url && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="gap-1.5 bg-background/80 backdrop-blur"
+                  onClick={handleRemoveCover}
+                >
+                  <Trash2 className="size-3.5" />
+                  Remover
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="p-6">
           <div className="flex flex-wrap items-center gap-6">
             <Avatar className="size-20">
               <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.nome ?? ""} />
@@ -209,6 +308,7 @@ function PerfilPage() {
               </Button>
             </div>
           </form>
+          </div>
         </CardContent>
       </Card>
     </div>
