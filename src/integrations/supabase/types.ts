@@ -749,6 +749,8 @@ export type Database = {
           dia_cobranca: number
           duracao_meses: number | null
           id: string
+          nf_emitida: boolean
+          nf_numero: string | null
           observacoes: string | null
           project_id: string
           status: string
@@ -767,6 +769,8 @@ export type Database = {
           dia_cobranca: number
           duracao_meses?: number | null
           id?: string
+          nf_emitida?: boolean
+          nf_numero?: string | null
           observacoes?: string | null
           project_id: string
           status?: string
@@ -785,6 +789,8 @@ export type Database = {
           dia_cobranca?: number
           duracao_meses?: number | null
           id?: string
+          nf_emitida?: boolean
+          nf_numero?: string | null
           observacoes?: string | null
           project_id?: string
           status?: string
@@ -820,6 +826,8 @@ export type Database = {
           created_by: string | null
           data: string
           id: string
+          nf_emitida: boolean
+          nf_numero: string | null
           observacoes: string | null
           project_id: string
           status: Database["public"]["Enums"]["sale_status"]
@@ -837,6 +845,8 @@ export type Database = {
           created_by?: string | null
           data?: string
           id?: string
+          nf_emitida?: boolean
+          nf_numero?: string | null
           observacoes?: string | null
           project_id: string
           status?: Database["public"]["Enums"]["sale_status"]
@@ -854,6 +864,8 @@ export type Database = {
           created_by?: string | null
           data?: string
           id?: string
+          nf_emitida?: boolean
+          nf_numero?: string | null
           observacoes?: string | null
           project_id?: string
           status?: Database["public"]["Enums"]["sale_status"]

@@ -71,14 +71,14 @@ function RaniHome() {
             </h1>
             <Badge
               variant="secondary"
-              className="rounded-full border border-[#057EF3]/30 bg-[#057EF3]/10 text-[#057EF3]"
+              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
             >
-              Em breve
+              Ativa
             </Badge>
           </div>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">
-            Sou a Rani, sua assistente da DPlay. Ainda estou sendo ativada — mas você já pode
-            começar uma conversa e seu histórico fica salvo por aqui.
+            Sou a Rani, sua assistente da DPlay. Pergunte sobre projetos, vendas, despesas ou
+            avisos — respondo com dados reais do seu CRM.
           </p>
         </div>
 

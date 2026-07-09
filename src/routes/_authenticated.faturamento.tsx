@@ -88,8 +88,10 @@ type Sale = {
   observacoes: string | null;
   subscription_id?: string | null;
   competencia?: string | null;
+  nf_emitida?: boolean | null;
+  nf_numero?: string | null;
 };
-type ProjectLite = { id: string; nome: string; cliente: string | null };
+type ProjectLite = { id: string; nome: string; cliente: string | null; client_id: string | null };
 type Subscription = {
   id: string;
   project_id: string;
@@ -223,7 +225,7 @@ function FaturamentoPage() {
   }, [range.from, statusFilter, projectFilter, debouncedQuery]);
 
   const fetchProjects = useCallback(async () => {
-    const { data } = await supabase.from("projects").select("id, nome, cliente").order("nome");
+    const { data } = await supabase.from("projects").select("id, nome, cliente, client_id").order("nome");
     setProjects((data ?? []) as ProjectLite[]);
   }, []);
 
@@ -529,6 +531,11 @@ function FaturamentoPage() {
                               <Repeat className="size-3" /> Assinatura
                             </span>
                           )}
+                          {s.nf_emitida && (
+                            <span className="ml-1 mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 ring-1 ring-emerald-500/30">
+                              NF{s.nf_numero ? ` · ${s.nf_numero}` : ""}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {proj?.nome ?? "—"}
@@ -734,12 +741,38 @@ function SaleDialog({
   const [data, setData] = useState(sale?.data ?? new Date().toISOString().slice(0, 10));
   const [obs, setObs] = useState(sale?.observacoes ?? "");
   const [loading, setLoading] = useState(false);
+  const [nfEmitida, setNfEmitida] = useState<boolean>(Boolean((sale as unknown as { nf_emitida?: boolean })?.nf_emitida));
+  const [nfNumero, setNfNumero] = useState<string>(String((sale as unknown as { nf_numero?: string | null })?.nf_numero ?? ""));
   const canPickType = mode === "create";
   const [tipo, setTipo] = useState<"avulsa" | "assinatura">("avulsa");
   const [valorMensal, setValorMensal] = useState("");
   const [diaCobranca, setDiaCobranca] = useState<string>(String(new Date().getDate()));
   const [continua, setContinua] = useState(true);
   const [duracao, setDuracao] = useState<string>("12");
+
+  // Pré-preencher dados do cliente ao selecionar projeto vinculado (apenas em criação)
+  useEffect(() => {
+    if (mode !== "create" || !projectId) return;
+    const proj = projects.find((p) => p.id === projectId);
+    if (!proj) return;
+    (async () => {
+      if (proj.client_id) {
+        const { data: c } = await supabase
+          .from("clients")
+          .select("nome, email, contato")
+          .eq("id", proj.client_id)
+          .maybeSingle();
+        if (c) {
+          if (!nome) setNome(c.nome ?? "");
+          if (!email) setEmail(c.email ?? "");
+          if (!contato) setContato(c.contato ?? "");
+          return;
+        }
+      }
+      if (!nome && proj.cliente) setNome(proj.cliente);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -788,6 +821,8 @@ function SaleDialog({
       status,
       data,
       observacoes: obs || null,
+      nf_emitida: nfEmitida,
+      nf_numero: nfEmitida ? (nfNumero || null) : null,
     };
     let error;
     if (mode === "edit" && sale) {
@@ -959,6 +994,22 @@ function SaleDialog({
           <Label htmlFor="s-obs">Observações</Label>
           <Textarea id="s-obs" rows={3} value={obs ?? ""} onChange={(e) => setObs(e.target.value)} />
         </div>
+        {tipo === "avulsa" && (
+          <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+            <div className="flex items-center gap-3">
+              <Switch id="s-nf" checked={nfEmitida} onCheckedChange={setNfEmitida} />
+              <Label htmlFor="s-nf" className="cursor-pointer text-sm">Nota fiscal emitida</Label>
+              {nfEmitida && (
+                <Input
+                  placeholder="Número da NF"
+                  value={nfNumero}
+                  onChange={(e) => setNfNumero(e.target.value)}
+                  className="ml-auto h-9 max-w-[180px]"
+                />
+              )}
+            </div>
+          </div>
+        )}
         <DialogFooter>
           <Button type="submit" disabled={loading} className="w-full gap-2">
             {loading && <Loader2 className="size-4 animate-spin" />}

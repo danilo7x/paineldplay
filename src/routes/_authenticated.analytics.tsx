@@ -57,8 +57,24 @@ function firstDayOfMonth(offsetMonths = 0) {
   return d;
 }
 function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
 }
+function addDays(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return toISODate(d);
+}
+
+const TOOLTIP_STYLE = {
+  background: "rgba(11,15,26,0.95)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 12,
+  color: "#fff",
+  fontSize: 12,
+} as const;
+const TOOLTIP_LABEL = { color: "rgba(255,255,255,0.7)" } as const;
+const TOOLTIP_ITEM = { color: "#fff" } as const;
 
 type Period = "mes" | "ano" | "custom";
 
@@ -91,12 +107,13 @@ function AnalyticsPage() {
       setLoading(true);
       const fromISO = toISODate(from);
       const toISO = toISODate(to);
+      const toExclusive = addDays(toISO, 1); // inclusive .lt() next day
       const [s, p, st, m, pr] = await Promise.all([
         supabase
           .from("sales")
           .select("valor, data, project_id, status")
           .gte("data", fromISO)
-          .lte("data", toISO),
+          .lt("data", toExclusive),
         supabase.from("projects").select("id, nome, status"),
         supabase
           .from("project_steps")
@@ -269,7 +286,7 @@ function AnalyticsPage() {
                     <XAxis dataKey="mes" stroke="rgba(255,255,255,0.5)" fontSize={11} />
                     <YAxis stroke="rgba(255,255,255,0.5)" fontSize={11} tickFormatter={(v) => fmtBRL(v)} />
                     <Tooltip
-                      contentStyle={{ background: "rgba(15,20,35,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}
+                      contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL} itemStyle={TOOLTIP_ITEM}
                       formatter={(v: number) => fmtBRL(v)}
                     />
                     <Area type="monotone" dataKey="receita" stroke="#057ef3" strokeWidth={2} fill="url(#rev)" />
@@ -296,7 +313,7 @@ function AnalyticsPage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ background: "rgba(15,20,35,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }}
+                      contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL} itemStyle={TOOLTIP_ITEM}
                       formatter={(v: number) => fmtBRL(v)}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -320,7 +337,7 @@ function AnalyticsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                     <XAxis dataKey="status" stroke="rgba(255,255,255,0.5)" fontSize={11} />
                     <YAxis stroke="rgba(255,255,255,0.5)" fontSize={11} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "rgba(15,20,35,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL} itemStyle={TOOLTIP_ITEM} />
                     <Bar dataKey="count" fill="#057ef3" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -342,7 +359,7 @@ function AnalyticsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                     <XAxis dataKey="nome" stroke="rgba(255,255,255,0.5)" fontSize={11} />
                     <YAxis stroke="rgba(255,255,255,0.5)" fontSize={11} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "rgba(15,20,35,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL} itemStyle={TOOLTIP_ITEM} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="etapas" name="Etapas concluídas" fill="#22c55e" radius={[6, 6, 0, 0]} />
                     <Bar dataKey="projetos" name="Projetos ativos" fill="#057ef3" radius={[6, 6, 0, 0]} />

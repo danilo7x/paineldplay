@@ -36,8 +36,12 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 const periods = ["1D", "1S", "1M", "6M", "1A"] as const;
 type Period = (typeof periods)[number];
 
-const brl = (n: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+const brl = (n: number) => {
+  const abs = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    Math.abs(n),
+  );
+  return n < 0 ? `-${abs}` : abs;
+};
 
 function buildChart(
   sales: { valor: number; data: string; status: string }[],
@@ -228,6 +232,7 @@ function DashboardPage() {
             receitaMes === 0
               ? "Sem receita ainda"
               : `${((lucroMes / receitaMes) * 100).toFixed(1)}% de margem`,
+          accent: lucroMes < 0 ? "text-rose-300" : undefined,
         },
         baseKpis[1],
         baseKpis[2],
@@ -330,7 +335,7 @@ function DashboardPage() {
                   <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                     {k.label}
                   </p>
-                  <p className="mt-3 text-3xl font-semibold tracking-tight">{k.value}</p>
+                  <p className={cn("mt-3 text-3xl font-semibold tracking-tight", (k as { accent?: string }).accent)}>{k.value}</p>
                 </div>
                 <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
                   <k.icon className="size-4" />
@@ -410,8 +415,10 @@ function DashboardPage() {
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: 12,
                     fontSize: 12,
+                    color: "#fff",
                   }}
-                  labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                  labelStyle={{ color: "rgba(255,255,255,0.7)" }}
+                  itemStyle={{ color: "#fff" }}
                 />
                 <Area
                   type="monotone"
