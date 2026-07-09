@@ -427,6 +427,208 @@ function DashboardPage() {
         </CardContent>
       </Card>
       </motion.div>
+
+      <motion.div
+        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+        className="grid gap-4 lg:grid-cols-3"
+      >
+        {/* Últimas atividades */}
+        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                  <Activity className="size-4" />
+                </span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Atividade
+                  </p>
+                  <h3 className="text-sm font-semibold tracking-tight">Últimas atividades</h3>
+                </div>
+              </div>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                {isAdmin ? "Nenhuma atividade ainda." : "Nada por aqui — suas ações aparecerão aqui."}
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {activities.map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 text-xs">
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/60" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate">
+                        <span className="font-medium text-foreground">
+                          {a.actor_id ? actorMap[a.actor_id] ?? "Alguém" : "Sistema"}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          {a.acao.replace(/_/g, " ")} {a.entity_type}
+                        </span>{" "}
+                        <span className="text-foreground/80">{a.entity_name ?? ""}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(a.created_at), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Avisos recentes */}
+        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                  <Megaphone className="size-4" />
+                </span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Comunicação
+                  </p>
+                  <h3 className="text-sm font-semibold tracking-tight">Avisos recentes</h3>
+                </div>
+              </div>
+              <Link
+                to="/avisos"
+                className="text-[11px] text-primary transition hover:underline"
+              >
+                Ver todos
+              </Link>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : recentNotices.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Nenhum aviso publicado.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {recentNotices.map((n) => {
+                  const dot =
+                    n.prioridade === "urgente"
+                      ? "bg-rose-400"
+                      : n.prioridade === "alerta"
+                      ? "bg-amber-400"
+                      : "bg-sky-400";
+                  return (
+                    <li key={n.id}>
+                      <Link
+                        to="/avisos"
+                        className="flex items-start gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                      >
+                        <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="flex items-center gap-1.5">
+                            <span className="line-clamp-1 font-medium">{n.titulo}</span>
+                            {n.critico && (
+                              <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-rose-300">
+                                crítico
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(n.created_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Projetos em atenção */}
+        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/20">
+                  <AlertTriangle className="size-4" />
+                </span>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Operação
+                  </p>
+                  <h3 className="text-sm font-semibold tracking-tight">Projetos em atenção</h3>
+                </div>
+              </div>
+              <Link
+                to="/projetos"
+                className="text-[11px] text-primary transition hover:underline"
+              >
+                Ver todos
+              </Link>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : attentionProjects.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Nenhum projeto pausado ou em manutenção.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {attentionProjects.map((p) => {
+                  const label = p.status === "em_manutencao" ? "Manutenção" : "Pausado";
+                  const tone =
+                    p.status === "em_manutencao"
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                      : "border-slate-500/40 bg-slate-500/10 text-slate-300";
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        to="/projetos/$projectId"
+                        params={{ projectId: p.id }}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{p.nome}</p>
+                          {p.cliente && (
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {p.cliente}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${tone}`}
+                        >
+                          {label}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
     </>
   );
