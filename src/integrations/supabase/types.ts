@@ -117,8 +117,13 @@ export type Database = {
           created_by: string | null
           data: string
           descricao: string
+          dia_cobranca: number | null
           id: string
+          origem_id: string | null
           project_id: string | null
+          recorrencia: string | null
+          recorrencia_ate: string | null
+          recorrente: boolean
           updated_at: string
           valor: number
         }
@@ -128,8 +133,13 @@ export type Database = {
           created_by?: string | null
           data?: string
           descricao: string
+          dia_cobranca?: number | null
           id?: string
+          origem_id?: string | null
           project_id?: string | null
+          recorrencia?: string | null
+          recorrencia_ate?: string | null
+          recorrente?: boolean
           updated_at?: string
           valor?: number
         }
@@ -139,12 +149,24 @@ export type Database = {
           created_by?: string | null
           data?: string
           descricao?: string
+          dia_cobranca?: number | null
           id?: string
+          origem_id?: string | null
           project_id?: string | null
+          recorrencia?: string | null
+          recorrencia_ate?: string | null
+          recorrente?: boolean
           updated_at?: string
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_origem_id_fkey"
+            columns: ["origem_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
@@ -712,7 +734,7 @@ export type Database = {
           },
         ]
       }
-      sales: {
+      sale_subscriptions: {
         Row: {
           client_id: string | null
           cliente_contato: string | null
@@ -720,13 +742,16 @@ export type Database = {
           cliente_nome: string
           created_at: string
           created_by: string | null
-          data: string
+          data_inicio: string
+          dia_cobranca: number
+          duracao_meses: number | null
           id: string
           observacoes: string | null
           project_id: string
-          status: Database["public"]["Enums"]["sale_status"]
+          status: string
           updated_at: string
-          valor: number
+          valor_inicial: number
+          valor_mensal: number
         }
         Insert: {
           client_id?: string | null
@@ -735,13 +760,16 @@ export type Database = {
           cliente_nome: string
           created_at?: string
           created_by?: string | null
-          data?: string
+          data_inicio: string
+          dia_cobranca: number
+          duracao_meses?: number | null
           id?: string
           observacoes?: string | null
           project_id: string
-          status?: Database["public"]["Enums"]["sale_status"]
+          status?: string
           updated_at?: string
-          valor?: number
+          valor_inicial?: number
+          valor_mensal: number
         }
         Update: {
           client_id?: string | null
@@ -750,11 +778,83 @@ export type Database = {
           cliente_nome?: string
           created_at?: string
           created_by?: string | null
+          data_inicio?: string
+          dia_cobranca?: number
+          duracao_meses?: number | null
+          id?: string
+          observacoes?: string | null
+          project_id?: string
+          status?: string
+          updated_at?: string
+          valor_inicial?: number
+          valor_mensal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_subscriptions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          client_id: string | null
+          cliente_contato: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          competencia: string | null
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          observacoes: string | null
+          project_id: string
+          status: Database["public"]["Enums"]["sale_status"]
+          subscription_id: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          client_id?: string | null
+          cliente_contato?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          observacoes?: string | null
+          project_id: string
+          status?: Database["public"]["Enums"]["sale_status"]
+          subscription_id?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          client_id?: string | null
+          cliente_contato?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          competencia?: string | null
+          created_at?: string
+          created_by?: string | null
           data?: string
           id?: string
           observacoes?: string | null
           project_id?: string
           status?: Database["public"]["Enums"]["sale_status"]
+          subscription_id?: string | null
           updated_at?: string
           valor?: number
         }
@@ -771,6 +871,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "sale_subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -851,6 +958,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_recurrences: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
