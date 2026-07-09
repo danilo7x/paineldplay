@@ -36,6 +36,9 @@ const TOOL_LABELS: Record<string, string> = {
 
 export const Route = createFileRoute("/_authenticated/rani/$threadId")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    send: search.send === 1 || search.send === "1" ? 1 : undefined,
+  }),
   component: RaniThreadPage,
 });
 
@@ -48,6 +51,7 @@ function RaniThreadPage() {
   const [typing, setTyping] = useState(false);
   const [toolActivity, setToolActivity] = useState<Record<string, ToolEvent[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRepliedRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
