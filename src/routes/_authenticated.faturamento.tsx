@@ -1062,58 +1062,60 @@ function SubscriptionsCard({
           {active.map((s) => (
             <div
               key={s.id}
-              className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/40 p-3"
+              className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/40 bg-background/40 p-3 sm:flex-row sm:items-center sm:gap-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{s.cliente_nome}</p>
-                <p className="truncate text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground break-words">
                   {projectMap.get(s.project_id)?.nome ?? "—"} · {brl(Number(s.valor_mensal))}/mês · dia {s.dia_cobranca}
                   {s.duracao_meses ? ` · ${s.duracao_meses} meses` : " · contínua"}
                 </p>
               </div>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  s.status === "ativa"
-                    ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
-                    : "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
+              <div className="flex items-center justify-end gap-2 sm:gap-1">
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    s.status === "ativa"
+                      ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                      : "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30",
+                  )}
+                >
+                  {s.status}
+                </span>
+                {s.status === "ativa" ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    title="Pausar"
+                    onClick={() => setStatus(s.id, "pausada")}
+                  >
+                    <Pause className="size-3.5" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    title="Retomar"
+                    onClick={() => setStatus(s.id, "ativa")}
+                  >
+                    <Play className="size-3.5" />
+                  </Button>
                 )}
-              >
-                {s.status}
-              </span>
-              {s.status === "ativa" ? (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8"
-                  title="Pausar"
-                  onClick={() => setStatus(s.id, "pausada")}
+                  className="size-8 shrink-0 text-rose-300 hover:text-rose-200"
+                  title="Encerrar"
+                  onClick={() => {
+                    if (confirm("Encerrar esta assinatura? Vendas já geradas serão mantidas."))
+                      setStatus(s.id, "encerrada");
+                  }}
                 >
-                  <Pause className="size-3.5" />
+                  <StopCircle className="size-3.5" />
                 </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  title="Retomar"
-                  onClick={() => setStatus(s.id, "ativa")}
-                >
-                  <Play className="size-3.5" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 text-rose-300 hover:text-rose-200"
-                title="Encerrar"
-                onClick={() => {
-                  if (confirm("Encerrar esta assinatura? Vendas já geradas serão mantidas."))
-                    setStatus(s.id, "encerrada");
-                }}
-              >
-                <StopCircle className="size-3.5" />
-              </Button>
+              </div>
             </div>
           ))}
         </div>
