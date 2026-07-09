@@ -36,6 +36,9 @@ const TOOL_LABELS: Record<string, string> = {
 
 export const Route = createFileRoute("/_authenticated/rani/$threadId")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    send: search.send === 1 || search.send === "1" ? 1 : undefined,
+  }),
   component: RaniThreadPage,
 });
 
@@ -48,6 +51,7 @@ function RaniThreadPage() {
   const [typing, setTyping] = useState(false);
   const [toolActivity, setToolActivity] = useState<Record<string, ToolEvent[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRepliedRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,6 +105,145 @@ function RaniThreadPage() {
     return out;
   }
 
+  const streamAssistant = useCallback(
+    async (allMessages: RaniMessage[], uid: string, accessToken: string) => {
+      const streamingId = `streaming-${Date.now()}`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: streamingId,
+          thread_id: threadId,
+          user_id: uid,
+          role: "assistant",
+          content: "",
+          attachments: [],
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      setToolActivity((prev) => ({ ...prev, [streamingId]: [] }));
+
+      let fullText = "";
+      try {
+        const history = await Promise.all(
+          allMessages.map(async (m) => {
+            const parts: Array<
+              | { type: "text"; text: string }
+              | { type: "file"; mediaType: string; url: string }
+            > = [];
+            if (m.content) parts.push({ type: "text", text: m.content });
+            for (const a of m.attachments) {
+              if (!a.mime?.startsWith("image/")) continue;
+              const { data } = await supabase.storage
+                .from("rani-attachments")
+                .createSignedUrl(a.path, 60 * 10);
+              if (data?.signedUrl) {
+                parts.push({ type: "file", mediaType: a.mime, url: data.signedUrl });
+              }
+            }
+            if (parts.length === 0) parts.push({ type: "text", text: "" });
+            return { id: m.id, role: m.role, parts };
+          }),
+        );
+
+        const resp = await fetch("/api/rani/chat", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ messages: history }),
+        });
+
+        if (!resp.ok || !resp.body) {
+          const msg = await resp.text().catch(() => "");
+          throw new Error(msg || `HTTP ${resp.status}`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            let evt: StreamEvent | null = null;
+            try {
+              evt = JSON.parse(line) as StreamEvent;
+            } catch {
+              continue;
+            }
+            if (evt.type === "text") {
+              fullText += evt.text;
+              setMessages((prev) =>
+                prev.map((m) => (m.id === streamingId ? { ...m, content: fullText } : m)),
+              );
+            } else if (evt.type === "tool-start") {
+              setToolActivity((prev) => ({
+                ...prev,
+                [streamingId]: [
+                  ...(prev[streamingId] ?? []),
+                  { name: evt.name, status: "running" },
+                ],
+              }));
+            } else if (evt.type === "tool-end") {
+              setToolActivity((prev) => {
+                const list = [...(prev[streamingId] ?? [])];
+                for (let i = list.length - 1; i >= 0; i--) {
+                  if (list[i].name === evt.name && list[i].status === "running") {
+                    list[i] = { name: evt.name, status: evt.ok ? "done" : "error" };
+                    break;
+                  }
+                }
+                return { ...prev, [streamingId]: list };
+              });
+            } else if (evt.type === "error") {
+              throw new Error(evt.message);
+            }
+          }
+        }
+
+        if (!fullText.trim()) fullText = "…";
+
+        const assistantInsert = await supabase
+          .from("rani_messages")
+          .insert({
+            thread_id: threadId,
+            user_id: uid,
+            role: "assistant",
+            content: fullText,
+          })
+          .select()
+          .single();
+        if (assistantInsert.data) {
+          const normalized = normalizeMessage(assistantInsert.data);
+          setMessages((prev) => prev.map((m) => (m.id === streamingId ? normalized : m)));
+          setToolActivity((prev) => {
+            const list = prev[streamingId];
+            if (!list) return prev;
+            const next = { ...prev };
+            delete next[streamingId];
+            if (list.length) next[normalized.id] = list;
+            return next;
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Erro desconhecido";
+        toast.error("Rani falhou ao responder", { description: message });
+        setMessages((prev) => prev.filter((m) => m.id !== streamingId));
+        setToolActivity((prev) => {
+          const next = { ...prev };
+          delete next[streamingId];
+          return next;
+        });
+      }
+    },
+    [threadId],
+  );
+
   async function handleSend(message: string, files?: File[]) {
     const text = message.trim();
     if (!text && !(files && files.length)) return;
@@ -151,145 +294,37 @@ function RaniThreadPage() {
       emitRaniThreadsChanged();
     }
 
-    // Stream real response from Rani
-    const streamingId = `streaming-${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: streamingId,
-        thread_id: threadId,
-        user_id: uid,
-        role: "assistant",
-        content: "",
-        attachments: [],
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setToolActivity((prev) => ({ ...prev, [streamingId]: [] }));
-
-    let fullText = "";
+    const allMessages = [...messages, normalizeMessage(userInsert.data)];
     try {
-      const allMessages = [...messages, normalizeMessage(userInsert.data)];
-      const history = await Promise.all(
-        allMessages.map(async (m) => {
-          const parts: Array<
-            | { type: "text"; text: string }
-            | { type: "file"; mediaType: string; url: string }
-          > = [];
-          if (m.content) parts.push({ type: "text", text: m.content });
-          for (const a of m.attachments) {
-            if (!a.mime?.startsWith("image/")) continue;
-            const { data } = await supabase.storage
-              .from("rani-attachments")
-              .createSignedUrl(a.path, 60 * 10);
-            if (data?.signedUrl) {
-              parts.push({ type: "file", mediaType: a.mime, url: data.signedUrl });
-            }
-          }
-          if (parts.length === 0) parts.push({ type: "text", text: "" });
-          return { id: m.id, role: m.role, parts };
-        }),
-      );
-
-      const resp = await fetch("/api/rani/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ messages: history }),
-      });
-
-      if (!resp.ok || !resp.body) {
-        const msg = await resp.text().catch(() => "");
-        throw new Error(msg || `HTTP ${resp.status}`);
-      }
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          let evt: StreamEvent | null = null;
-          try {
-            evt = JSON.parse(line) as StreamEvent;
-          } catch {
-            continue;
-          }
-          if (evt.type === "text") {
-            fullText += evt.text;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === streamingId ? { ...m, content: fullText } : m)),
-            );
-          } else if (evt.type === "tool-start") {
-            setToolActivity((prev) => ({
-              ...prev,
-              [streamingId]: [
-                ...(prev[streamingId] ?? []),
-                { name: evt.name, status: "running" },
-              ],
-            }));
-          } else if (evt.type === "tool-end") {
-            setToolActivity((prev) => {
-              const list = [...(prev[streamingId] ?? [])];
-              // mark the most recent running entry with this name as done
-              for (let i = list.length - 1; i >= 0; i--) {
-                if (list[i].name === evt.name && list[i].status === "running") {
-                  list[i] = { name: evt.name, status: evt.ok ? "done" : "error" };
-                  break;
-                }
-              }
-              return { ...prev, [streamingId]: list };
-            });
-          } else if (evt.type === "error") {
-            throw new Error(evt.message);
-          }
-        }
-      }
-
-      if (!fullText.trim()) fullText = "…";
-
-      const assistantInsert = await supabase
-        .from("rani_messages")
-        .insert({
-          thread_id: threadId,
-          user_id: uid,
-          role: "assistant",
-          content: fullText,
-        })
-        .select()
-        .single();
-      if (assistantInsert.data) {
-        const normalized = normalizeMessage(assistantInsert.data);
-        setMessages((prev) => prev.map((m) => (m.id === streamingId ? normalized : m)));
-        setToolActivity((prev) => {
-          const list = prev[streamingId];
-          if (!list) return prev;
-          const next = { ...prev };
-          delete next[streamingId];
-          if (list.length) next[normalized.id] = list;
-          return next;
-        });
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
-      toast.error("Rani falhou ao responder", { description: message });
-      setMessages((prev) => prev.filter((m) => m.id !== streamingId));
-      setToolActivity((prev) => {
-        const next = { ...prev };
-        delete next[streamingId];
-        return next;
-      });
+      await streamAssistant(allMessages, uid, accessToken);
     } finally {
       setTyping(false);
     }
   }
+
+  // Auto-reply when landing on a thread whose last message is a pending user
+  // question (e.g. coming from the /rani index or a reload before Rani answered).
+  useEffect(() => {
+    if (loading || typing) return;
+    if (messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role !== "user") return;
+    const marker = `${threadId}:${last.id}`;
+    if (autoRepliedRef.current.has(marker)) return;
+    autoRepliedRef.current.add(marker);
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      const accessToken = sess.session?.access_token;
+      if (!uid || !accessToken) return;
+      setTyping(true);
+      try {
+        await streamAssistant(messages, uid, accessToken);
+      } finally {
+        setTyping(false);
+      }
+    })();
+  }, [loading, typing, messages, threadId, streamAssistant]);
 
   return (
     <div className="flex h-full flex-col gap-3">
