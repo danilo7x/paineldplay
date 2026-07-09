@@ -42,7 +42,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Role = "admin" | "staff";
+type Role = "admin" | "staff" | "contador";
+
+const ROLE_LABEL: Record<Role, string> = {
+  admin: "Admin",
+  staff: "Colaborador",
+  contador: "Contadora",
+};
 
 type Member = {
   id: string;
@@ -187,9 +193,15 @@ function EquipePage() {
                     <TableCell>
                       <Badge
                         variant={m.role === "admin" ? "default" : "secondary"}
-                        className={m.role === "admin" ? "bg-primary/20 text-primary hover:bg-primary/30" : ""}
+                        className={
+                          m.role === "admin"
+                            ? "bg-primary/20 text-primary hover:bg-primary/30"
+                            : m.role === "contador"
+                              ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                              : ""
+                        }
                       >
-                        {m.role === "admin" ? "Admin" : m.role === "staff" ? "Colaborador" : "—"}
+                        {m.role ? ROLE_LABEL[m.role] : "—"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -219,6 +231,12 @@ function EquipePage() {
                             onClick={() => changeRole(m, "staff")}
                           >
                             Tornar colaborador
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={m.role === "contador"}
+                            onClick={() => changeRole(m, "contador")}
+                          >
+                            Tornar contadora
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -413,6 +431,7 @@ function InviteDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="staff">Colaborador</SelectItem>
+                  <SelectItem value="contador">Contadora</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>
