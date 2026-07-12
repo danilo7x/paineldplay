@@ -366,6 +366,155 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_events: {
+        Row: {
+          ata: string | null
+          created_at: string
+          created_by: string
+          descricao: string | null
+          fim: string | null
+          id: string
+          inicio: string
+          link: string | null
+          local: string | null
+          pauta: string | null
+          recorrencia: string
+          tipo: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ata?: string | null
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          fim?: string | null
+          id?: string
+          inicio: string
+          link?: string | null
+          local?: string | null
+          pauta?: string | null
+          recorrencia?: string
+          tipo?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ata?: string | null
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          fim?: string | null
+          id?: string
+          inicio?: string
+          link?: string | null
+          local?: string | null
+          pauta?: string | null
+          recorrencia?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      partner_notes: {
+        Row: {
+          conteudo: string
+          created_at: string
+          created_by: string
+          id: string
+          status: string | null
+          tipo: string
+          titulo: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          status?: string | null
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          status?: string | null
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      partner_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          descricao: string | null
+          due_date: string | null
+          id: string
+          origem_event_id: string | null
+          prioridade: string
+          responsavel_ambos: boolean
+          responsavel_id: string | null
+          status: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          origem_event_id?: string | null
+          prioridade?: string
+          responsavel_ambos?: boolean
+          responsavel_id?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          due_date?: string | null
+          id?: string
+          origem_event_id?: string | null
+          prioridade?: string
+          responsavel_ambos?: boolean
+          responsavel_id?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_tasks_origem_event_id_fkey"
+            columns: ["origem_event_id"]
+            isOneToOne: false
+            referencedRelation: "partner_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_files: {
         Row: {
           created_at: string
