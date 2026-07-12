@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSociosRouteImport } from './routes/_authenticated.socios'
 import { Route as AuthenticatedRaniRouteImport } from './routes/_authenticated.rani'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated.notas'
@@ -38,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSociosRoute = AuthenticatedSociosRouteImport.update({
+  id: '/socios',
+  path: '/socios',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedRaniRoute = AuthenticatedRaniRouteImport.update({
   id: '/rani',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/rani': typeof AuthenticatedRaniRouteWithChildren
+  '/socios': typeof AuthenticatedSociosRoute
   '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/socios': typeof AuthenticatedSociosRoute
   '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/rani': typeof AuthenticatedRaniRouteWithChildren
+  '/_authenticated/socios': typeof AuthenticatedSociosRoute
   '/_authenticated/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/_authenticated/rani/$threadId': typeof AuthenticatedRaniThreadIdRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/notas'
     | '/perfil'
     | '/rani'
+    | '/socios'
     | '/membros/$id'
     | '/projetos/$id'
     | '/rani/$threadId'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/notas'
     | '/perfil'
+    | '/socios'
     | '/membros/$id'
     | '/projetos/$id'
     | '/rani/$threadId'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notas'
     | '/_authenticated/perfil'
     | '/_authenticated/rani'
+    | '/_authenticated/socios'
     | '/_authenticated/membros/$id'
     | '/_authenticated/projetos/$id'
     | '/_authenticated/rani/$threadId'
@@ -284,6 +296,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/socios': {
+      id: '/_authenticated/socios'
+      path: '/socios'
+      fullPath: '/socios'
+      preLoaderRoute: typeof AuthenticatedSociosRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/rani': {
       id: '/_authenticated/rani'
@@ -440,6 +459,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedRaniRoute: typeof AuthenticatedRaniRouteWithChildren
+  AuthenticatedSociosRoute: typeof AuthenticatedSociosRoute
   AuthenticatedMembrosIdRoute: typeof AuthenticatedMembrosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
   AuthenticatedProjetosIndexRoute: typeof AuthenticatedProjetosIndexRoute
@@ -458,6 +478,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedRaniRoute: AuthenticatedRaniRouteWithChildren,
+  AuthenticatedSociosRoute: AuthenticatedSociosRoute,
   AuthenticatedMembrosIdRoute: AuthenticatedMembrosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,
   AuthenticatedProjetosIndexRoute: AuthenticatedProjetosIndexRoute,

@@ -344,16 +344,22 @@ function EventDialog({
         if (error) throw error;
         // gerar próximas 8 ocorrências se recorrente
         if (data && data.recorrencia !== "nenhuma") {
-          const rows: Array<Record<string, unknown>> = [];
           const base = new Date(data.inicio);
-          for (let i = 1; i <= 8; i++) {
+          const rows = Array.from({ length: 8 }, (_, k) => {
+            const i = k + 1;
             const nd = new Date(base);
             if (data.recorrencia === "semanal") nd.setDate(nd.getDate() + 7 * i);
             else nd.setMonth(nd.getMonth() + i);
-            rows.push({ ...payload, recorrencia: "nenhuma", inicio: nd.toISOString(),
-              fim: form.fim ? new Date(new Date(form.fim).getTime() + (nd.getTime() - base.getTime())).toISOString() : null,
-              created_by: user.id });
-          }
+            return {
+              ...payload,
+              recorrencia: "nenhuma" as const,
+              inicio: nd.toISOString(),
+              fim: form.fim
+                ? new Date(new Date(form.fim).getTime() + (nd.getTime() - base.getTime())).toISOString()
+                : null,
+              created_by: user.id,
+            };
+          });
           await supabase.from("partner_events").insert(rows);
         }
       }
