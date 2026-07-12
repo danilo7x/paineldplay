@@ -366,6 +366,42 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_decisions: {
+        Row: {
+          contexto: string | null
+          created_at: string
+          created_by: string
+          data: string
+          decisao: string
+          id: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contexto?: string | null
+          created_at?: string
+          created_by: string
+          data?: string
+          decisao: string
+          id?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contexto?: string | null
+          created_at?: string
+          created_by?: string
+          data?: string
+          decisao?: string
+          id?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       partner_events: {
         Row: {
           ata: string | null
@@ -419,6 +455,110 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      partner_goals: {
+        Row: {
+          created_at: string
+          created_by: string
+          descricao: string | null
+          id: string
+          meta_valor: number | null
+          periodo: string
+          progresso: number
+          status: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          id?: string
+          meta_valor?: number | null
+          periodo: string
+          progresso?: number
+          status?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          id?: string
+          meta_valor?: number | null
+          periodo?: string
+          progresso?: number
+          status?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      partner_leads: {
+        Row: {
+          client_id: string | null
+          contato: string | null
+          created_at: string
+          created_by: string
+          data_lembrete: string | null
+          empresa: string | null
+          etapa: string
+          id: string
+          nome: string
+          observacoes: string | null
+          origem: string | null
+          proximo_passo: string | null
+          updated_at: string
+          updated_by: string | null
+          valor_estimado: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          contato?: string | null
+          created_at?: string
+          created_by: string
+          data_lembrete?: string | null
+          empresa?: string | null
+          etapa?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          origem?: string | null
+          proximo_passo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor_estimado?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          contato?: string | null
+          created_at?: string
+          created_by?: string
+          data_lembrete?: string | null
+          empresa?: string | null
+          etapa?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string | null
+          proximo_passo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       partner_notes: {
         Row: {
@@ -1161,6 +1301,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      partner_generate_reminders: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "staff" | "contador"

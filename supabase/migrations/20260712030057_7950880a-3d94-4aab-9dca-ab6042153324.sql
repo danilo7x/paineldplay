@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.partner_generate_reminders() FROM PUBLIC, anon, authenticated;
