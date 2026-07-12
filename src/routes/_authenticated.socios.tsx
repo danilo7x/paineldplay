@@ -993,3 +993,562 @@ function NoteDialog({
     </Dialog>
   );
 }
+/* ================================================================== */
+/* LEADS / PIPELINE                                                   */
+/* ================================================================== */
+
+type PLead = {
+  id: string;
+  nome: string;
+  empresa: string | null;
+  contato: string | null;
+  origem: string | null;
+  etapa: "lead" | "contato_feito" | "proposta_enviada" | "fechado" | "perdido";
+  proximo_passo: string | null;
+  data_lembrete: string | null;
+  valor_estimado: number | null;
+  client_id: string | null;
+  observacoes: string | null;
+  created_by: string;
+};
+
+const LEAD_COLS: { key: PLead["etapa"]; label: string; tone: string }[] = [
+  { key: "lead", label: "Lead", tone: "border-sky-500/40" },
+  { key: "contato_feito", label: "Contato feito", tone: "border-indigo-500/40" },
+  { key: "proposta_enviada", label: "Proposta", tone: "border-amber-500/40" },
+  { key: "fechado", label: "Fechado", tone: "border-emerald-500/40" },
+  { key: "perdido", label: "Perdido", tone: "border-red-500/40" },
+];
+
+function LeadsSection() {
+  const qc = useQueryClient();
+  const { user } = Route.useRouteContext();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<PLead | null>(null);
+
+  const { data: leads = [], isLoading } = useQuery({
+    queryKey: ["partner_leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("partner_leads").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PLead[];
+    },
+  });
+  const { data: authors = {} } = useAuthors(leads.map((l) => l.created_by));
+
+  const move = useMutation({
+    mutationFn: async ({ id, etapa }: { id: string; etapa: PLead["etapa"] }) => {
+      const { error } = await supabase.from("partner_leads").update({ etapa, updated_by: user.id }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner_leads"] }),
+  });
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("partner_leads").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Lead removido"); qc.invalidateQueries({ queryKey: ["partner_leads"] }); },
+  });
+
+  const overdue = leads.filter((l) => l.data_lembrete && l.data_lembrete <= format(new Date(), "yyyy-MM-dd") && l.etapa !== "fechado" && l.etapa !== "perdido");
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground">
+          {overdue.length > 0 ? <span className="text-amber-400">{overdue.length} follow-up{overdue.length > 1 ? "s" : ""} para hoje</span> : "Funil de prospects"}
+        </div>
+        <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
+          <Plus className="size-4" /> Novo lead
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="size-5 animate-spin" /></div>
+      ) : (
+        <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-5">
+          {LEAD_COLS.map((col) => {
+            const items = leads.filter((l) => l.etapa === col.key);
+            return (
+              <div key={col.key} className={cn("min-w-[85%] shrink-0 snap-start rounded-2xl border-2 bg-card/40 p-2 sm:min-w-0", col.tone)}>
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</p>
+                  <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {items.length === 0 && <p className="px-1 py-3 text-center text-xs text-muted-foreground/70">— vazio —</p>}
+                  {items.map((l) => (
+                    <div key={l.id} className="rounded-xl border border-border/60 bg-background/60 p-2.5">
+                      <p className="truncate text-sm font-medium">{l.nome}</p>
+                      {l.empresa && <p className="truncate text-[11px] text-muted-foreground">{l.empresa}</p>}
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {l.valor_estimado != null && (
+                          <Badge variant="outline" className="h-5 text-[10px]">R$ {Number(l.valor_estimado).toLocaleString("pt-BR")}</Badge>
+                        )}
+                        {l.data_lembrete && (
+                          <Badge variant="outline" className={cn("h-5 text-[10px]", l.data_lembrete <= format(new Date(), "yyyy-MM-dd") && "border-amber-500/60 text-amber-400")}>
+                            {format(parseISO(l.data_lembrete), "dd/MM")}
+                          </Badge>
+                        )}
+                      </div>
+                      {l.proximo_passo && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">→ {l.proximo_passo}</p>}
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <AuthorChip author={authors[l.created_by]} label="por" />
+                        <div className="flex items-center gap-1">
+                          <Select value={l.etapa} onValueChange={(v) => move.mutate({ id: l.id, etapa: v as PLead["etapa"] })}>
+                            <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Button size="icon" variant="ghost" className="size-6" onClick={() => { setEditing(l); setOpen(true); }}>
+                            <Pencil className="size-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(l.id)}>
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <LeadDialog open={open} onOpenChange={setOpen} lead={editing} />
+    </div>
+  );
+}
+
+function LeadDialog({
+  open, onOpenChange, lead,
+}: { open: boolean; onOpenChange: (v: boolean) => void; lead: PLead | null }) {
+  const qc = useQueryClient();
+  const { user } = Route.useRouteContext();
+  const [form, setForm] = useState({
+    nome: "", empresa: "", contato: "", origem: "",
+    etapa: "lead" as PLead["etapa"],
+    proximo_passo: "", data_lembrete: "",
+    valor_estimado: "", client_id: "" as string,
+    observacoes: "",
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["socios-clients-list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clients").select("id, nome").order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  useMemo(() => {
+    if (lead) {
+      setForm({
+        nome: lead.nome, empresa: lead.empresa ?? "", contato: lead.contato ?? "", origem: lead.origem ?? "",
+        etapa: lead.etapa, proximo_passo: lead.proximo_passo ?? "",
+        data_lembrete: lead.data_lembrete ?? "",
+        valor_estimado: lead.valor_estimado != null ? String(lead.valor_estimado) : "",
+        client_id: lead.client_id ?? "", observacoes: lead.observacoes ?? "",
+      });
+    } else if (open) {
+      setForm({ nome: "", empresa: "", contato: "", origem: "", etapa: "lead", proximo_passo: "", data_lembrete: "", valor_estimado: "", client_id: "", observacoes: "" });
+    }
+  }, [lead, open]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        nome: form.nome, empresa: form.empresa || null, contato: form.contato || null, origem: form.origem || null,
+        etapa: form.etapa, proximo_passo: form.proximo_passo || null,
+        data_lembrete: form.data_lembrete || null,
+        valor_estimado: form.valor_estimado ? Number(form.valor_estimado) : null,
+        client_id: form.client_id || null,
+        observacoes: form.observacoes || null,
+      };
+      if (lead) {
+        const { error } = await supabase.from("partner_leads").update({ ...payload, updated_by: user.id }).eq("id", lead.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("partner_leads").insert({ ...payload, created_by: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(lead ? "Lead atualizado" : "Lead criado");
+      qc.invalidateQueries({ queryKey: ["partner_leads"] });
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>{lead ? "Editar lead" : "Novo lead"}</DialogTitle></DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Empresa</Label><Input value={form.empresa} onChange={(e) => setForm({ ...form, empresa: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5"><Label>Contato</Label><Input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} placeholder="email/telefone" /></div>
+            <div className="grid gap-1.5"><Label>Origem</Label><Input value={form.origem} onChange={(e) => setForm({ ...form, origem: e.target.value })} placeholder="indicação, site..." /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5">
+              <Label>Etapa</Label>
+              <Select value={form.etapa} onValueChange={(v) => setForm({ ...form, etapa: v as PLead["etapa"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5"><Label>Valor estimado</Label><Input type="number" step="0.01" value={form.valor_estimado} onChange={(e) => setForm({ ...form, valor_estimado: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5"><Label>Próximo passo</Label><Input value={form.proximo_passo} onChange={(e) => setForm({ ...form, proximo_passo: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Data lembrete</Label><Input type="date" value={form.data_lembrete} onChange={(e) => setForm({ ...form, data_lembrete: e.target.value })} /></div>
+          </div>
+          {form.etapa === "fechado" && (
+            <div className="grid gap-1.5">
+              <Label>Vincular a cliente existente</Label>
+              <Select value={form.client_id || "none"} onValueChange={(v) => setForm({ ...form, client_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— nenhum —</SelectItem>
+                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">Para criar novo cliente, use a aba Clientes depois.</p>
+            </div>
+          )}
+          <div className="grid gap-1.5"><Label>Observações</Label><Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => save.mutate()} disabled={!form.nome || save.isPending}>
+            {save.isPending && <Loader2 className="size-4 animate-spin" />} Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ================================================================== */
+/* DECISOES                                                            */
+/* ================================================================== */
+
+type PDecision = {
+  id: string;
+  titulo: string;
+  contexto: string | null;
+  decisao: string;
+  data: string;
+  created_by: string;
+  created_at: string;
+};
+
+function DecisoesSection() {
+  const qc = useQueryClient();
+  const { user } = Route.useRouteContext();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<PDecision | null>(null);
+  const [form, setForm] = useState({ titulo: "", contexto: "", decisao: "", data: format(new Date(), "yyyy-MM-dd") });
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["partner_decisions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("partner_decisions").select("*").order("data", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PDecision[];
+    },
+  });
+  const { data: authors = {} } = useAuthors(items.map((i) => i.created_by));
+
+  function openNew() {
+    setEditing(null);
+    setForm({ titulo: "", contexto: "", decisao: "", data: format(new Date(), "yyyy-MM-dd") });
+    setOpen(true);
+  }
+  function openEdit(d: PDecision) {
+    setEditing(d);
+    setForm({ titulo: d.titulo, contexto: d.contexto ?? "", decisao: d.decisao, data: d.data });
+    setOpen(true);
+  }
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = { titulo: form.titulo, contexto: form.contexto || null, decisao: form.decisao, data: form.data };
+      if (editing) {
+        const { error } = await supabase.from("partner_decisions").update({ ...payload, updated_by: user.id }).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("partner_decisions").insert({ ...payload, created_by: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Decisão atualizada" : "Decisão registrada");
+      qc.invalidateQueries({ queryKey: ["partner_decisions"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("partner_decisions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["partner_decisions"] }); },
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Memória compartilhada das decisões tomadas em conjunto.</p>
+        <Button size="sm" onClick={openNew}><Plus className="size-4" /> Nova decisão</Button>
+      </div>
+      {isLoading ? (
+        <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="size-5 animate-spin" /></div>
+      ) : items.length === 0 ? (
+        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhuma decisão registrada.</CardContent></Card>
+      ) : (
+        <div className="space-y-2">
+          {items.map((d) => (
+            <Card key={d.id} className="border-border/60">
+              <CardContent className="space-y-2 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">{d.titulo}</p>
+                    {d.contexto && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{d.contexto}</p>}
+                    <p className="mt-2 whitespace-pre-wrap rounded-lg border-l-2 border-primary/60 bg-primary/5 p-2 text-sm">{d.decisao}</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Button size="icon" variant="ghost" className="size-6" onClick={() => openEdit(d)}><Pencil className="size-3" /></Button>
+                    <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(d.id)}><Trash2 className="size-3" /></Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                  <AuthorChip author={authors[d.created_by]} label="por" />
+                  <span className="text-[10px] text-muted-foreground">{format(parseISO(d.data), "dd/MM/yyyy", { locale: ptBR })}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editing ? "Editar decisão" : "Nova decisão"}</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5"><Label>Título</Label><Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Contexto</Label><Textarea rows={2} value={form.contexto} onChange={(e) => setForm({ ...form, contexto: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Decisão</Label><Textarea rows={3} value={form.decisao} onChange={(e) => setForm({ ...form, decisao: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Data</Label><Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={!form.titulo || !form.decisao || save.isPending}>
+              {save.isPending && <Loader2 className="size-4 animate-spin" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* METAS / OKRs                                                        */
+/* ================================================================== */
+
+type PGoal = {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  periodo: string;
+  meta_valor: number | null;
+  progresso: number;
+  status: "em_andamento" | "concluida" | "atrasada";
+  created_by: string;
+};
+
+function MetasSection() {
+  const qc = useQueryClient();
+  const { user } = Route.useRouteContext();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<PGoal | null>(null);
+  const [form, setForm] = useState({
+    titulo: "", descricao: "", periodo: `Q${Math.ceil((new Date().getMonth() + 1) / 3)} ${new Date().getFullYear()}`,
+    meta_valor: "", progresso: "0", status: "em_andamento" as PGoal["status"],
+  });
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["partner_goals"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("partner_goals").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PGoal[];
+    },
+  });
+  const { data: authors = {} } = useAuthors(items.map((i) => i.created_by));
+
+  function openNew() {
+    setEditing(null);
+    setForm({
+      titulo: "", descricao: "",
+      periodo: `Q${Math.ceil((new Date().getMonth() + 1) / 3)} ${new Date().getFullYear()}`,
+      meta_valor: "", progresso: "0", status: "em_andamento",
+    });
+    setOpen(true);
+  }
+  function openEdit(g: PGoal) {
+    setEditing(g);
+    setForm({
+      titulo: g.titulo, descricao: g.descricao ?? "",
+      periodo: g.periodo, meta_valor: g.meta_valor != null ? String(g.meta_valor) : "",
+      progresso: String(g.progresso), status: g.status,
+    });
+    setOpen(true);
+  }
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        titulo: form.titulo, descricao: form.descricao || null, periodo: form.periodo,
+        meta_valor: form.meta_valor ? Number(form.meta_valor) : null,
+        progresso: Number(form.progresso), status: form.status,
+      };
+      if (editing) {
+        const { error } = await supabase.from("partner_goals").update({ ...payload, updated_by: user.id }).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("partner_goals").insert({ ...payload, created_by: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Meta atualizada" : "Meta criada");
+      qc.invalidateQueries({ queryKey: ["partner_goals"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("partner_goals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removida"); qc.invalidateQueries({ queryKey: ["partner_goals"] }); },
+  });
+  const bumpProgress = useMutation({
+    mutationFn: async ({ id, progresso }: { id: string; progresso: number }) => {
+      const { error } = await supabase.from("partner_goals").update({
+        progresso, status: progresso >= 100 ? "concluida" : "em_andamento", updated_by: user.id,
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner_goals"] }),
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Objetivos do trimestre / mês.</p>
+        <Button size="sm" onClick={openNew}><Plus className="size-4" /> Nova meta</Button>
+      </div>
+      {isLoading ? (
+        <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="size-5 animate-spin" /></div>
+      ) : items.length === 0 ? (
+        <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Nenhuma meta cadastrada.</CardContent></Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((g) => (
+            <Card key={g.id} className="border-border/60">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="h-5 text-[10px]">{g.periodo}</Badge>
+                      <Badge className={cn(
+                        "h-5 text-[10px]",
+                        g.status === "concluida" && "bg-emerald-500/20 text-emerald-300",
+                        g.status === "atrasada" && "bg-red-500/20 text-red-300",
+                        g.status === "em_andamento" && "bg-primary/20 text-primary",
+                      )}>{g.status.replace("_", " ")}</Badge>
+                    </div>
+                    <p className="mt-1.5 text-sm font-semibold">{g.titulo}</p>
+                    {g.descricao && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{g.descricao}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Button size="icon" variant="ghost" className="size-6" onClick={() => openEdit(g)}><Pencil className="size-3" /></Button>
+                    <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(g.id)}><Trash2 className="size-3" /></Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Progresso</span>
+                    <span className="font-medium text-foreground">{Number(g.progresso).toFixed(0)}%{g.meta_valor ? ` · meta R$ ${Number(g.meta_valor).toLocaleString("pt-BR")}` : ""}</span>
+                  </div>
+                  <Progress value={Number(g.progresso)} className="h-2" />
+                  <div className="flex items-center gap-1 pt-1">
+                    {[25, 50, 75, 100].map((p) => (
+                      <Button key={p} size="sm" variant="outline" className="h-6 text-[10px]"
+                        onClick={() => bumpProgress.mutate({ id: g.id, progresso: p })}>{p}%</Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-border/40 pt-2">
+                  <AuthorChip author={authors[g.created_by]} label="criada por" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editing ? "Editar meta" : "Nova meta"}</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5"><Label>Título</Label><Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} /></div>
+            <div className="grid gap-1.5"><Label>Descrição</Label><Textarea rows={2} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1.5"><Label>Período</Label><Input value={form.periodo} onChange={(e) => setForm({ ...form, periodo: e.target.value })} placeholder="Q3 2026" /></div>
+              <div className="grid gap-1.5"><Label>Meta (R$)</Label><Input type="number" step="0.01" value={form.meta_valor} onChange={(e) => setForm({ ...form, meta_valor: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1.5"><Label>Progresso (%)</Label><Input type="number" min={0} max={100} value={form.progresso} onChange={(e) => setForm({ ...form, progresso: e.target.value })} /></div>
+              <div className="grid gap-1.5">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as PGoal["status"] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="em_andamento">Em andamento</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="atrasada">Atrasada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={!form.titulo || save.isPending}>
+              {save.isPending && <Loader2 className="size-4 animate-spin" />} Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
