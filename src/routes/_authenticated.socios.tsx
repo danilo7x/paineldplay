@@ -488,7 +488,7 @@ function EventDialog({
             </>
           )}
         </div>
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 sm:justify-end">
           {onDelete && (
             <Button variant="destructive" onClick={onDelete} className="mr-auto">
               <Trash2 className="size-4" /> Excluir
@@ -797,7 +797,7 @@ function TaskDialog({
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => save.mutate()} disabled={!form.titulo || save.isPending}>
             {save.isPending && <Loader2 className="size-4 animate-spin" />} Salvar
