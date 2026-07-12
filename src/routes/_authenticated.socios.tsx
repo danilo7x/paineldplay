@@ -20,6 +20,9 @@ import {
   Loader2,
   Lightbulb,
   ArrowRightLeft,
+  Users,
+  Gavel,
+  Target,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +79,7 @@ function SociosPage() {
       </header>
 
       <Tabs defaultValue="agenda" className="space-y-4">
-        <TabsList className="w-full overflow-x-auto sm:w-auto">
+        <TabsList className="w-full flex-wrap justify-start gap-1 overflow-x-auto sm:w-auto">
           <TabsTrigger value="agenda" className="gap-1.5">
             <CalendarIcon className="size-4" /> Agenda
           </TabsTrigger>
@@ -85,11 +89,23 @@ function SociosPage() {
           <TabsTrigger value="notas" className="gap-1.5">
             <StickyNote className="size-4" /> Notas & Ideias
           </TabsTrigger>
+          <TabsTrigger value="leads" className="gap-1.5">
+            <Users className="size-4" /> Leads
+          </TabsTrigger>
+          <TabsTrigger value="decisoes" className="gap-1.5">
+            <Gavel className="size-4" /> Decisões
+          </TabsTrigger>
+          <TabsTrigger value="metas" className="gap-1.5">
+            <Target className="size-4" /> Metas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="agenda"><AgendaSection /></TabsContent>
         <TabsContent value="tarefas"><TarefasSection /></TabsContent>
         <TabsContent value="notas"><NotasSection /></TabsContent>
+        <TabsContent value="leads"><LeadsSection /></TabsContent>
+        <TabsContent value="decisoes"><DecisoesSection /></TabsContent>
+        <TabsContent value="metas"><MetasSection /></TabsContent>
       </Tabs>
     </div>
   );
