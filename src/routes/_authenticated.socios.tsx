@@ -624,51 +624,53 @@ function TarefasSection() {
                 <div className="space-y-2">
                   {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">— vazio —</p>}
                   {items.map((t) => (
-                    <div key={t.id} className="rounded-xl border border-border/60 bg-background/60 p-2.5">
+                    <div key={t.id} className="space-y-2 rounded-xl border border-border/60 bg-background/60 p-3">
                       <div className="flex items-start gap-2">
                         <button onClick={() => updateStatus.mutate({ id: t.id, status: t.status === "feito" ? "a_fazer" : "feito" })}
-                          className="mt-0.5 text-muted-foreground hover:text-primary">
+                          className="mt-0.5 shrink-0 text-muted-foreground hover:text-primary">
                           {t.status === "feito" ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4" />}
                         </button>
+                        <p className={cn("min-w-0 flex-1 text-sm font-medium leading-snug", t.status === "feito" && "text-muted-foreground line-through")}>
+                          {t.titulo}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 pl-6">
+                        <Badge variant="outline" className={cn(
+                          "h-5 gap-1 text-[10px]",
+                          t.prioridade === "alta" && "border-red-500/40 text-red-400",
+                          t.prioridade === "media" && "border-amber-500/40 text-amber-400",
+                          t.prioridade === "baixa" && "border-emerald-500/40 text-emerald-400",
+                        )}>
+                          <Flag className="size-3" /> {t.prioridade}
+                        </Badge>
+                        {t.due_date && (
+                          <Badge variant="outline" className="h-5 text-[10px]">
+                            {format(parseISO(t.due_date), "dd/MM", { locale: ptBR })}
+                          </Badge>
+                        )}
+                        {t.responsavel_ambos ? (
+                          <Badge variant="secondary" className="h-5 text-[10px]">Ambos</Badge>
+                        ) : t.responsavel_id && (
+                          <AuthorChip author={authors[t.responsavel_id]} />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2 pl-6">
                         <div className="min-w-0 flex-1">
-                          <p className={cn("text-sm font-medium", t.status === "feito" && "line-through text-muted-foreground")}>{t.titulo}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <Badge variant="outline" className={cn(
-                              "h-5 text-[10px]",
-                              t.prioridade === "alta" && "border-red-500/40 text-red-400",
-                              t.prioridade === "media" && "border-amber-500/40 text-amber-400",
-                              t.prioridade === "baixa" && "border-emerald-500/40 text-emerald-400",
-                            )}>
-                              <Flag className="size-3" /> {t.prioridade}
-                            </Badge>
-                            {t.due_date && (
-                              <Badge variant="outline" className="h-5 text-[10px]">
-                                {format(parseISO(t.due_date), "dd/MM", { locale: ptBR })}
-                              </Badge>
-                            )}
-                            {t.responsavel_ambos ? (
-                              <Badge variant="secondary" className="h-5 text-[10px]">Ambos</Badge>
-                            ) : t.responsavel_id && (
-                              <AuthorChip author={authors[t.responsavel_id]} />
-                            )}
-                          </div>
-                          <div className="mt-1.5 flex items-center justify-between">
-                            <AuthorChip author={authors[t.created_by]} label="criado por" />
-                            <div className="flex items-center gap-1">
-                              <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v as PTask["status"] })}>
-                                <SelectTrigger className="h-6 w-[92px] text-[10px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                                </SelectContent>
-                              </Select>
-                              <Button size="icon" variant="ghost" className="size-6" onClick={() => { setEditing(t); setOpen(true); }}>
-                                <Pencil className="size-3" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(t.id)}>
-                                <Trash2 className="size-3" />
-                              </Button>
-                            </div>
-                          </div>
+                          <AuthorChip author={authors[t.created_by]} label="criado por" />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v as PTask["status"] })}>
+                            <SelectTrigger className="h-7 w-[96px] text-[10px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Button size="icon" variant="ghost" className="size-7" onClick={() => { setEditing(t); setOpen(true); }}>
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="size-7 text-destructive hover:text-destructive" onClick={() => del.mutate(t.id)}>
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         </div>
                       </div>
                     </div>
