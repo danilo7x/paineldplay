@@ -7,6 +7,7 @@ import {
   LineChart,
   Banknote,
   Users,
+  Handshake,
   Contact,
   FolderLock,
   StickyNote,
@@ -56,6 +57,7 @@ const workspace: Item[] = [
 const admin: Item[] = [
   { title: "Financeiro", url: "/financeiro", icon: Banknote, financeOnly: true },
   { title: "Equipe", url: "/equipe", icon: Users, adminOnly: true },
+  { title: "Central dos Sócios", url: "/socios", icon: Handshake, adminOnly: true },
 ];
 
 const personal: Item[] = [
