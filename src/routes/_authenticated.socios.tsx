@@ -624,7 +624,7 @@ function TarefasSection() {
                 <div className="space-y-2">
                   {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">— vazio —</p>}
                   {items.map((t) => (
-                    <div key={t.id} className="space-y-2 rounded-xl border border-border/60 bg-background/60 p-3">
+                     <div key={t.id} className="space-y-2 overflow-hidden rounded-xl border border-border/60 bg-background/60 p-3">
                       <div className="flex items-start gap-2">
                         <button onClick={() => updateStatus.mutate({ id: t.id, status: t.status === "feito" ? "a_fazer" : "feito" })}
                           className="mt-0.5 shrink-0 text-muted-foreground hover:text-primary">
@@ -654,25 +654,27 @@ function TarefasSection() {
                           <AuthorChip author={authors[t.responsavel_id]} />
                         )}
                       </div>
-                      <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2 pl-6">
-                        <div className="min-w-0 flex-1">
-                          <AuthorChip author={authors[t.created_by]} label="criado por" />
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v as PTask["status"] })}>
-                            <SelectTrigger className="h-7 w-[96px] text-[10px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <Button size="icon" variant="ghost" className="size-7" onClick={() => { setEditing(t); setOpen(true); }}>
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="size-7 text-destructive hover:text-destructive" onClick={() => del.mutate(t.id)}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+                       <div className="space-y-1.5 border-t border-border/40 pt-2 pl-6">
+                         <div className="flex min-w-0">
+                           <div className="min-w-0 flex-1 truncate">
+                             <AuthorChip author={authors[t.created_by]} label="criado por" />
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-1.5">
+                           <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v as PTask["status"] })}>
+                             <SelectTrigger className="h-7 min-w-0 flex-1 text-[10px]"><SelectValue /></SelectTrigger>
+                             <SelectContent>
+                               {COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                             </SelectContent>
+                           </Select>
+                           <Button size="icon" variant="ghost" className="size-7 shrink-0" onClick={() => { setEditing(t); setOpen(true); }}>
+                             <Pencil className="size-3.5" />
+                           </Button>
+                           <Button size="icon" variant="ghost" className="size-7 shrink-0 text-destructive hover:text-destructive" onClick={() => del.mutate(t.id)}>
+                             <Trash2 className="size-3.5" />
+                           </Button>
+                         </div>
+                       </div>
                     </div>
                   ))}
                 </div>
