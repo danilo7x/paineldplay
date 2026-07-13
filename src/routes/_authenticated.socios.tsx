@@ -1081,10 +1081,10 @@ function LeadsSection() {
                 <div className="space-y-2">
                   {items.length === 0 && <p className="px-1 py-3 text-center text-xs text-muted-foreground/70">— vazio —</p>}
                   {items.map((l) => (
-                    <div key={l.id} className="rounded-xl border border-border/60 bg-background/60 p-2.5">
-                      <p className="truncate text-sm font-medium">{l.nome}</p>
-                      {l.empresa && <p className="truncate text-[11px] text-muted-foreground">{l.empresa}</p>}
-                      <div className="mt-1 flex flex-wrap gap-1.5">
+                     <div key={l.id} className="overflow-hidden rounded-xl border border-border/60 bg-background/60 p-2.5">
+                       <p className="truncate text-sm font-medium">{l.nome}</p>
+                       {l.empresa && <p className="truncate text-[11px] text-muted-foreground">{l.empresa}</p>}
+                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {l.valor_estimado != null && (
                           <Badge variant="outline" className="h-5 text-[10px]">R$ {Number(l.valor_estimado).toLocaleString("pt-BR")}</Badge>
                         )}
@@ -1095,23 +1095,27 @@ function LeadsSection() {
                         )}
                       </div>
                       {l.proximo_passo && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">→ {l.proximo_passo}</p>}
-                      <div className="mt-1.5 flex items-center justify-between">
-                        <AuthorChip author={authors[l.created_by]} label="por" />
-                        <div className="flex items-center gap-1">
-                          <Select value={l.etapa} onValueChange={(v) => move.mutate({ id: l.id, etapa: v as PLead["etapa"] })}>
-                            <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <Button size="icon" variant="ghost" className="size-6" onClick={() => { setEditing(l); setOpen(true); }}>
-                            <Pencil className="size-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(l.id)}>
-                            <Trash2 className="size-3" />
-                          </Button>
-                        </div>
-                      </div>
+                       <div className="mt-2 space-y-1.5">
+                         <div className="flex min-w-0">
+                           <div className="min-w-0 flex-1 truncate">
+                             <AuthorChip author={authors[l.created_by]} label="por" />
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-1.5">
+                           <Select value={l.etapa} onValueChange={(v) => move.mutate({ id: l.id, etapa: v as PLead["etapa"] })}>
+                             <SelectTrigger className="h-6 min-w-0 flex-1 text-[10px]"><SelectValue /></SelectTrigger>
+                             <SelectContent>
+                               {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                             </SelectContent>
+                           </Select>
+                           <Button size="icon" variant="ghost" className="size-6 shrink-0" onClick={() => { setEditing(l); setOpen(true); }}>
+                             <Pencil className="size-3" />
+                           </Button>
+                           <Button size="icon" variant="ghost" className="size-6 shrink-0 text-destructive" onClick={() => del.mutate(l.id)}>
+                             <Trash2 className="size-3" />
+                           </Button>
+                         </div>
+                       </div>
                     </div>
                   ))}
                 </div>
