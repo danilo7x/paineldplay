@@ -22,18 +22,30 @@ export type WhatsappStatus = {
   instances?: WhatsappInstanceStatus[];
 };
 
-async function errorMessage(error: unknown): Promise<string> {
+/** Erro do envio; `code === "already_sent"` quando a mensagem já saiu e falta registrar. */
+export class WhatsappSendError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
+
+async function sendError(error: unknown): Promise<WhatsappSendError> {
   // FunctionsHttpError traz a resposta original em `context`.
   const ctx = (error as { context?: Response }).context;
   if (ctx && typeof ctx.json === "function") {
     try {
       const body = await ctx.json();
-      if (body?.error) return String(body.error);
+      if (body?.error) return new WhatsappSendError(String(body.error), body.code);
     } catch {
       /* resposta sem JSON */
     }
   }
-  return error instanceof Error ? error.message : "Falha ao falar com o servidor.";
+  return new WhatsappSendError(
+    error instanceof Error ? error.message : "Falha ao falar com o servidor.",
+  );
 }
 
 /** Status do WhatsApp; com `leadId`, do número que enviaria para aquele lead. */
@@ -67,7 +79,7 @@ export async function sendWhatsapp(input: {
       text: input.text,
     },
   });
-  if (error) throw new Error(await errorMessage(error));
+  if (error) throw await sendError(error);
   if (!data?.ok) throw new Error(data?.error ?? "A mensagem não foi enviada.");
   return { messageId: data.messageId ?? null, instance: data.instance ?? null };
 }

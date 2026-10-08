@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useLeads, usePendingActivities, usePeopleMap } from "@/features/leads/api";
 import { useLeadFilters } from "@/features/leads/filters";
 import { LeadFiltersBar, PageHeader } from "@/features/leads/components/LeadFilters";
-import { DueBadge, PersonChip, StageBadge } from "@/features/leads/components/shared";
+import { DueBadge, OwnerChip, PersonChip, StageBadge } from "@/features/leads/components/shared";
 import { formatDateTime, todayStr } from "@/features/leads/format";
 import { dueState, isFinalStage, type Lead } from "@/features/leads/model";
 
@@ -25,7 +25,8 @@ function AgendaPage() {
   const { data: people = {} } = usePeopleMap(
     leads.map((l) => l.proxima_acao_responsavel_id ?? l.responsavel_id),
   );
-  const { filters, set, filtered } = useLeadFilters(leads, { stage: "ativas" });
+  // O filtro de responsável segue o dono da próxima ação, o mesmo exibido na linha.
+  const { filters, set, filtered } = useLeadFilters(leads, {}, { byNextActionOwner: true });
 
   const today = todayStr();
   const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
@@ -54,7 +55,7 @@ function AgendaPage() {
     },
     {
       key: "sem",
-      title: "Sem próxima ação definida",
+      title: "Sem data definida",
       tone: "text-muted-foreground",
       items: open.filter((l) => !l.data_lembrete),
     },
@@ -70,11 +71,11 @@ function AgendaPage() {
     <div className="space-y-6">
       <PageHeader
         section="Acompanhamento de Leads"
-        title="Agenda comercial"
+        title="Agenda Comercial"
         description="Próximas ações, reuniões de diagnóstico e apresentações de proposta."
       />
 
-      <LeadFiltersBar filters={filters} set={set} isAdmin={isAdmin} showAction={false} />
+      <LeadFiltersBar filters={filters} set={set} isAdmin={isAdmin} showAction={false} activeOnly />
 
       {isLoading ? (
         <div className="flex justify-center py-16 text-muted-foreground">
@@ -107,12 +108,11 @@ function AgendaPage() {
                           <span className="min-w-0 truncate text-sm text-muted-foreground">
                             {l.proximo_passo ?? "Definir próxima ação"}
                           </span>
-                          <PersonChip
-                            person={
-                              people[l.proxima_acao_responsavel_id ?? l.responsavel_id ?? ""] ??
-                              null
-                            }
-                          />
+                          {l.proxima_acao_responsavel_id ? (
+                            <PersonChip person={people[l.proxima_acao_responsavel_id] ?? null} />
+                          ) : (
+                            <OwnerChip lead={l} people={people} />
+                          )}
                         </Link>
                       </li>
                     ))}

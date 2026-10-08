@@ -15,9 +15,9 @@ import { useLeads, usePeopleMap } from "@/features/leads/api";
 import { useLeadFilters } from "@/features/leads/filters";
 import { LeadFiltersBar, PageHeader } from "@/features/leads/components/LeadFilters";
 import { LeadFormDialog } from "@/features/leads/components/LeadFormDialog";
-import { DueBadge, PersonChip, StageBadge } from "@/features/leads/components/shared";
-import { formatDate } from "@/features/leads/format";
-import { canalLabel, isFinalStage, stageLabel, type Lead } from "@/features/leads/model";
+import { DueBadge, OwnerChip, StageBadge } from "@/features/leads/components/shared";
+import { formatDate, localDate } from "@/features/leads/format";
+import { canalLabel, isFinalStage, ownerName, stageLabel, type Lead } from "@/features/leads/model";
 
 export const Route = createFileRoute("/_authenticated/leads/banco")({
   beforeLoad: ({ context }) => {
@@ -53,7 +53,6 @@ function BancoDeLeadsPage() {
 
   const rows = useMemo(() => [...filtered].sort(SORTS[sort].fn), [filtered, sort]);
   const openLead = (l: Lead) => navigate({ to: "/leads/$id", params: { id: l.id } });
-  const owner = (l: Lead) => (l.responsavel_id ? people[l.responsavel_id] : null);
 
   function exportCsv() {
     const header = [
@@ -79,11 +78,11 @@ function BancoDeLeadsPage() {
         canalLabel(l.canal_origem),
         l.origem,
         stageLabel(l.etapa),
-        owner(l)?.nome ?? owner(l)?.email,
+        ownerName(l, people),
         l.proximo_passo,
         l.data_lembrete,
         l.valor_estimado,
-        l.created_at.slice(0, 10),
+        localDate(l.created_at),
       ]
         .map(csvCell)
         .join(";"),
@@ -104,7 +103,7 @@ function BancoDeLeadsPage() {
     <div className="space-y-6">
       <PageHeader
         section="Acompanhamento de Leads"
-        title="Banco de leads"
+        title="Banco de Leads"
         description="Todos os leads cadastrados, com origem, etapa e responsável."
         actions={
           <>
@@ -172,7 +171,7 @@ function BancoDeLeadsPage() {
                     </span>
                   )}
                 </div>
-                <PersonChip person={owner(l)} className="mt-2" />
+                <OwnerChip lead={l} people={people} className="mt-2" />
               </button>
             ))}
           </div>
@@ -210,7 +209,7 @@ function BancoDeLeadsPage() {
                       <StageBadge etapa={l.etapa} subetapa={l.subetapa} />
                     </TableCell>
                     <TableCell>
-                      <PersonChip person={owner(l)} />
+                      <OwnerChip lead={l} people={people} />
                     </TableCell>
                     <TableCell className="max-w-60">
                       {isFinalStage(l.etapa) ? (
@@ -227,7 +226,7 @@ function BancoDeLeadsPage() {
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {formatDate(l.created_at.slice(0, 10))}
+                      {formatDate(l.created_at)}
                     </TableCell>
                   </TableRow>
                 ))}

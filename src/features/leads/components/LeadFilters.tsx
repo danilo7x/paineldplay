@@ -18,6 +18,7 @@ export function LeadFiltersBar({
   isAdmin,
   showCanal = false,
   showAction = true,
+  activeOnly = false,
   children,
 }: {
   filters: LeadFilterState;
@@ -25,6 +26,8 @@ export function LeadFiltersBar({
   isAdmin: boolean;
   showCanal?: boolean;
   showAction?: boolean;
+  /** Só etapas em andamento (ex.: Agenda, que não mostra leads encerrados). */
+  activeOnly?: boolean;
   children?: React.ReactNode;
 }) {
   const { data: people = [] } = useCommercialPeople();
@@ -46,9 +49,9 @@ export function LeadFiltersBar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas as etapas</SelectItem>
-            <SelectItem value="ativas">Em andamento</SelectItem>
-            <SelectItem value="encerradas">Encerradas</SelectItem>
-            {[...ACTIVE_STAGES, ...FINAL_STAGES].map((s) => (
+            {!activeOnly && <SelectItem value="ativas">Em andamento</SelectItem>}
+            {!activeOnly && <SelectItem value="encerradas">Encerradas</SelectItem>}
+            {(activeOnly ? ACTIVE_STAGES : [...ACTIVE_STAGES, ...FINAL_STAGES]).map((s) => (
               <SelectItem key={s} value={s}>
                 {STAGE_META[s].label}
               </SelectItem>
@@ -62,12 +65,13 @@ export function LeadFiltersBar({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os responsáveis</SelectItem>
-              <SelectItem value="sem">Sem responsável</SelectItem>
               {people.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.nome ?? p.email}
                 </SelectItem>
               ))}
+              <SelectItem value="outro">Outro (nome digitado)</SelectItem>
+              <SelectItem value="sem">Sem responsável</SelectItem>
             </SelectContent>
           </Select>
         )}

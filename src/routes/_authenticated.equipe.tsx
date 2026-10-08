@@ -10,6 +10,7 @@ import {
   MailPlus,
   Target,
   MessageCircle,
+  UserCheck,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,6 +74,8 @@ type Member = {
   comercial: boolean;
   /** Instância da Evolution API (número de WhatsApp) desta pessoa. */
   whatsapp: string | null;
+  /** Fora da lista de responsáveis de leads (ex.: conta da empresa). */
+  ocultoLeads: boolean;
 };
 
 export const Route = createFileRoute("/_authenticated/equipe")({
@@ -101,6 +104,7 @@ function EquipePage() {
     setLoading(true);
     const commercialReq = supabase.from("commercial_access").select("user_id");
     const whatsappReq = supabase.from("commercial_whatsapp_instances").select("user_id, instance");
+    const hiddenReq = supabase.from("commercial_owner_hidden").select("user_id");
     const [{ data: profiles, error }, { data: roles }, { data: sessions }] = await Promise.all([
       supabase
       .from("profiles")
@@ -114,6 +118,7 @@ function EquipePage() {
     ]);
     const { data: commercial } = await commercialReq;
     const { data: whatsapp } = await whatsappReq;
+    const { data: hidden } = await hiddenReq;
     if (error) {
       toast.error("Erro ao carregar equipe", { description: error.message });
       setLoading(false);
@@ -128,12 +133,14 @@ function EquipePage() {
     setLastAccess(accessMap);
     const commercialIds = new Set((commercial ?? []).map((c) => c.user_id));
     const whatsappMap = new Map((whatsapp ?? []).map((w) => [w.user_id, w.instance]));
+    const hiddenIds = new Set((hidden ?? []).map((h) => h.user_id));
     setMembers(
       (profiles ?? []).map((p) => ({
         ...p,
         role: roleMap.get(p.id) ?? null,
         comercial: commercialIds.has(p.id),
         whatsapp: whatsappMap.get(p.id) ?? null,
+        ocultoLeads: hiddenIds.has(p.id),
       })),
     );
     setLoading(false);
@@ -205,6 +212,22 @@ function EquipePage() {
         fetchMembers();
       },
     });
+  }
+  async function setLeadOwnerVisible(m: Member, visible: boolean) {
+    const { error } = await supabase.rpc("admin_set_lead_owner_visible", {
+      _user_id: m.id,
+      _visible: visible,
+    });
+    if (error) {
+      toast.error("Não foi possível alterar", { description: error.message });
+      return;
+    }
+    toast.success(
+      visible
+        ? `${m.nome ?? m.email} volta a aparecer como responsável de leads`
+        : `${m.nome ?? m.email} não aparece mais como responsável de leads`,
+    );
+    fetchMembers();
   }
   function setWhatsapp(m: Member, instance: string | null) {
     setWhatsappMember(null);
@@ -332,6 +355,15 @@ function EquipePage() {
                       >
                         <MessageCircle className="mr-2 size-4" />
                         {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={m.role !== "admin" && !m.comercial}
+                        onClick={() => setLeadOwnerVisible(m, m.ocultoLeads)}
+                      >
+                        <UserCheck className="mr-2 size-4" />
+                        {m.ocultoLeads
+                          ? "Mostrar como responsável de leads"
+                          : "Ocultar da lista de responsáveis"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -577,6 +609,15 @@ function EquipePage() {
                           >
                             <MessageCircle className="mr-2 size-4" />
                             {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={m.role !== "admin" && !m.comercial}
+                            onClick={() => setLeadOwnerVisible(m, m.ocultoLeads)}
+                          >
+                            <UserCheck className="mr-2 size-4" />
+                            {m.ocultoLeads
+                              ? "Mostrar como responsável de leads"
+                              : "Ocultar da lista de responsáveis"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Person } from "../api";
 import { CADENCE_KEYS, CADENCE_LABEL, CLOSE_CADENCE_KEY, type CadenceKey } from "../cadence";
-import { formatDateTime } from "../format";
+import { formatDateTime, isOverdue } from "../format";
 import type { Lead } from "../model";
-import { PersonChip } from "./shared";
+import { OwnerChip } from "./shared";
 
 export type CadenceRow = {
   lead: Lead;
@@ -47,7 +47,6 @@ export function CadenceBoard({
   onClose: (row: CadenceRow) => void;
 }) {
   const [over, setOver] = useState<string | null>(null);
-  const nowIso = new Date().toISOString();
 
   const columns: Column[] = [
     ...CADENCE_KEYS.map((k, i) => ({
@@ -132,7 +131,7 @@ export function CadenceBoard({
               )}
 
               {stepRows.map((r) => {
-                const late = !!r.due && r.due < nowIso;
+                const late = isOverdue(r.due);
                 return (
                   <div
                     key={r.lead.id}
@@ -170,10 +169,7 @@ export function CadenceBoard({
                         ? `Previsto: ${formatDateTime(r.due)}${late ? " · atrasado" : ""}`
                         : "Sem data prevista"}
                     </p>
-                    <PersonChip
-                      person={r.lead.responsavel_id ? people[r.lead.responsavel_id] : null}
-                      className="mt-1.5"
-                    />
+                    <OwnerChip lead={r.lead} people={people} className="mt-1.5" />
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {r.step === CLOSE_CADENCE_KEY ? (
                         <Button
@@ -200,6 +196,17 @@ export function CadenceBoard({
                       >
                         <MessageSquareReply className="size-3.5" /> Respondeu
                       </Button>
+                      {r.step !== CLOSE_CADENCE_KEY && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+                          title="Encerrar como “Sem resposta” antes do fim da cadência"
+                          onClick={() => onClose(r)}
+                        >
+                          <Flag className="size-3.5" /> Encerrar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

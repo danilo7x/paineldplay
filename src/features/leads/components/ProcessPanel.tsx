@@ -375,6 +375,7 @@ export function ProcessPanel({
         open={decision !== null}
         onOpenChange={(v) => !v && setDecision(null)}
         decision={decision}
+        pendingPresentationId={pending("apresentacao_proposta")?.id ?? null}
       />
       <CloseLeadDialog
         lead={lead}
