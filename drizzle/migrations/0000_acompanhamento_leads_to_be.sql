@@ -673,3 +673,5 @@ BEGIN
   RETURN jsonb_build_object('events', events_sent, 'leads', leads_sent);
 END;
 $$;
+
+NOTIFY pgrst, 'reload schema';
