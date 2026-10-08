@@ -24,8 +24,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { applyLeadChange, leadKeys, useCommercialPeople } from "../api";
+import { applyLeadChange, leadKeys, useCommercialPeople, usePeopleMap } from "../api";
 import { CANAL_ORIGEM, type Lead } from "../model";
+
+const OUTRO = "outro";
 
 type Form = {
   nome: string;
@@ -35,7 +37,9 @@ type Form = {
   canal_origem: string;
   origem: string;
   necessidade_inicial: string;
+  /** Id do responsável, OUTRO (nome digitado) ou vazio (sem responsável). */
   responsavel_id: string;
+  responsavel_externo: string;
   valor_estimado: string;
   client_id: string;
   observacoes: string;
@@ -50,6 +54,7 @@ const blank = (userId: string): Form => ({
   origem: "",
   necessidade_inicial: "",
   responsavel_id: userId,
+  responsavel_externo: "",
   valor_estimado: "",
   client_id: "",
   observacoes: "",
@@ -72,7 +77,12 @@ export function LeadFormDialog({
   const navigate = useNavigate();
   const [form, setForm] = useState<Form>(blank(userId));
   const [saving, setSaving] = useState(false);
-  const { data: people = [] } = useCommercialPeople();
+  const { data: people = [], isLoading: loadingPeople } = useCommercialPeople();
+  // O responsável atual continua na lista mesmo se foi ocultado em Equipe.
+  const { data: current = {} } = usePeopleMap([lead?.responsavel_id]);
+  const options = [...people];
+  const currentOwner = lead?.responsavel_id ? current[lead.responsavel_id] : null;
+  if (currentOwner && !options.some((p) => p.id === currentOwner.id)) options.push(currentOwner);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["leads", "clients-list"],
@@ -95,7 +105,8 @@ export function LeadFormDialog({
         canal_origem: lead.canal_origem ?? "",
         origem: lead.origem ?? "",
         necessidade_inicial: lead.necessidade_inicial ?? "",
-        responsavel_id: lead.responsavel_id ?? "",
+        responsavel_id: lead.responsavel_id ?? (lead.responsavel_externo ? OUTRO : ""),
+        responsavel_externo: lead.responsavel_externo ?? "",
         valor_estimado: lead.valor_estimado != null ? String(lead.valor_estimado) : "",
         client_id: lead.client_id ?? "",
         observacoes: lead.observacoes ?? "",
@@ -107,11 +118,24 @@ export function LeadFormDialog({
 
   const set = (k: keyof Form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Quem está fora da lista (ex.: conta oculta) vira "sem responsável".
+  const ownerChoice =
+    form.responsavel_id === OUTRO || options.some((p) => p.id === form.responsavel_id)
+      ? form.responsavel_id
+      : "none";
+  const missingExterno = isAdmin && ownerChoice === OUTRO && !form.responsavel_externo.trim();
+
   async function save() {
-    if (!form.nome.trim()) return;
+    if (!form.nome.trim() || missingExterno) return;
     setSaving(true);
     try {
-      const responsavel = isAdmin ? form.responsavel_id || null : userId;
+      const responsavel = !isAdmin
+        ? userId
+        : ownerChoice === "none" || ownerChoice === OUTRO
+          ? null
+          : ownerChoice;
+      const externo =
+        isAdmin && ownerChoice === OUTRO ? form.responsavel_externo.trim() || null : null;
       const payload = {
         nome: form.nome.trim(),
         empresa: form.empresa.trim() || null,
@@ -127,7 +151,7 @@ export function LeadFormDialog({
       };
       if (lead) {
         await applyLeadChange(lead.id, {
-          patch: payload,
+          patch: { ...payload, responsavel_externo: externo },
           activities: [],
           updates: [],
           cancelPending: false,
@@ -138,7 +162,12 @@ export function LeadFormDialog({
       } else {
         const { data, error } = await supabase
           .from("partner_leads")
-          .insert({ ...payload, etapa: "novo", created_by: userId })
+          .insert({
+            ...payload,
+            ...(externo ? { responsavel_externo: externo } : {}),
+            etapa: "novo",
+            created_by: userId,
+          })
           .select("id")
           .single();
         if (error) throw error;
@@ -233,7 +262,7 @@ export function LeadFormDialog({
               <Label>Responsável comercial</Label>
               {isAdmin ? (
                 <Select
-                  value={form.responsavel_id || "none"}
+                  value={ownerChoice}
                   onValueChange={(v) => set("responsavel_id")(v === "none" ? "" : v)}
                 >
                   <SelectTrigger>
@@ -241,17 +270,32 @@ export function LeadFormDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— sem responsável —</SelectItem>
-                    {people.map((p) => (
+                    {options.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nome ?? p.email}
                       </SelectItem>
                     ))}
+                    <SelectItem value={OUTRO}>Outro</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
                 <Input value="Você" disabled />
               )}
             </div>
+            {isAdmin && ownerChoice === OUTRO && (
+              <div className="grid gap-1.5 sm:order-last sm:col-span-2">
+                <Label>Nome do responsável *</Label>
+                <Input
+                  value={form.responsavel_externo}
+                  onChange={(e) => set("responsavel_externo")(e.target.value)}
+                  placeholder="Quem vai cuidar deste lead"
+                  autoFocus
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Os envios pelo WhatsApp deste lead saem do número padrão da DPlay.
+                </p>
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label>Valor estimado (R$)</Label>
               <Input
@@ -296,7 +340,10 @@ export function LeadFormDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={save} disabled={!form.nome.trim() || saving}>
+          <Button
+            onClick={save}
+            disabled={!form.nome.trim() || missingExterno || (isAdmin && loadingPeople) || saving}
+          >
             {saving && <Loader2 className="size-4 animate-spin" />} Salvar
           </Button>
         </DialogFooter>

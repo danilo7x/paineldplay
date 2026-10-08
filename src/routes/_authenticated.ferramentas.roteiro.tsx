@@ -15,7 +15,7 @@ function RoteiroPage() {
     <div className="space-y-6">
       <PageHeader
         section="Ferramentas"
-        title="Roteiro de ligação"
+        title="Roteiro de Ligação"
         description="Material de apoio para o primeiro contato. Adapte as frases à conversa: o objetivo é entender a necessidade e, se fizer sentido, marcar a reunião de diagnóstico."
       />
       <div className="max-w-3xl">

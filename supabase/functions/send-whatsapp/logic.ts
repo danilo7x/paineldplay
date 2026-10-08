@@ -17,7 +17,14 @@ export type ActivityForSend = {
   tipo: string;
   status: string;
   chave: string | null;
+  canal?: string | null;
 };
+
+/** Canal gravado na mensagem prevista quando ela sai pela API (também serve de trava). */
+export const API_CHANNEL = "whatsapp_api";
+
+export const ALREADY_SENT_MESSAGE =
+  "Esta mensagem já foi enviada pelo WhatsApp e falta registrar o envio. Clique em “Registrar envio” — não envie de novo.";
 
 const CADENCE_KEYS = ["template_1", "template_2", "template_3", "template_4", "break_up"];
 
@@ -65,6 +72,7 @@ export function validateSend(
   if (!activity || activity.lead_id !== lead.id) return "Mensagem prevista não encontrada.";
   if (activity.tipo !== "whatsapp") return "Esta ação não é uma mensagem de WhatsApp.";
   if (activity.status !== "prevista") return "Esta mensagem já foi registrada ou cancelada.";
+  if (activity.canal === API_CHANNEL) return ALREADY_SENT_MESSAGE;
   if (CADENCE_KEYS.includes(activity.chave ?? "") && lead.cadencia_status !== "ativa")
     return "A cadência deste lead não está ativa.";
   if (!text.trim()) return "A mensagem está vazia.";

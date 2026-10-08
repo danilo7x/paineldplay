@@ -56,7 +56,7 @@ export function ScheduleMeetingDialog({
   userId,
   reagendamento,
 }: BaseProps & { reagendamento?: boolean }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [at, setAt] = useState("");
   const [local, setLocal] = useState("");
   const [obs, setObs] = useState("");
@@ -131,7 +131,7 @@ export function MeetingOutcomeDialog({
   pendingId,
   initial,
 }: BaseProps & { pendingId: string | null; initial?: MeetingOutcome }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [outcome, setOutcome] = useState<MeetingOutcome>("realizada");
   const [at, setAt] = useState("");
   const [obs, setObs] = useState("");
@@ -221,7 +221,7 @@ export function RescheduleAttemptDialog({
   userId,
   pendingId,
 }: BaseProps & { pendingId: string | null }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [at, setAt] = useState("");
   const [canal, setCanal] = useState("whatsapp");
   const [obs, setObs] = useState("");
@@ -282,7 +282,7 @@ export function MilestoneDialog({
   milestone,
   pendingId,
 }: BaseProps & { milestone: Milestone | null; pendingId: string | null }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [at, setAt] = useState("");
   const [obs, setObs] = useState("");
   const [values, setValues] = useState<MilestoneValues>({});
@@ -387,8 +387,9 @@ export function DecisionDialog({
   onOpenChange,
   userId,
   decision,
-}: BaseProps & { decision: Decision | null }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  pendingPresentationId = null,
+}: BaseProps & { decision: Decision | null; pendingPresentationId?: string | null }) {
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [at, setAt] = useState("");
   const [obs, setObs] = useState("");
   useEffect(() => {
@@ -424,6 +425,7 @@ export function DecisionDialog({
                   decision,
                   { at: fromLocalInput(at) ?? new Date(), observacoes: obs },
                   ctxFor(userId),
+                  pendingPresentationId,
                 ),
               "Decisão registrada",
             )
@@ -451,7 +453,7 @@ export function CloseLeadDialog({
   initial,
   initialReason,
 }: BaseProps & { initial?: FinalStage; initialReason?: string }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [resultado, setResultado] = useState<FinalStage>("perdido");
   const [motivo, setMotivo] = useState("");
   const [at, setAt] = useState("");
@@ -529,7 +531,14 @@ export function CloseLeadDialog({
                       onCheckedChange={(v) => setAssinado(v === true)}
                       className="mt-0.5"
                     />
-                    <span>O contrato foi assinado</span>
+                    <span>
+                      O contrato foi assinado
+                      {!ganhoOk && (
+                        <span className="block text-[11px] text-amber-400">
+                          Para encerrar como ganho, marque a assinatura e informe a data.
+                        </span>
+                      )}
+                    </span>
                   </label>
                   {assinado && (
                     <DateTimeField
@@ -616,7 +625,7 @@ export function ReopenDialog({
   userId,
   initial,
 }: BaseProps & { initial?: LeadStage }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [etapa, setEtapa] = useState<LeadStage>("primeiro_contato");
   const [motivo, setMotivo] = useState("");
   useEffect(() => {

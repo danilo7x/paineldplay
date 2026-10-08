@@ -101,6 +101,24 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_owner_hidden: {
+        Row: {
+          hidden_at: string
+          hidden_by: string | null
+          user_id: string
+        }
+        Insert: {
+          hidden_at?: string
+          hidden_by?: string | null
+          user_id: string
+        }
+        Update: {
+          hidden_at?: string
+          hidden_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       commercial_whatsapp_instances: {
         Row: {
           instance: string
@@ -676,6 +694,7 @@ export type Database = {
           origem: string | null
           proxima_acao_responsavel_id: string | null
           proximo_passo: string | null
+          responsavel_externo: string | null
           responsavel_id: string | null
           resultado_final: string | null
           resultado_primeira_ligacao: string | null
@@ -717,6 +736,7 @@ export type Database = {
           origem?: string | null
           proxima_acao_responsavel_id?: string | null
           proximo_passo?: string | null
+          responsavel_externo?: string | null
           responsavel_id?: string | null
           resultado_final?: string | null
           resultado_primeira_ligacao?: string | null
@@ -758,6 +778,7 @@ export type Database = {
           origem?: string | null
           proxima_acao_responsavel_id?: string | null
           proximo_passo?: string | null
+          responsavel_externo?: string | null
           responsavel_id?: string | null
           resultado_final?: string | null
           resultado_primeira_ligacao?: string | null
@@ -1481,6 +1502,10 @@ export type Database = {
       }
       admin_set_commercial_access: {
         Args: { _enabled: boolean; _user_id: string }
+        Returns: undefined
+      }
+      admin_set_lead_owner_visible: {
+        Args: { _user_id: string; _visible: boolean }
         Returns: undefined
       }
       admin_set_user_ativo: {

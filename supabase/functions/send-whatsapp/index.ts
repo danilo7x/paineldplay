@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  ALREADY_SENT_MESSAGE,
+  API_CHANNEL,
   NO_INSTANCE_MESSAGE,
   connectionStateRequest,
   evolutionErrorMessage,
@@ -138,12 +140,14 @@ Deno.serve(async (req) => {
         .maybeSingle(),
       asUser
         .from("lead_activities")
-        .select("id, lead_id, tipo, status, chave")
+        .select("id, lead_id, tipo, status, chave, canal")
         .eq("id", body.activity_id)
         .maybeSingle(),
     ]);
 
     const invalid = validateSend(lead, activity, body.text);
+    if (invalid === ALREADY_SENT_MESSAGE)
+      return json({ error: invalid, code: "already_sent" }, 409);
     if (invalid) return json({ error: invalid }, 400);
 
     // A mensagem sai do número do responsável pelo lead.
@@ -153,11 +157,35 @@ Deno.serve(async (req) => {
     );
     if (!instance) return json({ error: NO_INSTANCE_MESSAGE }, 400);
 
+    // Trava atômica: só um envio por mensagem prevista, mesmo com dois cliques ou
+    // duas abas. O registro do envio (feito em seguida pela tela) mantém o canal.
+    const { data: claimed, error: claimErr } = await asUser
+      .from("lead_activities")
+      .update({ canal: API_CHANNEL })
+      .eq("id", activity!.id)
+      .eq("status", "prevista")
+      .or(`canal.is.null,canal.neq.${API_CHANNEL}`)
+      .select("id");
+    if (claimErr) throw claimErr;
+    if (!claimed?.length) return json({ error: ALREADY_SENT_MESSAGE, code: "already_sent" }, 409);
+    const release = () =>
+      asUser
+        .from("lead_activities")
+        .update({ canal: activity!.canal ?? null })
+        .eq("id", activity!.id)
+        .eq("status", "prevista");
+
     const r = sendTextRequest(cfg, instance, normalizePhone(lead!.telefone)!, body.text);
     const res = await fetch(r.url, r.init).catch(() => null);
-    if (!res) return json({ error: "Não foi possível conectar à Evolution API." }, 502);
+    if (!res) {
+      await release();
+      return json({ error: "Não foi possível conectar à Evolution API." }, 502);
+    }
     const payload = await readJson(res);
-    if (!res.ok) return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
+    if (!res.ok) {
+      await release();
+      return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
+    }
 
     return json({ ok: true, messageId: messageIdFrom(payload), instance });
   } catch (err) {

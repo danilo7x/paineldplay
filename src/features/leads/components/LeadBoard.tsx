@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Person } from "../api";
 import { BOARD_COLUMNS, dueState, isFinalStage, type Lead } from "../model";
-import { DueBadge, PersonChip, StageBadge } from "./shared";
+import { DueBadge, OwnerChip, StageBadge } from "./shared";
 import { todayStr } from "../format";
 
 export type MoveHandler = (lead: Lead, columnKey: string) => void;
@@ -114,7 +114,7 @@ export function LeadCard({
         </p>
       )}
       <div className="mt-2">
-        <PersonChip person={lead.responsavel_id ? people[lead.responsavel_id] : null} />
+        <OwnerChip lead={lead} people={people} />
       </div>
     </div>
   );

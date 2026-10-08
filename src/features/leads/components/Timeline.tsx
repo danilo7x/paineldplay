@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { usePeopleMap } from "../api";
 import { ACTIVITY_TYPE_LABEL, channelLabel, stageLabel, type LeadActivity } from "../model";
 import { PersonChip, SectionCard } from "./shared";
-import { formatDateTime } from "../format";
+import { formatDateTime, isOverdue } from "../format";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ligacao: Phone,
@@ -54,7 +54,6 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         .sort((a, b) => when(b).localeCompare(when(a))),
     [activities],
   );
-  const nowIso = new Date().toISOString();
 
   return (
     <SectionCard title="Linha do tempo" icon={History}>
@@ -66,7 +65,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
           <ul className="space-y-1.5">
             {planned.map((a) => {
               const Icon = ICONS[a.tipo] ?? StickyNote;
-              const late = (a.previsto_para ?? "") < nowIso;
+              const late = isOverdue(a.previsto_para);
               return (
                 <li
                   key={a.id}

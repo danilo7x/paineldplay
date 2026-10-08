@@ -5,7 +5,6 @@ import { Loader2, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useProfile } from "@/lib/profile-context";
 import {
   useApplyLeadChange,
   useLeads,
@@ -15,6 +14,7 @@ import {
 } from "@/features/leads/api";
 import {
   CADENCE_LABEL,
+  cadenceResponse,
   CLOSE_CADENCE_KEY,
   DEFAULT_WAIT_DAYS,
   isCadenceKey,
@@ -24,8 +24,10 @@ import {
 import { CadenceBoard, type CadenceRow } from "@/features/leads/components/CadenceBoard";
 import { SendTemplateDialog } from "@/features/leads/components/CadencePanel";
 import { ResponseDialog } from "@/features/leads/components/ContactDialogs";
+import { ConfirmDialog, type ConfirmRequest } from "@/features/leads/components/dialog-kit";
 import { PageHeader } from "@/features/leads/components/LeadFilters";
-import { canalLabel, type Lead } from "@/features/leads/model";
+import { isOverdue } from "@/features/leads/format";
+import { canalLabel, senderVars, type Lead } from "@/features/leads/model";
 import { useWhatsappStatus } from "@/features/leads/whatsapp";
 import {
   closeCadenceWithoutResponse,
@@ -95,7 +97,6 @@ function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
 
 function CadenciaPage() {
   const { user, isAdmin } = Route.useRouteContext();
-  const { profile } = useProfile();
   const { data: leads = [], isLoading } = useLeads();
   const { data: pending = [] } = usePendingActivities();
   const { data: templates = [] } = useTemplates();
@@ -103,9 +104,9 @@ function CadenciaPage() {
   const apply = useApplyLeadChange(null);
   const [sending, setSending] = useState<CadenceRow | null>(null);
   const [responding, setResponding] = useState<Lead | null>(null);
+  const [confirming, setConfirming] = useState<ConfirmRequest | null>(null);
 
   const waits = { ...DEFAULT_WAIT_DAYS, ...waitsFrom(templates) } as Record<CadenceKey, number>;
-  const nowIso = new Date().toISOString();
 
   const rows = useMemo<CadenceRow[]>(() => {
     return leads
@@ -127,11 +128,8 @@ function CadenciaPage() {
   const noAnswer = leads.filter(
     (l) => l.etapa === "sem_resposta" && (l.encerrado_em ?? l.updated_at) >= since,
   );
-  const started = leads.filter((l) => (l.cadencia_ciclo ?? 0) > 0);
-  const answered = started.filter(
-    (l) => l.cadencia_status === "respondida" || l.cadencia_status === "optout",
-  );
-  const lateCount = rows.filter((r) => r.due && r.due < nowIso).length;
+  const cadence = cadenceResponse(leads);
+  const lateCount = rows.filter((r) => isOverdue(r.due)).length;
 
   // Memorizado: o diálogo reinicia o texto quando as variáveis mudam.
   const sendingVars = useMemo(
@@ -140,34 +138,40 @@ function CadenciaPage() {
         ? {
             nome: sending.lead.nome,
             empresa: sending.lead.empresa,
-            seuNome: profile?.nome,
-            seuEmail: profile?.email ?? user.email,
+            ...senderVars(sending.lead, people),
             origem: sending.lead.origem || canalLabel(sending.lead.canal_origem),
           }
         : {},
-    [sending, profile, user.email],
+    [sending, people],
   );
 
   function closeNoAnswer(row: CadenceRow) {
     const atEnd = row.step === CLOSE_CADENCE_KEY;
-    const msg = atEnd
-      ? `Encerrar ${row.lead.nome} como “Sem resposta”?`
-      : `${row.lead.nome} ainda não recebeu o break-up. Encerrar como “Sem resposta” mesmo assim?`;
-    if (!confirm(msg)) return;
     const ctx = { userId: user.id, now: new Date() };
-    apply.mutate({
-      id: row.lead.id,
-      change: atEnd
-        ? closeCadenceWithoutResponse(row.lead, row.pendingId, ctx)
-        : closeLead(
-            row.lead,
-            {
-              resultado: "sem_resposta",
-              motivo: "Encerrado sem resposta antes do fim da cadência",
-            },
-            ctx,
-          ),
-      success: "Lead encerrado como sem resposta",
+    setConfirming({
+      title: `Encerrar ${row.lead.nome} como “Sem resposta”?`,
+      description: atEnd
+        ? "O break-up foi enviado e o lead não respondeu. O histórico fica preservado."
+        : "O lead ainda não recebeu o break-up. As mensagens previstas serão canceladas.",
+      label: "Encerrar",
+      onConfirm: () =>
+        apply.mutate(
+          {
+            id: row.lead.id,
+            change: atEnd
+              ? closeCadenceWithoutResponse(row.lead, row.pendingId, ctx)
+              : closeLead(
+                  row.lead,
+                  {
+                    resultado: "sem_resposta",
+                    motivo: "Encerrado sem resposta antes do fim da cadência",
+                  },
+                  ctx,
+                ),
+            success: "Lead encerrado como sem resposta",
+          },
+          { onSuccess: () => setConfirming(null) },
+        ),
     });
   }
 
@@ -175,7 +179,7 @@ function CadenciaPage() {
     <div className="space-y-6">
       <PageHeader
         section="Acompanhamento de Leads"
-        title="Fluxo de cadência"
+        title="Fluxo de Cadência"
         description="Envie cada template pelo WhatsApp da DPlay com um clique. O próximo passo é lembrado em dias úteis; nada é enviado sem você clicar."
         actions={
           <>
@@ -191,14 +195,12 @@ function CadenciaPage() {
         {[
           { label: "Em cadência", value: rows.length },
           { label: "Envios atrasados", value: lateCount, tone: lateCount ? "text-red-400" : "" },
-          { label: "Responderam", value: answered.length },
           {
-            label: "Taxa de resposta",
-            value: started.length
-              ? `${Math.round((answered.length / started.length) * 100)}%`
-              : "—",
-            hint: `${started.length} lead(s) já entraram em cadência`,
+            label: "Responderam (total)",
+            value: cadence.answered,
+            hint: "Desde o início, inclui quem pediu para sair",
           },
+          { label: "Taxa de resposta", value: cadence.rate, hint: cadence.hint },
         ].map((k) => (
           <div
             key={k.label}
@@ -225,8 +227,8 @@ function CadenciaPage() {
       ) : (
         <>
           <p className="hidden text-xs text-muted-foreground md:block">
-            Os cartões avançam quando a mensagem é enviada. Arraste para “Responderam” ou “Sem
-            resposta” para registrar o desfecho.
+            Os cartões avançam quando a mensagem é enviada. Use “Respondeu” ou “Encerrar” no cartão
+            (ou arraste para as colunas) para registrar o desfecho.
           </p>
           <CadenceBoard
             rows={rows}
@@ -266,6 +268,11 @@ function CadenciaPage() {
           success={`${CADENCE_LABEL[sending.step]} enviado`}
         />
       )}
+      <ConfirmDialog
+        request={confirming}
+        onClose={() => setConfirming(null)}
+        pending={apply.isPending}
+      />
       {responding && (
         <ResponseDialog
           lead={responding}
