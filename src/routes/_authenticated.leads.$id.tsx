@@ -13,6 +13,7 @@ import {
   Pencil,
   Phone,
   RotateCcw,
+  ShieldQuestion,
   StickyNote,
   Trash2,
   UserRound,
@@ -47,7 +48,7 @@ import {
 import { LeadFormDialog } from "@/features/leads/components/LeadFormDialog";
 import { ProcessPanel } from "@/features/leads/components/ProcessPanel";
 import { CloseLeadDialog, ReopenDialog } from "@/features/leads/components/ProcessDialogs";
-import { CallScriptSheet } from "@/features/leads/components/ScriptAndTemplates";
+import { CallScriptSheet, ObjectionsSheet } from "@/features/leads/components/ScriptAndTemplates";
 import { Timeline } from "@/features/leads/components/Timeline";
 import { DueBadge, PersonChip, SectionCard, StageBadge } from "@/features/leads/components/shared";
 import { formatDate, formatDateTime, formatMoney } from "@/features/leads/format";
@@ -77,6 +78,7 @@ type DialogKind =
   | "close"
   | "reopen"
   | "script"
+  | "objections"
   | null;
 
 function LeadDetailPage() {
@@ -172,7 +174,7 @@ function LeadDetailPage() {
           to="/leads"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" /> Acompanhamento de Leads
+          <ArrowLeft className="size-3.5" /> Kanban de leads
         </Link>
       </div>
 
@@ -213,6 +215,14 @@ function LeadDetailPage() {
             onClick={() => setDialog("script")}
           >
             <BookOpenText className="size-4" /> Roteiro
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="gap-1.5"
+            onClick={() => setDialog("objections")}
+          >
+            <ShieldQuestion className="size-4" /> Objeções
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -479,6 +489,7 @@ function LeadDetailPage() {
         onOpenChange={set("reopen")}
       />
       <CallScriptSheet open={dialog === "script"} onOpenChange={set("script")} />
+      <ObjectionsSheet open={dialog === "objections"} onOpenChange={set("objections")} />
     </div>
   );
 }
