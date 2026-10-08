@@ -563,18 +563,18 @@ CREATE TRIGGER trg_lead_templates_updated BEFORE UPDATE ON public.lead_message_t
 -- espera_dias_uteis = dias úteis sem resposta, após o envio, até a próxima etapa.
 INSERT INTO public.lead_message_templates (chave, ordem, titulo, conteudo, orientacao, espera_dias_uteis, na_cadencia) VALUES
 ('template_1', 1, 'Primeiro template',
-'Oí, [nome]! Tudo bem? Aqui é [seu nome], da DPlay Solutions.
+'Oi, [nome]! Tudo bem? Aqui é [seu nome], da DPlay Solutions.
 Conheci a [empresa] por [origem real do contato]. A gente ajuda empresas a organizar processos com sistemas e automações, e queria entender uma coisa: hoje vocês têm alguma atividade que ainda depende muito de planilhas, mensagens ou trabalho manual?
 Se fizer sentido, posso te ligar por uns 5 minutos para entender melhor como funciona por aí.',
 'Use [informação observada] apenas quando houver um dado real sobre a empresa. Se o lead responder em qualquer etapa, interrompa a cadência e conduza a conversa conforme a necessidade apresentada.',
 1, true),
 ('template_2', 2, 'Segundo template',
-'Oí, [nome]! Passando para retomar minha mensagem.
+'Oi, [nome]! Passando para retomar minha mensagem.
 Perguntei porque, em algumas empresas, informações de clientes, pedidos ou tarefas acabam espalhadas entre WhatsApp e planilhas. Existe algum processo na [empresa] que vocês gostariam de organizar melhor?
 Se preferir, podemos conversar rapidamente por ligação. [Dia/horário] funciona para você?',
 NULL, 2, true),
 ('template_3', 3, 'Terceiro template',
-'Oí, [nome]! Para ficar mais claro o tipo de trabalho que fazemos, vou deixar aqui [link da apresentação institucional].
+'Oi, [nome]! Para ficar mais claro o tipo de trabalho que fazemos, vou deixar aqui [link da apresentação institucional].
 A DPlay desenvolve soluções conforme a necessidade de cada empresa, como sistemas para centralizar informações e automações para reduzir tarefas repetitivas. Algum desses pontos tem relação com o momento da [empresa]?',
 NULL, 2, true),
 ('template_4', 4, 'Quarto template',
@@ -591,7 +591,7 @@ Obrigado pela atenção!',
 'Se não responder em 2 dias úteis, encerre a cadência como "Sem resposta", mantendo o histórico para uma eventual retomada. Não envie outra mensagem nesse intervalo.',
 2, true),
 ('no_show', 10, 'No-show da reunião',
-'Oí, [nome]! Tudo bem? Senti sua falta na nossa reunião de diagnóstico. Imagino que tenha surgido algum imprevisto.
+'Oi, [nome]! Tudo bem? Senti sua falta na nossa reunião de diagnóstico. Imagino que tenha surgido algum imprevisto.
 Podemos remarcar? Tenho [dia e horário] ou [dia e horário]. Qual fica melhor para você?',
 'Modelo sugerido para o passo "Enviar template de no-show" do fluxograma (não consta no roteiro). Revise antes de usar.',
 0, false)
