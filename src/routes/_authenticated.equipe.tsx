@@ -217,7 +217,7 @@ function EquipePage() {
       run: async () => {
         const { error } = await supabase.rpc("admin_set_whatsapp_instance", {
           _user_id: m.id,
-          _instance: instance,
+          _instance: instance ?? "",
         });
         if (error) {
           toast.error("Não foi possível salvar", { description: error.message });
