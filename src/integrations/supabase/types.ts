@@ -1480,10 +1480,6 @@ export type Database = {
         Args: { _enabled: boolean; _user_id: string }
         Returns: undefined
       }
-      admin_set_whatsapp_instance: {
-        Args: { _instance: string | null; _user_id: string }
-        Returns: undefined
-      }
       admin_set_user_ativo: {
         Args: { _ativo: boolean; _user_id: string }
         Returns: undefined
@@ -1493,6 +1489,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: undefined
+      }
+      admin_set_whatsapp_instance: {
+        Args: { _instance: string; _user_id: string }
         Returns: undefined
       }
       can_access_lead: {
