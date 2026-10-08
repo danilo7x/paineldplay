@@ -1109,6 +1109,7 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
+          servico: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
         }
@@ -1120,6 +1121,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome: string
+          servico?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -1131,6 +1133,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome?: string
+          servico?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
