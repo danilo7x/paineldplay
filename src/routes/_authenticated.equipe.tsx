@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound, MailPlus } from "lucide-react";
+import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound, MailPlus, Target } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -61,6 +61,7 @@ type Member = {
   avatar_url: string | null;
   ativo: boolean;
   role: Role | null;
+  comercial: boolean;
 };
 
 export const Route = createFileRoute("/_authenticated/equipe")({
@@ -86,6 +87,7 @@ function EquipePage() {
 
   async function fetchMembers() {
     setLoading(true);
+    const commercialReq = supabase.from("commercial_access").select("user_id");
     const [{ data: profiles, error }, { data: roles }, { data: sessions }] = await Promise.all([
       supabase
       .from("profiles")
@@ -97,6 +99,7 @@ function EquipePage() {
         .select("user_id, last_active_at")
         .order("last_active_at", { ascending: false }),
     ]);
+    const { data: commercial } = await commercialReq;
     if (error) {
       toast.error("Erro ao carregar equipe", { description: error.message });
       setLoading(false);
@@ -109,8 +112,13 @@ function EquipePage() {
       if (!accessMap[s.user_id]) accessMap[s.user_id] = s.last_active_at;
     });
     setLastAccess(accessMap);
+    const commercialIds = new Set((commercial ?? []).map((c) => c.user_id));
     setMembers(
-      (profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.id) ?? null })),
+      (profiles ?? []).map((p) => ({
+        ...p,
+        role: roleMap.get(p.id) ?? null,
+        comercial: commercialIds.has(p.id),
+      })),
     );
     setLoading(false);
   }
@@ -156,6 +164,28 @@ function EquipePage() {
           return;
         }
         toast.success("Papel atualizado");
+        fetchMembers();
+      },
+    });
+  }
+
+  async function toggleComercial(m: Member, enabled: boolean) {
+    setConfirmAction({
+      title: enabled ? "Liberar Acompanhamento de Leads" : "Remover acesso a Leads",
+      description: enabled
+        ? `Confirme sua senha para liberar ${m.nome ?? m.email} no Acompanhamento de Leads. Ele(a) verá apenas os leads atribuídos a ele(a).`
+        : `Confirme sua senha para remover o acesso de ${m.nome ?? m.email} ao Acompanhamento de Leads.`,
+      confirmLabel: enabled ? "Liberar" : "Remover",
+      run: async () => {
+        const { error } = await supabase.rpc("admin_set_commercial_access", {
+          _user_id: m.id,
+          _enabled: enabled,
+        });
+        if (error) {
+          toast.error("Não foi possível alterar o acesso", { description: error.message });
+          return;
+        }
+        toast.success(enabled ? "Acesso comercial liberado" : "Acesso comercial removido");
         fetchMembers();
       },
     });
@@ -246,6 +276,19 @@ function EquipePage() {
                         Tornar contadora
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Comercial</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        disabled={m.role === "admin"}
+                        onClick={() => toggleComercial(m, !m.comercial)}
+                      >
+                        <Target className="mr-2 size-4" />
+                        {m.role === "admin"
+                          ? "Admin já acessa os Leads"
+                          : m.comercial
+                            ? "Remover acesso a Leads"
+                            : "Liberar Acompanhamento de Leads"}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         disabled={isSelf}
                         onClick={() => toggleAtivo(m, !m.ativo)}
@@ -286,6 +329,14 @@ function EquipePage() {
                       >
                         {m.role ? ROLE_LABEL[m.role] : "—"}
                       </Badge>
+                      {m.comercial && m.role !== "admin" && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-primary/40 text-[10px] text-primary"
+                        >
+                          Comercial
+                        </Badge>
+                      )}
                     </dd>
                   </div>
                   <div className="min-w-0">
@@ -391,6 +442,14 @@ function EquipePage() {
                       >
                         {m.role ? ROLE_LABEL[m.role] : "—"}
                       </Badge>
+                      {m.comercial && m.role !== "admin" && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-primary/40 text-[10px] text-primary"
+                        >
+                          Comercial
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {last ? (
@@ -437,6 +496,19 @@ function EquipePage() {
                             onClick={() => changeRole(m, "contador")}
                           >
                             Tornar contadora
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel>Comercial</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={m.role === "admin"}
+                            onClick={() => toggleComercial(m, !m.comercial)}
+                          >
+                            <Target className="mr-2 size-4" />
+                            {m.role === "admin"
+                              ? "Admin já acessa os Leads"
+                              : m.comercial
+                                ? "Remover acesso a Leads"
+                                : "Liberar Acompanhamento de Leads"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -51,6 +51,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useLeads } from "@/features/leads/api";
+import { ACTIVE_STAGES, STAGE_META, dueState, isFinalStage } from "@/features/leads/model";
 
 type Author = { id: string; nome: string | null; avatar_url: string | null };
 
@@ -998,255 +1000,92 @@ function NoteDialog({
   );
 }
 /* ================================================================== */
-/* LEADS / PIPELINE                                                   */
+/* LEADS — resumo do Acompanhamento de Leads (Workspace)              */
 /* ================================================================== */
 
-type PLead = {
-  id: string;
-  nome: string;
-  empresa: string | null;
-  contato: string | null;
-  origem: string | null;
-  etapa: "lead" | "contato_feito" | "proposta_enviada" | "fechado" | "perdido";
-  proximo_passo: string | null;
-  data_lembrete: string | null;
-  valor_estimado: number | null;
-  client_id: string | null;
-  observacoes: string | null;
-  created_by: string;
-};
-
-const LEAD_COLS: { key: PLead["etapa"]; label: string; tone: string }[] = [
-  { key: "lead", label: "Lead", tone: "border-sky-500/40" },
-  { key: "contato_feito", label: "Contato feito", tone: "border-indigo-500/40" },
-  { key: "proposta_enviada", label: "Proposta", tone: "border-amber-500/40" },
-  { key: "fechado", label: "Fechado", tone: "border-emerald-500/40" },
-  { key: "perdido", label: "Perdido", tone: "border-red-500/40" },
-];
-
+// Os leads são os mesmos registros de partner_leads usados na página
+// Acompanhamento de Leads; aqui fica só uma visão resumida para os sócios.
 function LeadsSection() {
-  const qc = useQueryClient();
-  const { user } = Route.useRouteContext();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<PLead | null>(null);
+  const navigate = useNavigate();
+  const { data: leads = [], isLoading } = useLeads();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const open = leads.filter((l) => !isFinalStage(l.etapa));
+  const late = open.filter((l) => dueState(l.data_lembrete, today) === "atrasada");
+  const forToday = open.filter((l) => dueState(l.data_lembrete, today) === "hoje");
+  const won = leads.filter((l) => l.etapa === "ganho");
+  const next = [...open]
+    .filter((l) => l.data_lembrete)
+    .sort((a, b) => (a.data_lembrete ?? "").localeCompare(b.data_lembrete ?? ""))
+    .slice(0, 6);
 
-  const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["partner_leads"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("partner_leads").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as PLead[];
-    },
-  });
-  const { data: authors = {} } = useAuthors(leads.map((l) => l.created_by));
-
-  const move = useMutation({
-    mutationFn: async ({ id, etapa }: { id: string; etapa: PLead["etapa"] }) => {
-      const { error } = await supabase.from("partner_leads").update({ etapa, updated_by: user.id }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner_leads"] }),
-  });
-  const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("partner_leads").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Lead removido"); qc.invalidateQueries({ queryKey: ["partner_leads"] }); },
-  });
-
-  const overdue = leads.filter((l) => l.data_lembrete && l.data_lembrete <= format(new Date(), "yyyy-MM-dd") && l.etapa !== "fechado" && l.etapa !== "perdido");
+  if (isLoading) {
+    return <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="size-5 animate-spin" /></div>;
+  }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-xs text-muted-foreground">
-          {overdue.length > 0 ? <span className="text-amber-400">{overdue.length} follow-up{overdue.length > 1 ? "s" : ""} para hoje</span> : "Funil de prospects"}
-        </div>
-        <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
-          <Plus className="size-4" /> Novo lead
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">
+          {open.length} lead{open.length === 1 ? "" : "s"} em andamento · {won.length} ganho{won.length === 1 ? "" : "s"}
+          {late.length > 0 && <span className="text-red-400"> · {late.length} atrasado{late.length > 1 ? "s" : ""}</span>}
+          {forToday.length > 0 && <span className="text-amber-400"> · {forToday.length} para hoje</span>}
+        </p>
+        <Button size="sm" onClick={() => navigate({ to: "/leads" })}>
+          <ArrowRightLeft className="size-4" /> Abrir Acompanhamento de Leads
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="size-5 animate-spin" /></div>
-      ) : (
-        <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-5">
-          {LEAD_COLS.map((col) => {
-            const items = leads.filter((l) => l.etapa === col.key);
-            return (
-              <div key={col.key} className={cn("min-w-[85%] shrink-0 snap-start rounded-2xl border-2 bg-card/40 p-2 sm:min-w-0", col.tone)}>
-                <div className="mb-2 flex items-center justify-between px-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</p>
-                  <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {items.length === 0 && <p className="px-1 py-3 text-center text-xs text-muted-foreground/70">— vazio —</p>}
-                  {items.map((l) => (
-                     <div key={l.id} className="overflow-hidden rounded-xl border border-border/60 bg-background/60 p-2.5">
-                       <p className="truncate text-sm font-medium">{l.nome}</p>
-                       {l.empresa && <p className="truncate text-[11px] text-muted-foreground">{l.empresa}</p>}
-                       <div className="mt-1 flex flex-wrap gap-1.5">
-                        {l.valor_estimado != null && (
-                          <Badge variant="outline" className="h-5 text-[10px]">R$ {Number(l.valor_estimado).toLocaleString("pt-BR")}</Badge>
-                        )}
-                        {l.data_lembrete && (
-                          <Badge variant="outline" className={cn("h-5 text-[10px]", l.data_lembrete <= format(new Date(), "yyyy-MM-dd") && "border-amber-500/60 text-amber-400")}>
-                            {format(parseISO(l.data_lembrete), "dd/MM")}
-                          </Badge>
-                        )}
-                      </div>
-                      {l.proximo_passo && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">→ {l.proximo_passo}</p>}
-                       <div className="mt-2 space-y-1.5">
-                         <div className="flex min-w-0">
-                           <div className="min-w-0 flex-1 truncate">
-                             <AuthorChip author={authors[l.created_by]} label="por" />
-                           </div>
-                         </div>
-                         <div className="flex items-center gap-1.5">
-                           <Select value={l.etapa} onValueChange={(v) => move.mutate({ id: l.id, etapa: v as PLead["etapa"] })}>
-                             <SelectTrigger className="h-6 min-w-0 flex-1 text-[10px]"><SelectValue /></SelectTrigger>
-                             <SelectContent>
-                               {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                             </SelectContent>
-                           </Select>
-                           <Button size="icon" variant="ghost" className="size-6 shrink-0" onClick={() => { setEditing(l); setOpen(true); }}>
-                             <Pencil className="size-3" />
-                           </Button>
-                           <Button size="icon" variant="ghost" className="size-6 shrink-0 text-destructive" onClick={() => del.mutate(l.id)}>
-                             <Trash2 className="size-3" />
-                           </Button>
-                         </div>
-                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <LeadDialog open={open} onOpenChange={setOpen} lead={editing} />
-    </div>
-  );
-}
-
-function LeadDialog({
-  open, onOpenChange, lead,
-}: { open: boolean; onOpenChange: (v: boolean) => void; lead: PLead | null }) {
-  const qc = useQueryClient();
-  const { user } = Route.useRouteContext();
-  const [form, setForm] = useState({
-    nome: "", empresa: "", contato: "", origem: "",
-    etapa: "lead" as PLead["etapa"],
-    proximo_passo: "", data_lembrete: "",
-    valor_estimado: "", client_id: "" as string,
-    observacoes: "",
-  });
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ["socios-clients-list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("clients").select("id, nome").order("nome");
-      return (data ?? []) as { id: string; nome: string }[];
-    },
-    enabled: open,
-    staleTime: 60_000,
-  });
-
-  useMemo(() => {
-    if (lead) {
-      setForm({
-        nome: lead.nome, empresa: lead.empresa ?? "", contato: lead.contato ?? "", origem: lead.origem ?? "",
-        etapa: lead.etapa, proximo_passo: lead.proximo_passo ?? "",
-        data_lembrete: lead.data_lembrete ?? "",
-        valor_estimado: lead.valor_estimado != null ? String(lead.valor_estimado) : "",
-        client_id: lead.client_id ?? "", observacoes: lead.observacoes ?? "",
-      });
-    } else if (open) {
-      setForm({ nome: "", empresa: "", contato: "", origem: "", etapa: "lead", proximo_passo: "", data_lembrete: "", valor_estimado: "", client_id: "", observacoes: "" });
-    }
-  }, [lead, open]);
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        nome: form.nome, empresa: form.empresa || null, contato: form.contato || null, origem: form.origem || null,
-        etapa: form.etapa, proximo_passo: form.proximo_passo || null,
-        data_lembrete: form.data_lembrete || null,
-        valor_estimado: form.valor_estimado ? Number(form.valor_estimado) : null,
-        client_id: form.client_id || null,
-        observacoes: form.observacoes || null,
-      };
-      if (lead) {
-        const { error } = await supabase.from("partner_leads").update({ ...payload, updated_by: user.id }).eq("id", lead.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("partner_leads").insert({ ...payload, created_by: user.id });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success(lead ? "Lead atualizado" : "Lead criado");
-      qc.invalidateQueries({ queryKey: ["partner_leads"] });
-      onOpenChange(false);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{lead ? "Editar lead" : "Novo lead"}</DialogTitle></DialogHeader>
-        <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Empresa</Label><Input value={form.empresa} onChange={(e) => setForm({ ...form, empresa: e.target.value })} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5"><Label>Contato</Label><Input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} placeholder="email/telefone" /></div>
-            <div className="grid gap-1.5"><Label>Origem</Label><Input value={form.origem} onChange={(e) => setForm({ ...form, origem: e.target.value })} placeholder="indicação, site..." /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5">
-              <Label>Etapa</Label>
-              <Select value={form.etapa} onValueChange={(v) => setForm({ ...form, etapa: v as PLead["etapa"] })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {LEAD_COLS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+        {ACTIVE_STAGES.map((s) => {
+          const n = open.filter((l) => l.etapa === s).length;
+          return (
+            <div key={s} className={cn("rounded-xl border-2 bg-card/40 p-2.5", STAGE_META[s].border)}>
+              <p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{STAGE_META[s].label}</p>
+              <p className="mt-1 text-lg font-semibold">{n}</p>
             </div>
-            <div className="grid gap-1.5"><Label>Valor estimado</Label><Input type="number" step="0.01" value={form.valor_estimado} onChange={(e) => setForm({ ...form, valor_estimado: e.target.value })} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5"><Label>Próximo passo</Label><Input value={form.proximo_passo} onChange={(e) => setForm({ ...form, proximo_passo: e.target.value })} /></div>
-            <div className="grid gap-1.5"><Label>Data lembrete</Label><Input type="date" value={form.data_lembrete} onChange={(e) => setForm({ ...form, data_lembrete: e.target.value })} /></div>
-          </div>
-          {form.etapa === "fechado" && (
-            <div className="grid gap-1.5">
-              <Label>Vincular a cliente existente</Label>
-              <Select value={form.client_id || "none"} onValueChange={(v) => setForm({ ...form, client_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— nenhum —</SelectItem>
-                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">Para criar novo cliente, use a aba Clientes depois.</p>
-            </div>
+          );
+        })}
+      </div>
+
+      <Card className="rounded-2xl border-border/50 bg-card/50">
+        <CardContent className="p-3">
+          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Próximas ações</p>
+          {next.length === 0 ? (
+            <p className="px-1 py-3 text-sm text-muted-foreground">Nenhuma ação agendada.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {next.map((l) => {
+                const due = dueState(l.data_lembrete, today);
+                return (
+                  <li key={l.id}>
+                    <button
+                      onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
+                      className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-left hover:text-primary"
+                    >
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "h-5 text-[10px]",
+                          due === "atrasada" && "border-red-500/60 text-red-400",
+                          due === "hoje" && "border-amber-500/60 text-amber-400",
+                        )}
+                      >
+                        {format(parseISO(l.data_lembrete!), "dd/MM")}
+                      </Badge>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                        {l.nome}
+                        {l.empresa && <span className="font-normal text-muted-foreground"> · {l.empresa}</span>}
+                      </span>
+                      <span className="w-full truncate text-xs text-muted-foreground sm:w-auto sm:max-w-[45%]">{l.proximo_passo}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          <div className="grid gap-1.5"><Label>Observações</Label><Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => save.mutate()} disabled={!form.nome || save.isPending}>
-            {save.isPending && <Loader2 className="size-4 animate-spin" />} Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

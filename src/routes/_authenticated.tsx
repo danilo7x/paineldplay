@@ -16,7 +16,13 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/" });
     }
     const roles = await getRoles(user.id);
-    return { user, isAdmin: roles.isAdmin, isContador: roles.isContador, isFinance: roles.isFinance };
+    return {
+      user,
+      isAdmin: roles.isAdmin,
+      isContador: roles.isContador,
+      isFinance: roles.isFinance,
+      hasCommercial: roles.hasCommercial,
+    };
   },
   component: () => (
     <AppShell>
