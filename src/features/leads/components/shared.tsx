@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { Person } from "../api";
 import { initialsOf, todayStr } from "../format";
-import { STAGE_META, SUBSTEP_LABEL, dueState, type LeadStage } from "../model";
+import { STAGE_META, SUBSTEP_LABEL, dueState, type Lead, type LeadStage } from "../model";
 
 export function PersonChip({
   person,
@@ -31,6 +31,31 @@ export function PersonChip({
       </Avatar>
       <span className="truncate">{person?.nome ?? person?.email ?? fallback}</span>
     </span>
+  );
+}
+
+/** Responsável pelo lead: pessoa do sistema ou "Outro" (nome digitado). */
+export function OwnerChip({
+  lead,
+  people,
+  className,
+}: {
+  lead: Pick<Lead, "responsavel_id" | "responsavel_externo">;
+  people: Record<string, Person>;
+  className?: string;
+}) {
+  if (!lead.responsavel_id && lead.responsavel_externo)
+    return (
+      <PersonChip
+        person={{ id: "", nome: lead.responsavel_externo, email: null, avatar_url: null }}
+        className={className}
+      />
+    );
+  return (
+    <PersonChip
+      person={lead.responsavel_id ? people[lead.responsavel_id] : null}
+      className={className}
+    />
   );
 }
 

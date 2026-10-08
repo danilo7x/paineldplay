@@ -14,8 +14,26 @@ export function fromLocalInput(v: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** Campo só de data ("2026-10-08"): meio-dia local, para não virar o dia anterior. */
+export function fromDateInput(v: string): Date | null {
+  return v ? fromLocalInput(`${v}T12:00`) : null;
+}
+
 export function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
+}
+
+/** Dia local ("2026-10-08") de um instante salvo em UTC. */
+export function localDate(iso: string) {
+  return format(new Date(iso), "yyyy-MM-dd");
+}
+
+/**
+ * Atrasado = o dia previsto já passou. Mesma regra da próxima ação no Kanban e
+ * na Agenda: algo previsto para hoje ainda é "para hoje", não atrasado.
+ */
+export function isOverdue(iso: string | null | undefined, today = todayStr()) {
+  return !!iso && localDate(iso) < today;
 }
 
 export function formatDate(d: string | null | undefined) {

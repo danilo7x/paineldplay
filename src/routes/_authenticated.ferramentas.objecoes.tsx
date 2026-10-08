@@ -15,7 +15,7 @@ function ObjecoesPage() {
     <div className="space-y-6">
       <PageHeader
         section="Ferramentas"
-        title="Matriz de objeções"
+        title="Matriz de Objeções"
         description="Como conduzir as objeções mais comuns na qualificação e na proposta."
       />
       <ObjectionsBrowser />

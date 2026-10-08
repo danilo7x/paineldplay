@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { addDays, format } from "date-fns";
+import { addDays } from "date-fns";
 import {
   AlarmClock,
   CalendarCheck2,
@@ -17,10 +17,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useApplyLeadChange, useLeads, usePeopleMap, useTemplates } from "@/features/leads/api";
 import { waitsFrom } from "@/features/leads/cadence";
-import { useLeadFilters } from "@/features/leads/filters";
+import { applyLeadFilters, useLeadFilters } from "@/features/leads/filters";
 import { LeadBoard } from "@/features/leads/components/LeadBoard";
 import { LeadFiltersBar, PageHeader } from "@/features/leads/components/LeadFilters";
 import { LeadFormDialog } from "@/features/leads/components/LeadFormDialog";
+import { ConfirmDialog, type ConfirmRequest } from "@/features/leads/components/dialog-kit";
 import {
   CloseLeadDialog,
   ReopenDialog,
@@ -58,16 +59,23 @@ function KanbanPage() {
   const [closing, setClosing] = useState<{ lead: Lead; resultado: FinalStage } | null>(null);
   const [reopening, setReopening] = useState<{ lead: Lead; etapa: LeadStage } | null>(null);
   const [meeting, setMeeting] = useState<Lead | null>(null);
+  const [confirming, setConfirming] = useState<ConfirmRequest | null>(null);
 
   const today = todayStr();
-  const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
-  const open = leads.filter((l) => !isFinalStage(l.etapa));
+  // Os indicadores seguem os filtros da tela (menos o de próxima ação, que eles mesmos aplicam).
+  const scoped = applyLeadFilters(leads, { ...filters, action: "todas" }, today);
+  const open = scoped.filter((l) => !isFinalStage(l.etapa));
   const overdue = open.filter((l) => dueState(l.data_lembrete, today) === "atrasada");
   const dueToday = open.filter((l) => dueState(l.data_lembrete, today) === "hoje");
   const inCadence = open.filter((l) => l.cadencia_status === "ativa");
-  const meetingsSoon = open.filter(
-    (l) => l.etapa === "reuniao" && l.reuniao_em && l.reuniao_em.slice(0, 10) <= weekEnd,
-  );
+  const now = new Date();
+  const weekEnd = addDays(now, 7);
+  const meetingsSoon = open.filter((l) => {
+    if (l.etapa !== "reuniao" || !l.reuniao_em) return false;
+    if (!["agendada", "reagendada"].includes(l.reuniao_status ?? "agendada")) return false;
+    const at = new Date(l.reuniao_em);
+    return at >= now && at <= weekEnd;
+  });
 
   const openLead = (l: Lead) => navigate({ to: "/leads/$id", params: { id: l.id } });
 
@@ -76,7 +84,11 @@ function KanbanPage() {
     if (!col || col.stages.includes(lead.etapa as LeadStage)) return;
     const target = col.stages[0];
     if (isFinalStage(target)) {
-      setClosing({ lead, resultado: columnKey === "ganho" ? "ganho" : "perdido" });
+      setClosing({
+        lead,
+        resultado:
+          columnKey === "ganho" ? "ganho" : lead.etapa === "cadencia" ? "sem_resposta" : "perdido",
+      });
       return;
     }
     if (isFinalStage(lead.etapa)) {
@@ -96,22 +108,51 @@ function KanbanPage() {
         toast.error("Este lead pediu para não receber novos contatos.");
         return;
       }
-      apply.mutate({
-        id: lead.id,
-        change: startCadence(lead, {
-          userId: user.id,
-          now: new Date(),
-          waits: waitsFrom(templates),
-        }),
-        success: `Cadência iniciada para ${lead.nome}`,
+      const begin = () =>
+        apply.mutate(
+          {
+            id: lead.id,
+            change: startCadence(lead, {
+              userId: user.id,
+              now: new Date(),
+              waits: waitsFrom(templates),
+            }),
+            success: `Cadência iniciada para ${lead.nome}`,
+          },
+          { onSuccess: () => setConfirming(null) },
+        );
+      if (["novo", "primeiro_contato"].includes(lead.etapa)) return begin();
+      setConfirming({
+        title: "Voltar o lead para a cadência?",
+        description: `${lead.nome} está em “${STAGE_META[lead.etapa as LeadStage]?.label ?? lead.etapa}”. Iniciar a cadência cancela as ações previstas, inclusive reuniões e apresentações marcadas.`,
+        label: "Iniciar cadência",
+        onConfirm: begin,
       });
       return;
     }
-    apply.mutate({
-      id: lead.id,
-      change: moveToStage(target),
-      success: `${lead.nome} → ${STAGE_META[target].label}`,
-    });
+    const move = () =>
+      apply.mutate(
+        {
+          id: lead.id,
+          change: moveToStage(lead, target, { userId: user.id, now: new Date() }),
+          success: `${lead.nome} → ${STAGE_META[target].label}`,
+        },
+        { onSuccess: () => setConfirming(null) },
+      );
+    // Sair da cadência ou da reunião desfaz o que o processo tinha programado.
+    if (lead.etapa === "cadencia" || lead.etapa === "reuniao") {
+      setConfirming({
+        title: `Mover para “${STAGE_META[target].label}”?`,
+        description:
+          lead.etapa === "cadencia"
+            ? "As mensagens previstas da cadência serão canceladas e a próxima ação vira “Definir o próximo passo”."
+            : "A reunião marcada continua na agenda até você registrar o resultado. A próxima ação vira “Definir o próximo passo”.",
+        label: "Mover",
+        onConfirm: move,
+      });
+      return;
+    }
+    move();
   }
 
   const kpis = [
@@ -190,7 +231,7 @@ function KanbanPage() {
         <p className="text-xs text-muted-foreground">
           Há {overdue.length + dueToday.length} ação(ões) para hoje ou atrasadas.{" "}
           <Link to="/leads/agenda" className="text-primary hover:underline">
-            Ver na Agenda comercial
+            Ver na Agenda Comercial
           </Link>
         </p>
       )}
@@ -256,6 +297,11 @@ function KanbanPage() {
           initial={reopening.etapa}
         />
       )}
+      <ConfirmDialog
+        request={confirming}
+        onClose={() => setConfirming(null)}
+        pending={apply.isPending}
+      />
       {meeting && (
         <ScheduleMeetingDialog
           lead={meeting}

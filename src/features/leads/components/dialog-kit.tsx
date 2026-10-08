@@ -1,7 +1,14 @@
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -47,6 +54,48 @@ export function DialogActions({
         </Button>
       </DialogFooter>
     </>
+  );
+}
+
+/** Confirmação no estilo do app (no lugar do confirm() do navegador). */
+export type ConfirmRequest = {
+  title: string;
+  description: string;
+  label: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+};
+
+export function ConfirmDialog({
+  request,
+  onClose,
+  pending = false,
+}: {
+  request: ConfirmRequest | null;
+  onClose: () => void;
+  pending?: boolean;
+}) {
+  return (
+    <Dialog open={!!request} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{request?.title}</DialogTitle>
+          <DialogDescription>{request?.description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            variant={request?.destructive ? "destructive" : "default"}
+            disabled={pending}
+            onClick={() => request?.onConfirm()}
+          >
+            {pending && <Loader2 className="size-4 animate-spin" />} {request?.label}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

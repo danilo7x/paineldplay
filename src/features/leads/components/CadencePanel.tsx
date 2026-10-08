@@ -40,6 +40,7 @@ import {
   CADENCE_STATUS_LABEL,
   channelLabel,
   isFinalStage,
+  stageLabel,
   type Lead,
   type LeadActivity,
   type MessageTemplate,
@@ -55,8 +56,8 @@ import {
 import { ChannelSelect, DateTimeField, DialogActions } from "./dialog-kit";
 import { useLeadRun } from "./useLeadRun";
 import { SectionCard } from "./shared";
-import { sendWhatsapp, useWhatsappStatus } from "../whatsapp";
-import { formatDateTime, fromLocalInput, toLocalInput } from "../format";
+import { WhatsappSendError, sendWhatsapp, useWhatsappStatus } from "../whatsapp";
+import { formatDateTime, fromLocalInput, isOverdue, toLocalInput } from "../format";
 
 export function CadencePanel({
   lead,
@@ -77,13 +78,25 @@ export function CadencePanel({
   const [sendKey, setSendKey] = useState<CadenceKey | null>(null);
   const [adjust, setAdjust] = useState<{ id: string; at: string | null } | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmStart, setConfirmStart] = useState(false);
 
   const ciclo = lead.cadencia_ciclo ?? 0;
   const steps = useMemo(() => cadenceProgress(activities, ciclo), [activities, ciclo]);
   const active = lead.cadencia_status === "ativa";
   const closed = isFinalStage(lead.etapa);
   const ctx = (): WorkflowCtx => ({ userId, now: new Date(), waits: waitsFrom(templates) });
-  const nowIso = new Date().toISOString();
+
+  // Mais adiante no funil, voltar à cadência cancela reuniões e apresentações.
+  const advanced = !["novo", "primeiro_contato", "cadencia"].includes(lead.etapa);
+  const start = () =>
+    apply.mutate(
+      {
+        change: startCadence(lead, ctx()),
+        success: ciclo > 0 ? "Nova cadência iniciada" : "Cadência iniciada",
+      },
+      { onSuccess: () => setConfirmStart(false) },
+    );
+  const askStart = () => (advanced ? setConfirmStart(true) : start());
 
   const tplByKey = (k: string) => templates.find((t) => t.chave === k);
   const sendStep = sendKey ? steps.find((s) => s.key === sendKey) : null;
@@ -112,9 +125,7 @@ export function CadencePanel({
               size="sm"
               variant="secondary"
               disabled={lead.nao_contatar || apply.isPending}
-              onClick={() =>
-                apply.mutate({ change: startCadence(lead, ctx()), success: "Cadência iniciada" })
-              }
+              onClick={askStart}
             >
               <Play className="size-4" /> Iniciar cadência
             </Button>
@@ -130,7 +141,7 @@ export function CadencePanel({
             const label = isClose
               ? "Encerrar como “Sem resposta”"
               : CADENCE_LABEL[s.key as CadenceKey];
-            const overdue = s.state === "prevista" && s.dueAt && s.dueAt < nowIso;
+            const overdue = s.state === "prevista" && isOverdue(s.dueAt);
             return (
               <li
                 key={s.key}
@@ -190,17 +201,7 @@ export function CadencePanel({
             </Button>
           )}
           {!active && !lead.nao_contatar && (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={apply.isPending}
-              onClick={() =>
-                apply.mutate({
-                  change: startCadence(lead, ctx()),
-                  success: "Nova cadência iniciada",
-                })
-              }
-            >
+            <Button size="sm" variant="ghost" disabled={apply.isPending} onClick={askStart}>
               <Play className="size-4" /> Iniciar novo ciclo
             </Button>
           )}
@@ -224,6 +225,25 @@ export function CadencePanel({
       )}
 
       <AdjustDateDialog lead={lead} target={adjust} onClose={() => setAdjust(null)} />
+
+      <Dialog open={confirmStart} onOpenChange={setConfirmStart}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Voltar o lead para a cadência?</DialogTitle>
+            <DialogDescription>
+              O lead está em “{stageLabel(lead.etapa)}”. Iniciar a cadência o leva de volta para
+              “Cadência de WhatsApp” e cancela as ações previstas, inclusive reuniões e
+              apresentações marcadas.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogActions
+            onCancel={() => setConfirmStart(false)}
+            pending={apply.isPending}
+            label="Iniciar cadência"
+            onConfirm={start}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={confirmClose} onOpenChange={setConfirmClose}>
         <DialogContent className="max-w-md">
@@ -295,7 +315,7 @@ export function SendTemplateDialog({
   /** Mensagem prevista que este envio cumpre; necessária para enviar pela API. */
   pendingActivityId: string | null;
 }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const { data: waStatus, isLoading: waLoading } = useWhatsappStatus(lead.id, open);
   const { data: owners = {} } = usePeopleMap([lead.responsavel_id]);
   const ownerName =
@@ -367,6 +387,12 @@ export function SendTemplateDialog({
         success,
       );
     } catch (e) {
+      if (e instanceof WhatsappSendError && e.code === "already_sent") {
+        // Já saiu antes (ex.: o registro falhou): só falta registrar.
+        setApiState("sent");
+        toast.warning("Esta mensagem já foi enviada", { description: e.message });
+        return;
+      }
       setApiState("idle");
       toast.error("Mensagem não enviada", { description: (e as Error).message });
     }
@@ -453,7 +479,14 @@ export function SendTemplateDialog({
             <p className="text-xs font-medium">Registrar envio</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <DateTimeField label="Enviada em" value={sentAt} onChange={setSentAt} />
-              <ChannelSelect value={canal} onChange={setCanal} />
+              {apiState === "sent" ? (
+                <div className="grid gap-1.5">
+                  <Label>Canal</Label>
+                  <p className="flex h-9 items-center text-sm">WhatsApp (API)</p>
+                </div>
+              ) : (
+                <ChannelSelect value={canal} onChange={setCanal} />
+              )}
             </div>
             <div className="grid gap-1.5">
               <Label>Observações</Label>
@@ -469,7 +502,11 @@ export function SendTemplateDialog({
           onConfirm={() =>
             run(
               () =>
-                build({ sentAt: fromLocalInput(sentAt) ?? new Date(), canal, observacoes: obs }),
+                build({
+                  sentAt: fromLocalInput(sentAt) ?? new Date(),
+                  canal: apiState === "sent" ? "whatsapp_api" : canal,
+                  observacoes: obs,
+                }),
               success,
             )
           }

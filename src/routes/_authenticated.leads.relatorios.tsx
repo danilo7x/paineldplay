@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLeads, usePeopleMap } from "@/features/leads/api";
+import { cadenceResponse } from "@/features/leads/cadence";
 import { PageHeader } from "@/features/leads/components/LeadFilters";
 import { formatMoney } from "@/features/leads/format";
 import {
@@ -19,6 +20,7 @@ import {
   STAGE_META,
   canalLabel,
   isFinalStage,
+  ownerName,
   type Lead,
 } from "@/features/leads/model";
 
@@ -109,10 +111,7 @@ function RelatoriosPage() {
   const avgCycle = cycleDays.length
     ? Math.round(cycleDays.reduce((a, b) => a + b, 0) / cycleDays.length)
     : null;
-  const cadenceStarted = leads.filter((l) => (l.cadencia_ciclo ?? 0) > 0);
-  const cadenceAnswered = cadenceStarted.filter(
-    (l) => l.cadencia_status === "respondida" || l.cadencia_status === "optout",
-  );
+  const cadence = cadenceResponse(leads);
   const meetingsHeld = leads.filter((l) => l.reuniao_status === "realizada").length;
 
   const funnel: Bar[] = [...ACTIVE_STAGES, ...FINAL_STAGES].map((s) => ({
@@ -200,11 +199,7 @@ function RelatoriosPage() {
               label="Ciclo médio até o ganho"
               value={avgCycle == null ? "—" : `${avgCycle} dia${avgCycle === 1 ? "" : "s"}`}
             />
-            <Stat
-              label="Resposta à cadência"
-              value={pct(cadenceAnswered.length, cadenceStarted.length)}
-              hint={`${cadenceStarted.length} lead(s) em cadência`}
-            />
+            <Stat label="Taxa de resposta" value={cadence.rate} hint={cadence.hint} />
             <Stat label="Diagnósticos realizados" value={meetingsHeld} />
             <Stat
               label="Sem resposta"
@@ -228,11 +223,7 @@ function RelatoriosPage() {
             {isAdmin && (
               <BarList
                 title="Por responsável"
-                bars={groupBy((l) =>
-                  l.responsavel_id
-                    ? (people[l.responsavel_id]?.nome ?? people[l.responsavel_id]?.email ?? "—")
-                    : "Sem responsável",
-                )}
+                bars={groupBy((l) => ownerName(l, people) ?? "Sem responsável")}
               />
             )}
             <BarList

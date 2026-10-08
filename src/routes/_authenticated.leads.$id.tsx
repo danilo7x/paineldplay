@@ -1,4 +1,11 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useCanGoBack,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,7 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useProfile } from "@/lib/profile-context";
 import {
   leadKeys,
   useLead,
@@ -45,12 +51,19 @@ import {
   NoteDialog,
   ResponseDialog,
 } from "@/features/leads/components/ContactDialogs";
+import { ConfirmDialog } from "@/features/leads/components/dialog-kit";
 import { LeadFormDialog } from "@/features/leads/components/LeadFormDialog";
 import { ProcessPanel } from "@/features/leads/components/ProcessPanel";
 import { CloseLeadDialog, ReopenDialog } from "@/features/leads/components/ProcessDialogs";
 import { CallScriptSheet, ObjectionsSheet } from "@/features/leads/components/ScriptAndTemplates";
 import { Timeline } from "@/features/leads/components/Timeline";
-import { DueBadge, PersonChip, SectionCard, StageBadge } from "@/features/leads/components/shared";
+import {
+  DueBadge,
+  OwnerChip,
+  PersonChip,
+  SectionCard,
+  StageBadge,
+} from "@/features/leads/components/shared";
 import { formatDate, formatDateTime, formatMoney } from "@/features/leads/format";
 import {
   ACTIVE_STAGES,
@@ -58,6 +71,7 @@ import {
   callResultLabel,
   canalLabel,
   isFinalStage,
+  senderVars,
   stageLabel,
   type LeadStage,
 } from "@/features/leads/model";
@@ -86,7 +100,6 @@ function LeadDetailPage() {
   const { user, isAdmin } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { profile } = useProfile();
   const { data: lead, isLoading } = useLead(id);
   const { data: activities = [] } = useLeadActivities(id);
   const { data: templates = [] } = useTemplates();
@@ -96,6 +109,9 @@ function LeadDetailPage() {
   ]);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
 
   const { data: client } = useQuery({
     queryKey: ["leads", "client", lead?.client_id],
@@ -110,15 +126,15 @@ function LeadDetailPage() {
     enabled: !!lead?.client_id,
   });
 
+  // Quem assina é o responsável pelo lead: a mensagem sai do número dele.
   const vars = useMemo(
     () => ({
       nome: lead?.nome,
       empresa: lead?.empresa,
-      seuNome: profile?.nome,
-      seuEmail: profile?.email ?? user.email,
+      ...(lead ? senderVars(lead, people) : {}),
       origem: lead?.origem || canalLabel(lead?.canal_origem),
     }),
-    [lead, profile, user.email],
+    [lead, people],
   );
 
   if (isLoading) {
@@ -148,11 +164,7 @@ function LeadDetailPage() {
   const set = (k: DialogKind) => (v: boolean) => setDialog(v ? k : null);
 
   async function remove() {
-    if (
-      !lead ||
-      !confirm(`Excluir o lead “${lead.nome}” e todo o histórico? Esta ação não pode ser desfeita.`)
-    )
-      return;
+    if (!lead) return;
     setDeleting(true);
     const { error } = await supabase.from("partner_leads").delete().eq("id", lead.id);
     setDeleting(false);
@@ -160,6 +172,7 @@ function LeadDetailPage() {
       toast.error("Não foi possível excluir", { description: error.message });
       return;
     }
+    setConfirmDelete(false);
     toast.success("Lead excluído");
     qc.invalidateQueries({ queryKey: leadKeys.all });
     navigate({ to: "/leads" });
@@ -170,12 +183,23 @@ function LeadDetailPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          to="/leads"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> Kanban de leads
-        </Link>
+        {/* Volta para onde a pessoa estava (Agenda, Cadência, Banco…); sem histórico, Kanban. */}
+        {canGoBack ? (
+          <button
+            type="button"
+            onClick={() => router.history.back()}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" /> Voltar
+          </button>
+        ) : (
+          <Link
+            to="/leads"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" /> Kanban de leads
+          </Link>
+        )}
       </div>
 
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -248,7 +272,11 @@ function LeadDetailPage() {
                 </DropdownMenuItem>
               )}
               {isAdmin && (
-                <DropdownMenuItem className="text-destructive" disabled={deleting} onClick={remove}>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  disabled={deleting}
+                  onClick={() => setConfirmDelete(true)}
+                >
                   <Trash2 className="mr-2 size-4" /> Excluir lead
                 </DropdownMenuItem>
               )}
@@ -323,10 +351,7 @@ function LeadDetailPage() {
                 {[canalLabel(lead.canal_origem), lead.origem].filter(Boolean).join(" · ") || "—"}
               </Info>
               <Info label="Responsável comercial">
-                <PersonChip
-                  person={lead.responsavel_id ? people[lead.responsavel_id] : null}
-                  className="text-sm"
-                />
+                <OwnerChip lead={lead} people={people} className="text-sm" />
               </Info>
               <Info label="Valor estimado">{formatMoney(lead.valor_estimado)}</Info>
               <Info label="Primeiro contato">
@@ -334,7 +359,7 @@ function LeadDetailPage() {
                   ? `${formatDateTime(lead.data_primeiro_contato)} · ${callResultLabel(lead.resultado_primeira_ligacao)}`
                   : "Ainda não houve ligação"}
               </Info>
-              <Info label="Cadastrado em">{formatDate(lead.created_at.slice(0, 10))}</Info>
+              <Info label="Cadastrado em">{formatDate(lead.created_at)}</Info>
               <Info label="Necessidade percebida" wide>
                 {lead.necessidade_inicial ?? "—"}
               </Info>
@@ -443,6 +468,22 @@ function LeadDetailPage() {
         </div>
       </div>
 
+      <ConfirmDialog
+        request={
+          confirmDelete
+            ? {
+                title: `Excluir o lead “${lead.nome}”?`,
+                description:
+                  "O lead e todo o histórico serão apagados. Esta ação não pode ser desfeita.",
+                label: "Excluir",
+                destructive: true,
+                onConfirm: remove,
+              }
+            : null
+        }
+        onClose={() => setConfirmDelete(false)}
+        pending={deleting}
+      />
       <LeadFormDialog
         open={dialog === "edit"}
         onOpenChange={set("edit")}

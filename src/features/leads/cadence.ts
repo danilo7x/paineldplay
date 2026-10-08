@@ -47,6 +47,26 @@ export function nextCadenceStep(key: CadenceKey): CadenceKey | typeof CLOSE_CADE
   return i < CADENCE_KEYS.length - 1 ? CADENCE_KEYS[i + 1] : CLOSE_CADENCE_KEY;
 }
 
+/**
+ * Resposta à cadência: entre os leads que já entraram em cadência, quantos
+ * responderam (inclui quem pediu para não ser mais contatado). Mesma conta no
+ * Fluxo de cadência e nos Relatórios.
+ */
+export function cadenceResponse(
+  leads: { cadencia_ciclo: number | null; cadencia_status: string | null }[],
+) {
+  const started = leads.filter((l) => (l.cadencia_ciclo ?? 0) > 0);
+  const answered = started.filter(
+    (l) => l.cadencia_status === "respondida" || l.cadencia_status === "optout",
+  );
+  return {
+    started: started.length,
+    answered: answered.length,
+    rate: started.length ? `${Math.round((answered.length / started.length) * 100)}%` : "—",
+    hint: `${started.length} lead(s) já entraram em cadência`,
+  };
+}
+
 /** Prazos configurados nos modelos de mensagem (espera_dias_uteis). */
 export function waitsFrom(
   templates: { chave: string; espera_dias_uteis: number }[],
@@ -157,7 +177,11 @@ export function personalizeTemplate(text: string, vars: TemplateVars) {
     "link da apresentacao institucional": vars.linkApresentacao,
   };
   const missing = new Set<string>();
-  let out = text.replace(PLACEHOLDER_RE, (match, inner: string) => {
+  // Sem responsável com nome, a apresentação fala em nome da empresa.
+  const source = vars.seuNome?.trim()
+    ? text
+    : text.replace(/Aqui é \[seu nome\],? da /gi, "Aqui é a ");
+  let out = source.replace(PLACEHOLDER_RE, (match, inner: string) => {
     const value = lookup[normalize(inner)];
     if (value && value.trim()) return value.trim();
     missing.add(match);

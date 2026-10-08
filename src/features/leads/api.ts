@@ -100,20 +100,23 @@ export type Person = {
 
 /**
  * Pessoas que podem ser responsáveis por leads: admins e usuários com acesso
- * comercial. Fora da administração, a lista contém apenas o próprio usuário
- * (o RLS de profiles não expõe os demais).
+ * comercial, menos quem foi ocultado em Equipe (ex.: a conta da empresa).
+ * Fora da administração, a lista contém apenas o próprio usuário (o RLS de
+ * profiles não expõe os demais).
  */
 export function useCommercialPeople() {
   return useQuery({
     queryKey: leadKeys.people,
     queryFn: async () => {
-      const [{ data: roles }, { data: access }] = await Promise.all([
+      const [{ data: roles }, { data: access }, { data: hidden }] = await Promise.all([
         supabase.from("user_roles").select("user_id, role").eq("role", "admin"),
         supabase.from("commercial_access").select("user_id"),
+        supabase.from("commercial_owner_hidden").select("user_id"),
       ]);
+      const hiddenIds = new Set((hidden ?? []).map((h) => h.user_id));
       const ids = Array.from(
         new Set([...(roles ?? []).map((r) => r.user_id), ...(access ?? []).map((a) => a.user_id)]),
-      );
+      ).filter((id) => !hiddenIds.has(id));
       if (!ids.length) return [] as Person[];
       const { data } = await supabase
         .from("profiles")

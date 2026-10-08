@@ -18,6 +18,7 @@ import {
   type CadenceKey,
 } from "./cadence";
 import {
+  ACTIVE_STAGES,
   callResultLabel,
   stageLabel,
   type CallResult,
@@ -238,7 +239,9 @@ export function closeCadenceWithoutResponse(
     cancelPending: true,
     patch: {
       etapa: "sem_resposta",
+      subetapa: null,
       cadencia_status: "encerrada",
+      encerrado_em: iso(ctx.now),
       motivo_encerramento: "Sem resposta após o break-up",
     },
     updates: pendingId
@@ -306,14 +309,21 @@ export function registerMeetingOutcome(
   const obs = input.observacoes || null;
   if (input.outcome === "realizada") {
     const titulo = "Reunião de diagnóstico realizada";
+    // Lead já movido adiante (ex.: pelo Kanban): registra a reunião sem voltar a etapa.
+    const ahead =
+      ACTIVE_STAGES.indexOf(lead.etapa as LeadStage) > ACTIVE_STAGES.indexOf("diagnostico");
     return {
       cancelPending: false,
       patch: {
-        etapa: "diagnostico",
-        subetapa: "diagnostico_realizado",
+        ...(ahead
+          ? {}
+          : {
+              etapa: "diagnostico",
+              subetapa: "diagnostico_realizado",
+              ...nextAction(lead, ctx, "Definir o escopo", cadenceDueDate(input.at, 1)),
+            }),
         reuniao_status: "realizada",
         ...(input.necessidade ? { necessidade_identificada: input.necessidade } : {}),
-        ...nextAction(lead, ctx, "Definir o escopo", cadenceDueDate(input.at, 1)),
       },
       updates: pendingId
         ? [
@@ -584,9 +594,11 @@ export function registerResponse(
   },
   ctx: WorkflowCtx,
 ): LeadChange {
+  // Nas etapas iniciais a resposta interrompe o que estava previsto (cadência,
+  // retornos). Mais adiante, reuniões e apresentações marcadas continuam valendo.
+  const early = EARLY_STAGES.includes(lead.etapa);
   const base: LeadChange = {
-    // A resposta interrompe tudo o que estava previsto na cadência.
-    cancelPending: true,
+    cancelPending: early,
     updates: [],
     patch: lead.cadencia_status === "ativa" ? { cadencia_status: "respondida" } : {},
     activities: [
@@ -629,21 +641,24 @@ export function registerResponse(
       scheduleMeeting(lead, { at: input.meetingAt, local: input.meetingLocal }, ctx),
     );
   }
+  const keepNext = !early && !input.nextText && !input.nextAt;
   return mergeChanges(base, {
-    cancelPending: true,
+    cancelPending: early,
     updates: [],
     activities: [],
     patch: {
       ...answeredPatch(lead),
-      ...nextAction(
-        lead,
-        ctx,
-        input.nextText ||
-          (input.desfecho === "interesse"
-            ? "Marcar a reunião de diagnóstico"
-            : "Dar continuidade à conversa"),
-        input.nextAt ?? cadenceDueDate(input.at, 1),
-      ),
+      ...(keepNext
+        ? {}
+        : nextAction(
+            lead,
+            ctx,
+            input.nextText ||
+              (early && input.desfecho === "interesse"
+                ? "Marcar a reunião de diagnóstico"
+                : lead.proximo_passo || "Dar continuidade à conversa"),
+            input.nextAt ?? cadenceDueDate(input.at, 1),
+          )),
     },
   });
 }
@@ -834,7 +849,8 @@ export function registerMilestone(
       continue;
     }
     if (f.kind === "money") {
-      const n = Number(raw.replace(/\./g, "").replace(",", "."));
+      // Campo numérico entrega "1500.50"; texto digitado pode vir como "1.500,50".
+      const n = Number(raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw);
       if (!Number.isFinite(n)) throw new Error(`Valor inválido: ${f.label}`);
       (patch as Record<string, unknown>)[f.name] = n;
       resumo.push(`${f.label}: R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
@@ -903,13 +919,25 @@ export function registerDecision(
   decision: Decision,
   input: { at: Date; observacoes?: string },
   ctx: WorkflowCtx,
+  /** Apresentação da proposta ainda prevista: a decisão mostra que ela aconteceu. */
+  pendingPresentationId: string | null = null,
 ): LeadChange {
   const obs = input.observacoes || null;
   const at = iso(input.at);
+  const updates: ActivityUpdate[] = pendingPresentationId
+    ? [
+        {
+          id: pendingPresentationId,
+          status: "realizada",
+          resultado: "Apresentada",
+          realizado_em: at,
+        },
+      ]
+    : [];
   if (decision === "proposta_negociar") {
     return {
       cancelPending: false,
-      updates: [],
+      updates,
       activities: [
         {
           tipo: "decisao",
@@ -932,7 +960,7 @@ export function registerDecision(
       : "Proposta aprovada após negociação";
   return {
     cancelPending: false,
-    updates: [],
+    updates,
     activities: [
       { tipo: "decisao", titulo, resultado: "Aprovada", observacoes: obs, realizado_em: at },
     ],
@@ -984,6 +1012,7 @@ export function closeLead(
     patch: {
       etapa: input.resultado,
       subetapa: null,
+      encerrado_em: at,
       motivo_encerramento: input.motivo || null,
       ...(input.resultado === "ganho" && input.clientId !== undefined
         ? { client_id: input.clientId }
@@ -1020,8 +1049,22 @@ export function reopenLead(
 }
 
 /** Movimento livre no Kanban para uma etapa ativa sem regras próprias. */
-export function moveToStage(etapa: LeadStage): LeadChange {
-  return { cancelPending: false, updates: [], activities: [], patch: { etapa, subetapa: null } };
+/**
+ * Movimento manual no Kanban. Ao sair da cadência ou da reunião, a próxima
+ * ação gerada pelo processo deixa de valer e vira "definir o próximo passo".
+ */
+export function moveToStage(lead: Lead, etapa: LeadStage, ctx: WorkflowCtx): LeadChange {
+  const staleNext = lead.etapa === "cadencia" || lead.etapa === "reuniao";
+  return {
+    cancelPending: false,
+    updates: [],
+    activities: [],
+    patch: {
+      etapa,
+      subetapa: null,
+      ...(staleNext ? nextAction(lead, ctx, "Definir o próximo passo", ctx.now) : {}),
+    },
+  };
 }
 
 export function setNextAction(input: {

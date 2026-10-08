@@ -34,7 +34,11 @@ export function isFinalStage(etapa: string | null | undefined): etapa is FinalSt
 export const STAGE_META: Record<LeadStage, { label: string; dot: string; border: string }> = {
   novo: { label: "Novo lead", dot: "bg-sky-400", border: "border-sky-500/40" },
   primeiro_contato: { label: "Primeiro contato", dot: "bg-cyan-400", border: "border-cyan-500/40" },
-  cadencia: { label: "Cadência WhatsApp", dot: "bg-indigo-400", border: "border-indigo-500/40" },
+  cadencia: {
+    label: "Cadência de WhatsApp",
+    dot: "bg-indigo-400",
+    border: "border-indigo-500/40",
+  },
   reuniao: {
     label: "Reunião de diagnóstico",
     dot: "bg-violet-400",
@@ -207,4 +211,33 @@ export function dueState(dataLembrete: string | null | undefined, today: string)
   if (dataLembrete < today) return "atrasada";
   if (dataLembrete === today) return "hoje";
   return "futura";
+}
+
+type PersonLike = { nome: string | null; email: string | null };
+
+/** Nome do responsável pelo lead: perfil do sistema ou "Outro" (nome digitado). */
+export function ownerName(
+  lead: Pick<Lead, "responsavel_id" | "responsavel_externo">,
+  people: Record<string, PersonLike>,
+): string | null {
+  if (lead.responsavel_id) {
+    const p = people[lead.responsavel_id];
+    return p?.nome?.trim() || p?.email || null;
+  }
+  return lead.responsavel_externo?.trim() || null;
+}
+
+/**
+ * Quem assina as mensagens: o responsável pelo lead, já que é do número dele
+ * que o WhatsApp sai. Sem responsável, as variáveis ficam vazias.
+ */
+export function senderVars(
+  lead: Pick<Lead, "responsavel_id" | "responsavel_externo">,
+  people: Record<string, PersonLike>,
+): { seuNome: string | null; seuEmail: string | null } {
+  const nome = ownerName(lead, people);
+  return {
+    seuNome: nome ? nome.split(/\s+/)[0] : null,
+    seuEmail: lead.responsavel_id ? (people[lead.responsavel_id]?.email ?? null) : null,
+  };
 }

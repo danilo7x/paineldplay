@@ -32,7 +32,7 @@ import {
 } from "../workflow";
 import { ChannelSelect, DateTimeField, DialogActions, type LeadDialogProps } from "./dialog-kit";
 import { useLeadRun } from "./useLeadRun";
-import { fromLocalInput, toLocalInput } from "../format";
+import { fromDateInput, fromLocalInput, toLocalInput } from "../format";
 
 type BaseProps = LeadDialogProps;
 
@@ -45,9 +45,15 @@ export function CallDialog({
   userId,
   pendingCallbackId,
 }: BaseProps & { pendingCallbackId: string | null }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const first = !lead.data_primeiro_contato;
   const cadenceActive = lead.cadencia_status === "ativa";
+  // A cadência é para quem ainda não conversou; mais adiante no funil, uma
+  // ligação não atendida não deve devolver o lead para o 1º template.
+  const canOfferCadence =
+    !cadenceActive &&
+    !lead.nao_contatar &&
+    ["novo", "primeiro_contato", "cadencia"].includes(lead.etapa);
   const [at, setAt] = useState("");
   const [resultado, setResultado] = useState<CallResult>("atendeu");
   const [obs, setObs] = useState("");
@@ -68,10 +74,10 @@ export function CallDialog({
     setMeetingAt("");
     setMeetingLocal("");
     setCallbackAt("");
-    setStartCadence(!cadenceActive && !lead.nao_contatar);
+    setStartCadence(canOfferCadence);
     setNextText("");
     setNextAt("");
-  }, [open, lead, cadenceActive]);
+  }, [open, lead, canOfferCadence]);
 
   const needsMeeting = resultado === "reuniao_marcada";
   const needsCallback = resultado === "pediu_retorno";
@@ -149,9 +155,11 @@ export function CallDialog({
           )}
 
           {resultado === "nao_atendeu" &&
-            (cadenceActive ? (
+            (cadenceActive || !["novo", "primeiro_contato", "cadencia"].includes(lead.etapa) ? (
               <p className="text-xs text-muted-foreground">
-                A cadência de WhatsApp já está em andamento.
+                {cadenceActive
+                  ? "A cadência de WhatsApp já está em andamento."
+                  : "Registre uma nova tentativa na próxima ação."}
               </p>
             ) : lead.nao_contatar ? (
               <p className="text-xs text-amber-400">
@@ -190,11 +198,7 @@ export function CallDialog({
               </div>
               <div className="grid gap-1.5">
                 <Label>Até</Label>
-                <Input
-                  type="datetime-local"
-                  value={nextAt}
-                  onChange={(e) => setNextAt(e.target.value)}
-                />
+                <Input type="date" value={nextAt} onChange={(e) => setNextAt(e.target.value)} />
               </div>
             </div>
           )}
@@ -235,7 +239,7 @@ export function CallDialog({
                     callbackAt: fromLocalInput(callbackAt) ?? undefined,
                     startCadence,
                     nextText: nextText.trim() || undefined,
-                    nextAt: fromLocalInput(nextAt) ?? undefined,
+                    nextAt: fromDateInput(nextAt) ?? undefined,
                     pendingCallbackId,
                   },
                   { userId, now: new Date() },
@@ -252,7 +256,7 @@ export function CallDialog({
 /* ------------------------------------------------------------------ */
 
 export function ResponseDialog({ lead, open, onOpenChange, userId }: BaseProps) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [at, setAt] = useState("");
   const [canal, setCanal] = useState("whatsapp");
   const [resumo, setResumo] = useState("");
@@ -338,11 +342,7 @@ export function ResponseDialog({ lead, open, onOpenChange, userId }: BaseProps) 
               </div>
               <div className="grid gap-1.5">
                 <Label>Até</Label>
-                <Input
-                  type="datetime-local"
-                  value={nextAt}
-                  onChange={(e) => setNextAt(e.target.value)}
-                />
+                <Input type="date" value={nextAt} onChange={(e) => setNextAt(e.target.value)} />
               </div>
             </div>
           )}
@@ -368,7 +368,7 @@ export function ResponseDialog({ lead, open, onOpenChange, userId }: BaseProps) 
                     meetingAt: fromLocalInput(meetingAt) ?? undefined,
                     meetingLocal,
                     nextText: nextText.trim() || undefined,
-                    nextAt: fromLocalInput(nextAt) ?? undefined,
+                    nextAt: fromDateInput(nextAt) ?? undefined,
                   },
                   { userId, now: new Date() },
                 ),
@@ -390,11 +390,13 @@ export function NextActionDialog({
   userId,
   isAdmin,
 }: BaseProps & { isAdmin: boolean }) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
-  const { data: people = [] } = useCommercialPeople();
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
+  const { data: people = [], isLoading: loadingPeople } = useCommercialPeople();
   const [texto, setTexto] = useState("");
   const [data, setData] = useState("");
   const [resp, setResp] = useState("");
+  // Responsável fora da lista (ex.: conta oculta) aparece como "definir depois".
+  const respChoice = resp && (loadingPeople || people.some((p) => p.id === resp)) ? resp : "none";
   useEffect(() => {
     if (!open) return;
     setTexto(lead.proximo_passo ?? "");
@@ -421,10 +423,7 @@ export function NextActionDialog({
             <div className="grid gap-1.5">
               <Label>Por quem</Label>
               {isAdmin ? (
-                <Select
-                  value={resp || "none"}
-                  onValueChange={(v) => setResp(v === "none" ? "" : v)}
-                >
+                <Select value={respChoice} onValueChange={(v) => setResp(v === "none" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -449,15 +448,16 @@ export function NextActionDialog({
           error={error}
           label="Salvar"
           onConfirm={() =>
-            run(
-              () =>
-                setNextAction({
-                  texto: texto.trim(),
-                  data: data || null,
-                  responsavelId: isAdmin ? resp || null : userId,
-                }),
-              "Próxima ação atualizada",
-            )
+            run(() => {
+              // Texto e data andam juntos: sem um deles, o Kanban e a Agenda divergem.
+              if (!!texto.trim() !== !!data)
+                throw new Error(texto.trim() ? "Informe até quando." : "Informe o que fazer.");
+              return setNextAction({
+                texto: texto.trim(),
+                data: data || null,
+                responsavelId: isAdmin ? (respChoice === "none" ? null : respChoice) : userId,
+              });
+            }, "Próxima ação atualizada")
           }
         />
       </DialogContent>
@@ -476,7 +476,7 @@ const NOTE_TYPES = [
 ];
 
 export function NoteDialog({ lead, open, onOpenChange }: BaseProps) {
-  const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { run, error, pending } = useLeadRun(lead, onOpenChange, open);
   const [tipo, setTipo] = useState("nota");
   const [titulo, setTitulo] = useState("");
   const [obs, setObs] = useState("");
