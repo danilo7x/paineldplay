@@ -16,6 +16,7 @@ import {
   UserRound,
   Activity,
   LogOut,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ type Item = {
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
   financeOnly?: boolean;
+  commercialOnly?: boolean;
 };
 
 const workspace: Item[] = [
@@ -51,6 +53,7 @@ const workspace: Item[] = [
   { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
   { title: "Clientes", url: "/clientes", icon: Contact },
+  { title: "Acompanhamento de Leads", url: "/leads", icon: Target, commercialOnly: true },
   { title: "Analytics", url: "/analytics", icon: LineChart },
 ];
 
@@ -74,7 +77,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { user, isAdmin, isFinance, isContador } = AuthRoute.useRouteContext();
+  const { user, isAdmin, isFinance, isContador, hasCommercial } = AuthRoute.useRouteContext();
   const { profile, firstName, initials } = useProfile();
   const { data: unread = 0 } = useQuery({
     queryKey: ["sidebar-unread", user.id],
@@ -101,7 +104,10 @@ export function AppSidebar() {
 
   const renderGroup = (label: string, items: Item[]) => {
     const filtered = items.filter(
-      (i) => (!i.adminOnly || isAdmin) && (!i.financeOnly || isFinance),
+      (i) =>
+        (!i.adminOnly || isAdmin) &&
+        (!i.financeOnly || isFinance) &&
+        (!i.commercialOnly || hasCommercial),
     );
     if (!filtered.length) return null;
     return (
