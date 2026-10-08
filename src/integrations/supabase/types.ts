@@ -319,6 +319,107 @@ export type Database = {
           },
         ]
       }
+      lead_bank: {
+        Row: {
+          contato_por: string | null
+          created_at: string
+          created_by: string | null
+          empresa: string | null
+          grupo_id: string | null
+          id: string
+          lead_id: string | null
+          nome: string
+          observacoes: string | null
+          reuniao_em: string | null
+          reuniao_marcada_em: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contato_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa?: string | null
+          grupo_id?: string | null
+          id?: string
+          lead_id?: string | null
+          nome: string
+          observacoes?: string | null
+          reuniao_em?: string | null
+          reuniao_marcada_em?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contato_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa?: string | null
+          grupo_id?: string | null
+          id?: string
+          lead_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          reuniao_em?: string | null
+          reuniao_marcada_em?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_bank_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "lead_bank_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_bank_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "partner_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_bank_groups: {
+        Row: {
+          cor: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+
+        ]
+      }
       lead_message_templates: {
         Row: {
           chave: string
@@ -1109,6 +1210,7 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
+          servico: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
         }
@@ -1120,6 +1222,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome: string
+          servico?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -1131,6 +1234,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome?: string
+          servico?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -1523,6 +1627,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      lead_bank_stats: { Args: { _from: string; _to: string }; Returns: Json }
       log_activity:
         | {
             Args: {

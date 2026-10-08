@@ -254,6 +254,9 @@ export function closeCadenceWithoutResponse(
 /* Reunião de diagnóstico                                             */
 /* ------------------------------------------------------------------ */
 
+/** Título do registro de reunião marcada (o Analytics conta as reuniões por ele). */
+export const MEETING_BOOKED_TITLE = "Reunião de diagnóstico marcada";
+
 export function scheduleMeeting(
   lead: Lead,
   input: { at: Date; local?: string; observacoes?: string; reagendamento?: boolean },
@@ -275,9 +278,7 @@ export function scheduleMeeting(
     activities: [
       {
         tipo: "reuniao",
-        titulo: input.reagendamento
-          ? "Reunião de diagnóstico reagendada"
-          : "Reunião de diagnóstico marcada",
+        titulo: input.reagendamento ? "Reunião de diagnóstico reagendada" : MEETING_BOOKED_TITLE,
         resultado: `Para ${fmt(input.at)}`,
         observacoes: [input.local, input.observacoes].filter(Boolean).join("\n") || null,
         realizado_em: iso(ctx.now),

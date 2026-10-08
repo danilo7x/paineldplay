@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PROJECT_STATUS_META, type ProjectStatus } from "@/features/projects/status";
+import { PROJECT_SERVICES, serviceLabel } from "@/features/projects/services";
 
 type MemberProfile = { id: string; nome: string | null; avatar_url: string | null };
 type ProjectRow = {
@@ -33,6 +34,7 @@ type ProjectRow = {
   nome: string;
   cliente: string | null;
   status: ProjectStatus;
+  servico: string | null;
   members: MemberProfile[];
   totalSteps: number;
   doneSteps: number;
@@ -52,7 +54,7 @@ function ProjetosIndex() {
     setLoading(true);
     const { data: rows, error } = await supabase
       .from("projects")
-      .select("id, nome, cliente, status")
+      .select("id, nome, cliente, status, servico")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar projetos", { description: error.message });
@@ -174,6 +176,7 @@ function ProjetosIndex() {
                         <p className="truncate text-base font-semibold">{p.nome}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {p.cliente ?? "Sem cliente definido"}
+                          {serviceLabel(p.servico) && ` · ${serviceLabel(p.servico)}`}
                         </p>
                       </div>
                       <span
@@ -239,6 +242,7 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
   const [clients, setClients] = useState<Array<{ id: string; nome: string }>>([]);
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("em_desenvolvimento");
+  const [servico, setServico] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -261,6 +265,7 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
       client_id: clientId || null,
       descricao: descricao || null,
       status,
+      servico: servico || null,
       created_by: userId,
     });
     setLoading(false);
@@ -274,6 +279,7 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
     setClientId("");
     setDescricao("");
     setStatus("em_desenvolvimento");
+    setServico("");
   }
 
   return (
@@ -299,6 +305,28 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
             </SelectContent>
           </Select>
           <p className="text-[11px] text-muted-foreground">Cadastre novos clientes em Clientes.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="p-servico">Serviço</Label>
+          <Select
+            value={servico || "none"}
+            onValueChange={(v) => setServico(v === "none" ? "" : v)}
+          >
+            <SelectTrigger id="p-servico">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— não definido —</SelectItem>
+              {PROJECT_SERVICES.map((sv) => (
+                <SelectItem key={sv.value} value={sv.value}>
+                  {sv.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            Usado no ticket médio por serviço (Analytics).
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="p-desc">Descrição</Label>

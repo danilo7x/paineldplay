@@ -45,6 +45,7 @@ import {
   type ProjectStatus,
   type ProjectStepStatus,
 } from "@/features/projects/status";
+import { PROJECT_SERVICES, serviceLabel } from "@/features/projects/services";
 
 type Project = {
   id: string;
@@ -53,6 +54,7 @@ type Project = {
   client_id: string | null;
   descricao: string | null;
   status: ProjectStatus;
+  servico: string | null;
 };
 type MemberProfile = { id: string; nome: string | null; email: string | null; avatar_url: string | null };
 type Step = {
@@ -99,7 +101,7 @@ function ProjectDetail() {
   async function fetchAll() {
     setLoading(true);
     const [projRes, membersRes, stepsRes, notesRes, credsRes, teamRes] = await Promise.all([
-      supabase.from("projects").select("id, nome, cliente, client_id, descricao, status").eq("id", id).maybeSingle(),
+      supabase.from("projects").select("id, nome, cliente, client_id, descricao, status, servico").eq("id", id).maybeSingle(),
       supabase.from("project_members").select("user_id").eq("project_id", id),
       supabase.from("project_steps").select("*").eq("project_id", id).order("ordem"),
       supabase.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: false }),
@@ -155,6 +157,17 @@ function ProjectDetail() {
     if (error) return toast.error("Erro ao atualizar", { description: error.message });
     setProject({ ...project, status: newStatus });
     toast.success("Status atualizado");
+  }
+
+  async function updateServico(next: string | null) {
+    if (!project) return;
+    const { error } = await supabase
+      .from("projects")
+      .update({ servico: next })
+      .eq("id", project.id);
+    if (error) return toast.error("Erro ao atualizar", { description: error.message });
+    setProject({ ...project, servico: next });
+    toast.success("Serviço atualizado");
   }
 
   async function handleDeleteProject() {
@@ -226,7 +239,26 @@ function ProjectDetail() {
             </div>
             <div className="shrink-0">
               {isAdmin ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Select
+                    value={project.servico ?? "none"}
+                    onValueChange={(v) => updateServico(v === "none" ? null : v)}
+                  >
+                    <SelectTrigger
+                      className="h-8 w-auto gap-2 rounded-full border-border/60 bg-background/40 px-3 text-xs"
+                      aria-label="Serviço do projeto"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Serviço não definido</SelectItem>
+                      {PROJECT_SERVICES.map((sv) => (
+                        <SelectItem key={sv.value} value={sv.value}>
+                          {sv.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={project.status} onValueChange={(v) => updateStatus(v as ProjectStatus)}>
                   <SelectTrigger className={`h-8 rounded-full border-0 px-3 text-xs ${meta.className}`}>
                     <SelectValue />
@@ -250,9 +282,18 @@ function ProjectDetail() {
                   </Button>
                 </div>
               ) : (
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.className}`}>
-                  {meta.label}
-                </span>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {serviceLabel(project.servico) && (
+                    <span className="rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground">
+                      {serviceLabel(project.servico)}
+                    </span>
+                  )}
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${meta.className}`}
+                  >
+                    {meta.label}
+                  </span>
+                </div>
               )}
             </div>
           </div>

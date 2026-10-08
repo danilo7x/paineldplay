@@ -9,69 +9,80 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedSociosRouteImport } from './routes/_authenticated.socios'
-import { Route as AuthenticatedRaniRouteImport } from './routes/_authenticated.rani'
-import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
-import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated.notas'
-import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
-import { Route as AuthenticatedFaturamentoRouteImport } from './routes/_authenticated.faturamento'
-import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated.equipe'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
-import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated.clientes'
-import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated.avisos'
-import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authenticated.atividade'
-import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
-import { Route as AuthenticatedRaniIndexRouteImport } from './routes/_authenticated.rani.index'
-import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
-import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated.leads.index'
-import { Route as ApiRaniChatRouteImport } from './routes/api/rani.chat'
-import { Route as AuthenticatedRaniThreadIdRouteImport } from './routes/_authenticated.rani.$threadId'
-import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
-import { Route as AuthenticatedMembrosIdRouteImport } from './routes/_authenticated.membros.$id'
-import { Route as AuthenticatedLeadsRelatoriosRouteImport } from './routes/_authenticated.leads.relatorios'
-import { Route as AuthenticatedLeadsCadenciaRouteImport } from './routes/_authenticated.leads.cadencia'
-import { Route as AuthenticatedLeadsBancoRouteImport } from './routes/_authenticated.leads.banco'
-import { Route as AuthenticatedLeadsAgendaRouteImport } from './routes/_authenticated.leads.agenda'
-import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated.leads.$id'
-import { Route as AuthenticatedFerramentasTemplatesRouteImport } from './routes/_authenticated.ferramentas.templates'
-import { Route as AuthenticatedFerramentasRoteiroRouteImport } from './routes/_authenticated.ferramentas.roteiro'
+import { Route as AuthenticatedArquivosRouteImport } from './routes/_authenticated.arquivos'
+import { Route as AuthenticatedAtividadeRouteImport } from './routes/_authenticated.atividade'
+import { Route as AuthenticatedAvisosRouteImport } from './routes/_authenticated.avisos'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated.clientes'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated.equipe'
+import { Route as AuthenticatedFaturamentoRouteImport } from './routes/_authenticated.faturamento'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
+import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated.notas'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
+import { Route as AuthenticatedRaniRouteImport } from './routes/_authenticated.rani'
+import { Route as AuthenticatedSociosRouteImport } from './routes/_authenticated.socios'
 import { Route as AuthenticatedFerramentasObjecoesRouteImport } from './routes/_authenticated.ferramentas.objecoes'
+import { Route as AuthenticatedFerramentasRoteiroRouteImport } from './routes/_authenticated.ferramentas.roteiro'
+import { Route as AuthenticatedFerramentasTemplatesRouteImport } from './routes/_authenticated.ferramentas.templates'
+import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated.leads.index'
+import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated.leads.$id'
+import { Route as AuthenticatedLeadsAgendaRouteImport } from './routes/_authenticated.leads.agenda'
+import { Route as AuthenticatedLeadsBancoRouteImport } from './routes/_authenticated.leads.banco'
+import { Route as AuthenticatedLeadsCadenciaRouteImport } from './routes/_authenticated.leads.cadencia'
+import { Route as AuthenticatedLeadsListaRouteImport } from './routes/_authenticated.leads.lista'
+import { Route as AuthenticatedLeadsRelatoriosRouteImport } from './routes/_authenticated.leads.relatorios'
+import { Route as AuthenticatedMembrosIdRouteImport } from './routes/_authenticated.membros.$id'
+import { Route as AuthenticatedProjetosIndexRouteImport } from './routes/_authenticated.projetos.index'
+import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated.projetos.$id'
+import { Route as AuthenticatedRaniIndexRouteImport } from './routes/_authenticated.rani.index'
+import { Route as AuthenticatedRaniThreadIdRouteImport } from './routes/_authenticated.rani.$threadId'
+import { Route as ApiRaniChatRouteImport } from './routes/api/rani.chat'
 
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSociosRoute = AuthenticatedSociosRouteImport.update({
-  id: '/socios',
-  path: '/socios',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedRaniRoute = AuthenticatedRaniRouteImport.update({
-  id: '/rani',
-  path: '/rani',
+const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
+  id: '/arquivos',
+  path: '/arquivos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
+const AuthenticatedAtividadeRoute = AuthenticatedAtividadeRouteImport.update({
+  id: '/atividade',
+  path: '/atividade',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
-  id: '/notas',
-  path: '/notas',
+const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
-  id: '/financeiro',
-  path: '/financeiro',
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFaturamentoRoute =
@@ -80,110 +91,35 @@ const AuthenticatedFaturamentoRoute =
     path: '/faturamento',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
+  id: '/notas',
+  path: '/notas',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAvisosRoute = AuthenticatedAvisosRouteImport.update({
-  id: '/avisos',
-  path: '/avisos',
+const AuthenticatedRaniRoute = AuthenticatedRaniRouteImport.update({
+  id: '/rani',
+  path: '/rani',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAtividadeRoute = AuthenticatedAtividadeRouteImport.update({
-  id: '/atividade',
-  path: '/atividade',
+const AuthenticatedSociosRoute = AuthenticatedSociosRouteImport.update({
+  id: '/socios',
+  path: '/socios',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedArquivosRoute = AuthenticatedArquivosRouteImport.update({
-  id: '/arquivos',
-  path: '/arquivos',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRaniIndexRoute = AuthenticatedRaniIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedRaniRoute,
-} as any)
-const AuthenticatedProjetosIndexRoute =
-  AuthenticatedProjetosIndexRouteImport.update({
-    id: '/projetos/',
-    path: '/projetos/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
-  id: '/leads/',
-  path: '/leads/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const ApiRaniChatRoute = ApiRaniChatRouteImport.update({
-  id: '/api/rani/chat',
-  path: '/api/rani/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRaniThreadIdRoute =
-  AuthenticatedRaniThreadIdRouteImport.update({
-    id: '/$threadId',
-    path: '/$threadId',
-    getParentRoute: () => AuthenticatedRaniRoute,
-  } as any)
-const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
-  id: '/projetos/$id',
-  path: '/projetos/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMembrosIdRoute = AuthenticatedMembrosIdRouteImport.update({
-  id: '/membros/$id',
-  path: '/membros/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedLeadsRelatoriosRoute =
-  AuthenticatedLeadsRelatoriosRouteImport.update({
-    id: '/leads/relatorios',
-    path: '/leads/relatorios',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedLeadsCadenciaRoute =
-  AuthenticatedLeadsCadenciaRouteImport.update({
-    id: '/leads/cadencia',
-    path: '/leads/cadencia',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedLeadsBancoRoute = AuthenticatedLeadsBancoRouteImport.update({
-  id: '/leads/banco',
-  path: '/leads/banco',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedLeadsAgendaRoute =
-  AuthenticatedLeadsAgendaRouteImport.update({
-    id: '/leads/agenda',
-    path: '/leads/agenda',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
-  id: '/leads/$id',
-  path: '/leads/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedFerramentasTemplatesRoute =
-  AuthenticatedFerramentasTemplatesRouteImport.update({
-    id: '/ferramentas/templates',
-    path: '/ferramentas/templates',
+const AuthenticatedFerramentasObjecoesRoute =
+  AuthenticatedFerramentasObjecoesRouteImport.update({
+    id: '/ferramentas/objecoes',
+    path: '/ferramentas/objecoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedFerramentasRoteiroRoute =
@@ -192,12 +128,82 @@ const AuthenticatedFerramentasRoteiroRoute =
     path: '/ferramentas/roteiro',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedFerramentasObjecoesRoute =
-  AuthenticatedFerramentasObjecoesRouteImport.update({
-    id: '/ferramentas/objecoes',
-    path: '/ferramentas/objecoes',
+const AuthenticatedFerramentasTemplatesRoute =
+  AuthenticatedFerramentasTemplatesRouteImport.update({
+    id: '/ferramentas/templates',
+    path: '/ferramentas/templates',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
+  id: '/leads/',
+  path: '/leads/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLeadsAgendaRoute =
+  AuthenticatedLeadsAgendaRouteImport.update({
+    id: '/leads/agenda',
+    path: '/leads/agenda',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedLeadsBancoRoute = AuthenticatedLeadsBancoRouteImport.update({
+  id: '/leads/banco',
+  path: '/leads/banco',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLeadsCadenciaRoute =
+  AuthenticatedLeadsCadenciaRouteImport.update({
+    id: '/leads/cadencia',
+    path: '/leads/cadencia',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedLeadsListaRoute = AuthenticatedLeadsListaRouteImport.update({
+  id: '/leads/lista',
+  path: '/leads/lista',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLeadsRelatoriosRoute =
+  AuthenticatedLeadsRelatoriosRouteImport.update({
+    id: '/leads/relatorios',
+    path: '/leads/relatorios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMembrosIdRoute = AuthenticatedMembrosIdRouteImport.update({
+  id: '/membros/$id',
+  path: '/membros/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedProjetosIndexRoute =
+  AuthenticatedProjetosIndexRouteImport.update({
+    id: '/projetos/',
+    path: '/projetos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
+  id: '/projetos/$id',
+  path: '/projetos/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRaniIndexRoute = AuthenticatedRaniIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRaniRoute,
+} as any)
+const AuthenticatedRaniThreadIdRoute =
+  AuthenticatedRaniThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => AuthenticatedRaniRoute,
+  } as any)
+const ApiRaniChatRoute = ApiRaniChatRouteImport.update({
+  id: '/api/rani/chat',
+  path: '/api/rani/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/leads/agenda': typeof AuthenticatedLeadsAgendaRoute
   '/leads/banco': typeof AuthenticatedLeadsBancoRoute
   '/leads/cadencia': typeof AuthenticatedLeadsCadenciaRoute
+  '/leads/lista': typeof AuthenticatedLeadsListaRoute
   '/leads/relatorios': typeof AuthenticatedLeadsRelatoriosRoute
   '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/leads/agenda': typeof AuthenticatedLeadsAgendaRoute
   '/leads/banco': typeof AuthenticatedLeadsBancoRoute
   '/leads/cadencia': typeof AuthenticatedLeadsCadenciaRoute
+  '/leads/lista': typeof AuthenticatedLeadsListaRoute
   '/leads/relatorios': typeof AuthenticatedLeadsRelatoriosRoute
   '/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/leads/agenda': typeof AuthenticatedLeadsAgendaRoute
   '/_authenticated/leads/banco': typeof AuthenticatedLeadsBancoRoute
   '/_authenticated/leads/cadencia': typeof AuthenticatedLeadsCadenciaRoute
+  '/_authenticated/leads/lista': typeof AuthenticatedLeadsListaRoute
   '/_authenticated/leads/relatorios': typeof AuthenticatedLeadsRelatoriosRoute
   '/_authenticated/membros/$id': typeof AuthenticatedMembrosIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/leads/agenda'
     | '/leads/banco'
     | '/leads/cadencia'
+    | '/leads/lista'
     | '/leads/relatorios'
     | '/membros/$id'
     | '/projetos/$id'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/leads/agenda'
     | '/leads/banco'
     | '/leads/cadencia'
+    | '/leads/lista'
     | '/leads/relatorios'
     | '/membros/$id'
     | '/projetos/$id'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leads/agenda'
     | '/_authenticated/leads/banco'
     | '/_authenticated/leads/cadencia'
+    | '/_authenticated/leads/lista'
     | '/_authenticated/leads/relatorios'
     | '/_authenticated/membros/$id'
     | '/_authenticated/projetos/$id'
@@ -397,13 +409,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -411,81 +416,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/socios': {
-      id: '/_authenticated/socios'
-      path: '/socios'
-      fullPath: '/socios'
-      preLoaderRoute: typeof AuthenticatedSociosRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/rani': {
-      id: '/_authenticated/rani'
-      path: '/rani'
-      fullPath: '/rani'
-      preLoaderRoute: typeof AuthenticatedRaniRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/perfil': {
-      id: '/_authenticated/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/notas': {
-      id: '/_authenticated/notas'
-      path: '/notas'
-      fullPath: '/notas'
-      preLoaderRoute: typeof AuthenticatedNotasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/financeiro': {
-      id: '/_authenticated/financeiro'
-      path: '/financeiro'
-      fullPath: '/financeiro'
-      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/faturamento': {
-      id: '/_authenticated/faturamento'
-      path: '/faturamento'
-      fullPath: '/faturamento'
-      preLoaderRoute: typeof AuthenticatedFaturamentoRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/equipe': {
-      id: '/_authenticated/equipe'
-      path: '/equipe'
-      fullPath: '/equipe'
-      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/clientes': {
-      id: '/_authenticated/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof AuthenticatedClientesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/avisos': {
-      id: '/_authenticated/avisos'
-      path: '/avisos'
-      fullPath: '/avisos'
-      preLoaderRoute: typeof AuthenticatedAvisosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/atividade': {
-      id: '/_authenticated/atividade'
-      path: '/atividade'
-      fullPath: '/atividade'
-      preLoaderRoute: typeof AuthenticatedAtividadeRouteImport
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/arquivos': {
@@ -495,102 +437,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArquivosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/analytics': {
-      id: '/_authenticated/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+    '/_authenticated/atividade': {
+      id: '/_authenticated/atividade'
+      path: '/atividade'
+      fullPath: '/atividade'
+      preLoaderRoute: typeof AuthenticatedAtividadeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/rani/': {
-      id: '/_authenticated/rani/'
-      path: '/'
-      fullPath: '/rani/'
-      preLoaderRoute: typeof AuthenticatedRaniIndexRouteImport
-      parentRoute: typeof AuthenticatedRaniRoute
-    }
-    '/_authenticated/projetos/': {
-      id: '/_authenticated/projetos/'
-      path: '/projetos'
-      fullPath: '/projetos/'
-      preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
+    '/_authenticated/avisos': {
+      id: '/_authenticated/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AuthenticatedAvisosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/': {
-      id: '/_authenticated/leads/'
-      path: '/leads'
-      fullPath: '/leads/'
-      preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
+    '/_authenticated/clientes': {
+      id: '/_authenticated/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/rani/chat': {
-      id: '/api/rani/chat'
-      path: '/api/rani/chat'
-      fullPath: '/api/rani/chat'
-      preLoaderRoute: typeof ApiRaniChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/rani/$threadId': {
-      id: '/_authenticated/rani/$threadId'
-      path: '/$threadId'
-      fullPath: '/rani/$threadId'
-      preLoaderRoute: typeof AuthenticatedRaniThreadIdRouteImport
-      parentRoute: typeof AuthenticatedRaniRoute
-    }
-    '/_authenticated/projetos/$id': {
-      id: '/_authenticated/projetos/$id'
-      path: '/projetos/$id'
-      fullPath: '/projetos/$id'
-      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/membros/$id': {
-      id: '/_authenticated/membros/$id'
-      path: '/membros/$id'
-      fullPath: '/membros/$id'
-      preLoaderRoute: typeof AuthenticatedMembrosIdRouteImport
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/relatorios': {
-      id: '/_authenticated/leads/relatorios'
-      path: '/leads/relatorios'
-      fullPath: '/leads/relatorios'
-      preLoaderRoute: typeof AuthenticatedLeadsRelatoriosRouteImport
+    '/_authenticated/faturamento': {
+      id: '/_authenticated/faturamento'
+      path: '/faturamento'
+      fullPath: '/faturamento'
+      preLoaderRoute: typeof AuthenticatedFaturamentoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/cadencia': {
-      id: '/_authenticated/leads/cadencia'
-      path: '/leads/cadencia'
-      fullPath: '/leads/cadencia'
-      preLoaderRoute: typeof AuthenticatedLeadsCadenciaRouteImport
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/banco': {
-      id: '/_authenticated/leads/banco'
-      path: '/leads/banco'
-      fullPath: '/leads/banco'
-      preLoaderRoute: typeof AuthenticatedLeadsBancoRouteImport
+    '/_authenticated/notas': {
+      id: '/_authenticated/notas'
+      path: '/notas'
+      fullPath: '/notas'
+      preLoaderRoute: typeof AuthenticatedNotasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/agenda': {
-      id: '/_authenticated/leads/agenda'
-      path: '/leads/agenda'
-      fullPath: '/leads/agenda'
-      preLoaderRoute: typeof AuthenticatedLeadsAgendaRouteImport
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/leads/$id': {
-      id: '/_authenticated/leads/$id'
-      path: '/leads/$id'
-      fullPath: '/leads/$id'
-      preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+    '/_authenticated/rani': {
+      id: '/_authenticated/rani'
+      path: '/rani'
+      fullPath: '/rani'
+      preLoaderRoute: typeof AuthenticatedRaniRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/ferramentas/templates': {
-      id: '/_authenticated/ferramentas/templates'
-      path: '/ferramentas/templates'
-      fullPath: '/ferramentas/templates'
-      preLoaderRoute: typeof AuthenticatedFerramentasTemplatesRouteImport
+    '/_authenticated/socios': {
+      id: '/_authenticated/socios'
+      path: '/socios'
+      fullPath: '/socios'
+      preLoaderRoute: typeof AuthenticatedSociosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ferramentas/objecoes': {
+      id: '/_authenticated/ferramentas/objecoes'
+      path: '/ferramentas/objecoes'
+      fullPath: '/ferramentas/objecoes'
+      preLoaderRoute: typeof AuthenticatedFerramentasObjecoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/ferramentas/roteiro': {
@@ -600,12 +528,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFerramentasRoteiroRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/ferramentas/objecoes': {
-      id: '/_authenticated/ferramentas/objecoes'
-      path: '/ferramentas/objecoes'
-      fullPath: '/ferramentas/objecoes'
-      preLoaderRoute: typeof AuthenticatedFerramentasObjecoesRouteImport
+    '/_authenticated/ferramentas/templates': {
+      id: '/_authenticated/ferramentas/templates'
+      path: '/ferramentas/templates'
+      fullPath: '/ferramentas/templates'
+      preLoaderRoute: typeof AuthenticatedFerramentasTemplatesRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/': {
+      id: '/_authenticated/leads/'
+      path: '/leads'
+      fullPath: '/leads/'
+      preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/$id': {
+      id: '/_authenticated/leads/$id'
+      path: '/leads/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/agenda': {
+      id: '/_authenticated/leads/agenda'
+      path: '/leads/agenda'
+      fullPath: '/leads/agenda'
+      preLoaderRoute: typeof AuthenticatedLeadsAgendaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/banco': {
+      id: '/_authenticated/leads/banco'
+      path: '/leads/banco'
+      fullPath: '/leads/banco'
+      preLoaderRoute: typeof AuthenticatedLeadsBancoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/cadencia': {
+      id: '/_authenticated/leads/cadencia'
+      path: '/leads/cadencia'
+      fullPath: '/leads/cadencia'
+      preLoaderRoute: typeof AuthenticatedLeadsCadenciaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/lista': {
+      id: '/_authenticated/leads/lista'
+      path: '/leads/lista'
+      fullPath: '/leads/lista'
+      preLoaderRoute: typeof AuthenticatedLeadsListaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/leads/relatorios': {
+      id: '/_authenticated/leads/relatorios'
+      path: '/leads/relatorios'
+      fullPath: '/leads/relatorios'
+      preLoaderRoute: typeof AuthenticatedLeadsRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/membros/$id': {
+      id: '/_authenticated/membros/$id'
+      path: '/membros/$id'
+      fullPath: '/membros/$id'
+      preLoaderRoute: typeof AuthenticatedMembrosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projetos/': {
+      id: '/_authenticated/projetos/'
+      path: '/projetos'
+      fullPath: '/projetos/'
+      preLoaderRoute: typeof AuthenticatedProjetosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projetos/$id': {
+      id: '/_authenticated/projetos/$id'
+      path: '/projetos/$id'
+      fullPath: '/projetos/$id'
+      preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/rani/': {
+      id: '/_authenticated/rani/'
+      path: '/'
+      fullPath: '/rani/'
+      preLoaderRoute: typeof AuthenticatedRaniIndexRouteImport
+      parentRoute: typeof AuthenticatedRaniRoute
+    }
+    '/_authenticated/rani/$threadId': {
+      id: '/_authenticated/rani/$threadId'
+      path: '/$threadId'
+      fullPath: '/rani/$threadId'
+      preLoaderRoute: typeof AuthenticatedRaniThreadIdRouteImport
+      parentRoute: typeof AuthenticatedRaniRoute
+    }
+    '/api/rani/chat': {
+      id: '/api/rani/chat'
+      path: '/api/rani/chat'
+      fullPath: '/api/rani/chat'
+      preLoaderRoute: typeof ApiRaniChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -644,6 +663,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLeadsAgendaRoute: typeof AuthenticatedLeadsAgendaRoute
   AuthenticatedLeadsBancoRoute: typeof AuthenticatedLeadsBancoRoute
   AuthenticatedLeadsCadenciaRoute: typeof AuthenticatedLeadsCadenciaRoute
+  AuthenticatedLeadsListaRoute: typeof AuthenticatedLeadsListaRoute
   AuthenticatedLeadsRelatoriosRoute: typeof AuthenticatedLeadsRelatoriosRoute
   AuthenticatedMembrosIdRoute: typeof AuthenticatedMembrosIdRoute
   AuthenticatedProjetosIdRoute: typeof AuthenticatedProjetosIdRoute
@@ -673,6 +693,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedLeadsAgendaRoute: AuthenticatedLeadsAgendaRoute,
   AuthenticatedLeadsBancoRoute: AuthenticatedLeadsBancoRoute,
   AuthenticatedLeadsCadenciaRoute: AuthenticatedLeadsCadenciaRoute,
+  AuthenticatedLeadsListaRoute: AuthenticatedLeadsListaRoute,
   AuthenticatedLeadsRelatoriosRoute: AuthenticatedLeadsRelatoriosRoute,
   AuthenticatedMembrosIdRoute: AuthenticatedMembrosIdRoute,
   AuthenticatedProjetosIdRoute: AuthenticatedProjetosIdRoute,

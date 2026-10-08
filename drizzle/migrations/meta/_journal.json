@@ -22,6 +22,13 @@
       "when": 1791489685399,
       "tag": "0002_whatsapp_instances",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791493221121,
+      "tag": "0003_banco_de_leads",
+      "breakpoints": true
     }
   ]
 }
