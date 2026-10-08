@@ -87,7 +87,7 @@ function RaniLayout() {
     setCreating(false);
     if (error || !data) return toast.error("Não foi possível criar", { description: error?.message });
     emitRaniThreadsChanged();
-    navigate({ to: "/rani/$threadId", params: { threadId: data.id } });
+    navigate({ to: "/rani/$threadId", params: { threadId: data.id }, search: { send: undefined } });
   }
 
   async function saveRename() {
