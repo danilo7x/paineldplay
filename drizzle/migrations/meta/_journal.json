@@ -8,6 +8,13 @@
       "when": 1791475041197,
       "tag": "0000_acompanhamento_leads_to_be",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791481100368,
+      "tag": "0001_whatsapp_instances",
+      "breakpoints": true
     }
   ]
 }

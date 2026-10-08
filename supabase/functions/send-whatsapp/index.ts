@@ -1,13 +1,16 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  NO_INSTANCE_MESSAGE,
   connectionStateRequest,
   evolutionErrorMessage,
   isConnected,
   messageIdFrom,
   normalizePhone,
+  pickInstance,
   readConfig,
   sendTextRequest,
   validateSend,
+  type EvolutionConfig,
 } from "./logic.ts";
 
 const cors = {
@@ -29,6 +32,23 @@ async function readJson(res: Response) {
   } catch {
     return null;
   }
+}
+
+async function connected(cfg: EvolutionConfig, instance: string) {
+  const r = connectionStateRequest(cfg, instance);
+  const res = await fetch(r.url, r.init).catch(() => null);
+  return !!res && res.ok && isConnected(await readJson(res));
+}
+
+/** Instância cadastrada para a pessoa (lida como o usuário, sob RLS). */
+async function instanceOf(db: SupabaseClient, userId: string | null | undefined) {
+  if (!userId) return null;
+  const { data } = await db
+    .from("commercial_whatsapp_instances")
+    .select("instance")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data?.instance as string | undefined) ?? null;
 }
 
 Deno.serve(async (req) => {
@@ -65,11 +85,44 @@ Deno.serve(async (req) => {
     const cfg = readConfig((k) => Deno.env.get(k));
 
     if (body.action === "status") {
-      if (!cfg) return json({ configured: false, connected: false });
-      const r = connectionStateRequest(cfg);
-      const res = await fetch(r.url, r.init).catch(() => null);
-      const connected = !!res && res.ok && isConnected(await readJson(res));
-      return json({ configured: true, connected });
+      if (!cfg) return json({ configured: false, connected: false, instances: [] });
+
+      // Status do número que enviaria para este lead (o do responsável).
+      if (body.lead_id) {
+        const { data: lead } = await asUser
+          .from("partner_leads")
+          .select("responsavel_id")
+          .eq("id", body.lead_id)
+          .maybeSingle();
+        const ownerInstance = await instanceOf(asUser, lead?.responsavel_id);
+        const instance = pickInstance(ownerInstance, cfg.defaultInstance);
+        if (!instance) return json({ configured: true, connected: false, instance: null });
+        return json({
+          configured: true,
+          connected: await connected(cfg, instance),
+          instance,
+          // false = sem número do responsável; usa o número padrão.
+          from_owner: !!ownerInstance,
+        });
+      }
+
+      // Visão geral: cada número cadastrado e o padrão, se houver.
+      const { data: rows } = await asUser
+        .from("commercial_whatsapp_instances")
+        .select("user_id, instance");
+      const list: { user_id: string | null; instance: string }[] = [
+        ...((rows ?? []) as { user_id: string; instance: string }[]),
+      ];
+      if (cfg.defaultInstance && !list.some((r) => r.instance === cfg.defaultInstance))
+        list.push({ user_id: null, instance: cfg.defaultInstance });
+      const instances = await Promise.all(
+        list.map(async (r) => ({ ...r, connected: await connected(cfg, r.instance) })),
+      );
+      return json({
+        configured: true,
+        connected: instances.some((i) => i.connected),
+        instances,
+      });
     }
 
     if (body.action !== "send") return json({ error: "Ação inválida" }, 400);
@@ -80,7 +133,7 @@ Deno.serve(async (req) => {
     const [{ data: lead }, { data: activity }] = await Promise.all([
       asUser
         .from("partner_leads")
-        .select("id, telefone, nao_contatar, cadencia_status")
+        .select("id, responsavel_id, telefone, nao_contatar, cadencia_status")
         .eq("id", body.lead_id)
         .maybeSingle(),
       asUser
@@ -93,13 +146,20 @@ Deno.serve(async (req) => {
     const invalid = validateSend(lead, activity, body.text);
     if (invalid) return json({ error: invalid }, 400);
 
-    const r = sendTextRequest(cfg, normalizePhone(lead!.telefone)!, body.text);
+    // A mensagem sai do número do responsável pelo lead.
+    const instance = pickInstance(
+      await instanceOf(asUser, lead!.responsavel_id),
+      cfg.defaultInstance,
+    );
+    if (!instance) return json({ error: NO_INSTANCE_MESSAGE }, 400);
+
+    const r = sendTextRequest(cfg, instance, normalizePhone(lead!.telefone)!, body.text);
     const res = await fetch(r.url, r.init).catch(() => null);
     if (!res) return json({ error: "Não foi possível conectar à Evolution API." }, 502);
     const payload = await readJson(res);
     if (!res.ok) return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
 
-    return json({ ok: true, messageId: messageIdFrom(payload) });
+    return json({ ok: true, messageId: messageIdFrom(payload), instance });
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : "erro" }, 500);
   }

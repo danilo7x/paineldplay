@@ -44,24 +44,51 @@ const EARLY_STAGES = ["primeiro_contato", "cadencia", "reuniao"];
 
 function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
   const { data, isLoading } = useWhatsappStatus();
-  const state = isLoading
-    ? { label: "Verificando WhatsApp…", dot: "bg-muted-foreground" }
-    : !data?.configured
-      ? { label: "WhatsApp não configurado", dot: "bg-zinc-500" }
-      : data.connected
-        ? { label: "WhatsApp conectado", dot: "bg-emerald-400" }
-        : { label: "WhatsApp desconectado", dot: "bg-red-400" };
+  const instances = data?.instances ?? [];
+  const { data: names = {} } = usePeopleMap(instances.map((i) => i.user_id));
+  const box =
+    "inline-flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs";
+  const dot = (on: boolean) => cn("size-2 rounded-full", on ? "bg-emerald-400" : "bg-red-400");
+
+  if (isLoading)
+    return (
+      <span className={box}>
+        <span className="size-2 rounded-full bg-muted-foreground" /> Verificando WhatsApp…
+      </span>
+    );
+  if (!data?.configured || instances.length === 0)
+    return (
+      <span
+        className={box}
+        title={
+          isAdmin
+            ? !data?.configured
+              ? "Cadastre EVOLUTION_API_URL e EVOLUTION_API_KEY nos segredos do projeto (Lovable Cloud)."
+              : "Cadastre a instância de cada pessoa em Equipe → ⋯ → WhatsApp (Evolution)."
+            : undefined
+        }
+      >
+        <span className="size-2 rounded-full bg-zinc-500" />
+        {!data?.configured ? "WhatsApp não configurado" : "Nenhum número cadastrado"}
+      </span>
+    );
   return (
-    <span
-      className="inline-flex h-10 items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 text-xs"
-      title={
-        !data?.configured && isAdmin
-          ? "Cadastre EVOLUTION_API_URL, EVOLUTION_API_KEY e EVOLUTION_INSTANCE nos segredos do projeto (Lovable Cloud) para enviar pela Evolution API."
-          : undefined
-      }
-    >
-      <span className={cn("size-2 rounded-full", state.dot)} />
-      {state.label}
+    <span className={box}>
+      {instances.map((i) => {
+        const nome = i.user_id
+          ? (names[i.user_id]?.nome?.trim().split(/\s+/)[0] ?? i.instance)
+          : "Padrão";
+        return (
+          <span
+            key={i.instance}
+            className="inline-flex items-center gap-1.5"
+            title={`Instância ${i.instance}: ${i.connected ? "conectada" : "desconectada"}`}
+          >
+            <span className={dot(i.connected)} />
+            {nome}
+          </span>
+        );
+      })}
     </span>
   );
 }

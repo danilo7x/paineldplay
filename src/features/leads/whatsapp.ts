@@ -5,7 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 /** Envio pela Evolution API, feito pela função send-whatsapp (as chaves ficam no servidor). */
 const FUNCTION = "send-whatsapp";
 
-export type WhatsappStatus = { configured: boolean; connected: boolean };
+export type WhatsappInstanceStatus = {
+  user_id: string | null;
+  instance: string;
+  connected: boolean;
+};
+
+export type WhatsappStatus = {
+  configured: boolean;
+  connected: boolean;
+  /** Com lead: instância do responsável (ou a padrão) que enviaria a mensagem. */
+  instance?: string | null;
+  /** Com lead: a instância é a do responsável (false = número padrão). */
+  from_owner?: boolean;
+  /** Sem lead: todos os números cadastrados. */
+  instances?: WhatsappInstanceStatus[];
+};
 
 async function errorMessage(error: unknown): Promise<string> {
   // FunctionsHttpError traz a resposta original em `context`.
@@ -21,12 +36,14 @@ async function errorMessage(error: unknown): Promise<string> {
   return error instanceof Error ? error.message : "Falha ao falar com o servidor.";
 }
 
-export function useWhatsappStatus() {
+/** Status do WhatsApp; com `leadId`, do número que enviaria para aquele lead. */
+export function useWhatsappStatus(leadId?: string, enabled = true) {
   return useQuery({
-    queryKey: ["leads", "whatsapp-status"],
+    enabled,
+    queryKey: ["leads", "whatsapp-status", leadId ?? "todos"],
     queryFn: async (): Promise<WhatsappStatus> => {
       const { data, error } = await supabase.functions.invoke(FUNCTION, {
-        body: { action: "status" },
+        body: leadId ? { action: "status", lead_id: leadId } : { action: "status" },
       });
       // Função ainda não publicada ou sem acesso: trata como não configurado.
       if (error) return { configured: false, connected: false };
@@ -41,7 +58,7 @@ export async function sendWhatsapp(input: {
   leadId: string;
   activityId: string;
   text: string;
-}): Promise<{ messageId: string | null }> {
+}): Promise<{ messageId: string | null; instance: string | null }> {
   const { data, error } = await supabase.functions.invoke(FUNCTION, {
     body: {
       action: "send",
@@ -52,5 +69,5 @@ export async function sendWhatsapp(input: {
   });
   if (error) throw new Error(await errorMessage(error));
   if (!data?.ok) throw new Error(data?.error ?? "A mensagem não foi enviada.");
-  return { messageId: data.messageId ?? null };
+  return { messageId: data.messageId ?? null, instance: data.instance ?? null };
 }

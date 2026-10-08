@@ -26,7 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useApplyLeadChange } from "../api";
+import { useApplyLeadChange, usePeopleMap } from "../api";
 import {
   CADENCE_LABEL,
   CLOSE_CADENCE_KEY,
@@ -296,7 +296,16 @@ export function SendTemplateDialog({
   pendingActivityId: string | null;
 }) {
   const { run, error, pending } = useLeadRun(lead, onOpenChange);
-  const { data: waStatus, isLoading: waLoading } = useWhatsappStatus();
+  const { data: waStatus, isLoading: waLoading } = useWhatsappStatus(lead.id, open);
+  const { data: owners = {} } = usePeopleMap([lead.responsavel_id]);
+  const ownerName =
+    (lead.responsavel_id && owners[lead.responsavel_id]?.nome?.trim().split(/\s+/)[0]) || null;
+  // A mensagem sai do número do responsável pelo lead (ou do número padrão).
+  const senderLabel = waStatus?.from_owner
+    ? ownerName
+      ? `de ${ownerName}`
+      : "do responsável"
+    : "(número padrão)";
   const [apiState, setApiState] = useState<"idle" | "sending" | "sent">("idle");
   const [text, setText] = useState("");
   const [sentAt, setSentAt] = useState("");
@@ -327,27 +336,27 @@ export function SendTemplateDialog({
       ? "Verificando a conexão do WhatsApp…"
       : !waStatus?.configured
         ? "Envio pelo WhatsApp ainda não configurado (Evolution API)."
-        : !waStatus.connected
-          ? "O WhatsApp da DPlay está desconectado na Evolution API."
-          : !wa
-            ? "O lead não tem telefone de WhatsApp válido."
-            : missing.length
-              ? "Complete os campos entre colchetes antes de enviar."
-              : null;
+        : !waStatus.instance
+          ? `${ownerName ?? "O responsável por este lead"} ainda não tem WhatsApp conectado. Um admin cadastra o número em Equipe.`
+          : !waStatus.connected
+            ? `O WhatsApp ${senderLabel} está desconectado na Evolution API. Conecte de novo pelo QR Code.`
+            : !wa
+              ? "O lead não tem telefone de WhatsApp válido."
+              : missing.length
+                ? "Complete os campos entre colchetes antes de enviar."
+                : null;
 
   async function sendViaApi() {
     if (apiBlocked || !pendingActivityId) return;
     setApiState("sending");
     try {
-      const { messageId } = await sendWhatsapp({
+      const { messageId, instance } = await sendWhatsapp({
         leadId: lead.id,
         activityId: pendingActivityId,
         text,
       });
       setApiState("sent");
-      const note = messageId
-        ? `Enviada pela Evolution API (id ${messageId})`
-        : "Enviada pela Evolution API";
+      const note = `Enviada pela Evolution API (instância ${instance ?? "?"}${messageId ? `, id ${messageId}` : ""})`;
       run(
         () =>
           build({
@@ -415,7 +424,7 @@ export function SendTemplateDialog({
               ) : (
                 <Send className="size-4" />
               )}
-              {apiState === "sent" ? "Mensagem enviada" : "Enviar pelo WhatsApp"}
+              {apiState === "sent" ? "Mensagem enviada" : `Enviar pelo WhatsApp ${senderLabel}`}
             </Button>
             {apiBlocked && apiState === "idle" && (
               <p className="text-[11px] text-muted-foreground">{apiBlocked}</p>
