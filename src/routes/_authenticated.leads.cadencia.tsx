@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowRight, Loader2, MessageCircle } from "lucide-react";
+import { subDays } from "date-fns";
+import { Loader2, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,6 @@ import {
   useTemplates,
 } from "@/features/leads/api";
 import {
-  CADENCE_KEYS,
   CADENCE_LABEL,
   CLOSE_CADENCE_KEY,
   DEFAULT_WAIT_DAYS,
@@ -21,13 +21,17 @@ import {
   waitsFrom,
   type CadenceKey,
 } from "@/features/leads/cadence";
+import { CadenceBoard, type CadenceRow } from "@/features/leads/components/CadenceBoard";
 import { SendTemplateDialog } from "@/features/leads/components/CadencePanel";
 import { ResponseDialog } from "@/features/leads/components/ContactDialogs";
 import { PageHeader } from "@/features/leads/components/LeadFilters";
-import { PersonChip } from "@/features/leads/components/shared";
-import { formatDateTime } from "@/features/leads/format";
 import { canalLabel, type Lead } from "@/features/leads/model";
-import { closeCadenceWithoutResponse, registerTemplateSent } from "@/features/leads/workflow";
+import { useWhatsappStatus } from "@/features/leads/whatsapp";
+import {
+  closeCadenceWithoutResponse,
+  closeLead,
+  registerTemplateSent,
+} from "@/features/leads/workflow";
 
 export const Route = createFileRoute("/_authenticated/leads/cadencia")({
   beforeLoad: ({ context }) => {
@@ -36,47 +40,70 @@ export const Route = createFileRoute("/_authenticated/leads/cadencia")({
   component: CadenciaPage,
 });
 
-type Row = {
-  lead: Lead;
-  step: CadenceKey | typeof CLOSE_CADENCE_KEY;
-  pendingId: string | null;
-  due: string | null;
-};
+const EARLY_STAGES = ["primeiro_contato", "cadencia", "reuniao"];
 
-const STEP_ORDER = [...CADENCE_KEYS, CLOSE_CADENCE_KEY] as const;
-const stepLabel = (k: string) =>
-  isCadenceKey(k) ? CADENCE_LABEL[k] : "Encerrar como “Sem resposta”";
+function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
+  const { data, isLoading } = useWhatsappStatus();
+  const state = isLoading
+    ? { label: "Verificando WhatsApp…", dot: "bg-muted-foreground" }
+    : !data?.configured
+      ? { label: "WhatsApp não configurado", dot: "bg-zinc-500" }
+      : data.connected
+        ? { label: "WhatsApp conectado", dot: "bg-emerald-400" }
+        : { label: "WhatsApp desconectado", dot: "bg-red-400" };
+  return (
+    <span
+      className="inline-flex h-10 items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 text-xs"
+      title={
+        !data?.configured && isAdmin
+          ? "Cadastre EVOLUTION_API_URL, EVOLUTION_API_KEY e EVOLUTION_INSTANCE nos segredos do projeto (Lovable Cloud) para enviar pela Evolution API."
+          : undefined
+      }
+    >
+      <span className={cn("size-2 rounded-full", state.dot)} />
+      {state.label}
+    </span>
+  );
+}
 
 function CadenciaPage() {
-  const { user } = Route.useRouteContext();
+  const { user, isAdmin } = Route.useRouteContext();
   const { profile } = useProfile();
   const { data: leads = [], isLoading } = useLeads();
   const { data: pending = [] } = usePendingActivities();
   const { data: templates = [] } = useTemplates();
   const { data: people = {} } = usePeopleMap(leads.map((l) => l.responsavel_id));
   const apply = useApplyLeadChange(null);
-  const [sending, setSending] = useState<Row | null>(null);
+  const [sending, setSending] = useState<CadenceRow | null>(null);
   const [responding, setResponding] = useState<Lead | null>(null);
 
-  const waits = { ...DEFAULT_WAIT_DAYS, ...waitsFrom(templates) };
+  const waits = { ...DEFAULT_WAIT_DAYS, ...waitsFrom(templates) } as Record<CadenceKey, number>;
   const nowIso = new Date().toISOString();
 
-  const rows = useMemo<Row[]>(() => {
+  const rows = useMemo<CadenceRow[]>(() => {
     return leads
       .filter((l) => l.cadencia_status === "ativa")
       .map((lead) => {
         const p = pending.find(
           (a) => a.lead_id === lead.id && (isCadenceKey(a.chave) || a.chave === CLOSE_CADENCE_KEY),
         );
-        const step = (p?.chave ?? lead.subetapa ?? "template_1") as Row["step"];
+        const step = (p?.chave ?? lead.subetapa ?? "template_1") as CadenceRow["step"];
         return { lead, step, pendingId: p?.id ?? null, due: p?.previsto_para ?? null };
       })
       .sort((a, b) => (a.due ?? "9999").localeCompare(b.due ?? "9999"));
   }, [leads, pending]);
 
-  const responded = leads.filter((l) => l.cadencia_status === "respondida").length;
-  const noAnswer = leads.filter((l) => l.etapa === "sem_resposta").length;
-  const started = leads.filter((l) => (l.cadencia_ciclo ?? 0) > 0).length;
+  const since = subDays(new Date(), 30).toISOString();
+  const responded = leads.filter(
+    (l) => l.cadencia_status === "respondida" && EARLY_STAGES.includes(l.etapa),
+  );
+  const noAnswer = leads.filter(
+    (l) => l.etapa === "sem_resposta" && (l.encerrado_em ?? l.updated_at) >= since,
+  );
+  const started = leads.filter((l) => (l.cadencia_ciclo ?? 0) > 0);
+  const answered = started.filter(
+    (l) => l.cadencia_status === "respondida" || l.cadencia_status === "optout",
+  );
   const lateCount = rows.filter((r) => r.due && r.due < nowIso).length;
 
   // Memorizado: o diálogo reinicia o texto quando as variáveis mudam.
@@ -94,46 +121,56 @@ function CadenciaPage() {
     [sending, profile, user.email],
   );
 
+  function closeNoAnswer(row: CadenceRow) {
+    const atEnd = row.step === CLOSE_CADENCE_KEY;
+    const msg = atEnd
+      ? `Encerrar ${row.lead.nome} como “Sem resposta”?`
+      : `${row.lead.nome} ainda não recebeu o break-up. Encerrar como “Sem resposta” mesmo assim?`;
+    if (!confirm(msg)) return;
+    const ctx = { userId: user.id, now: new Date() };
+    apply.mutate({
+      id: row.lead.id,
+      change: atEnd
+        ? closeCadenceWithoutResponse(row.lead, row.pendingId, ctx)
+        : closeLead(
+            row.lead,
+            {
+              resultado: "sem_resposta",
+              motivo: "Encerrado sem resposta antes do fim da cadência",
+            },
+            ctx,
+          ),
+      success: "Lead encerrado como sem resposta",
+    });
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         section="Acompanhamento de Leads"
         title="Fluxo de cadência"
-        description="Mensagens de WhatsApp em andamento. Nada é enviado automaticamente: copie, envie e registre."
+        description="Envie cada template pelo WhatsApp da DPlay com um clique. O próximo passo é lembrado em dias úteis; nada é enviado sem você clicar."
         actions={
-          <Button variant="secondary" asChild>
-            <Link to="/ferramentas/templates">Editar templates</Link>
-          </Button>
+          <>
+            <WhatsappBadge isAdmin={isAdmin} />
+            <Button variant="secondary" asChild>
+              <Link to="/ferramentas/templates">Editar templates</Link>
+            </Button>
+          </>
         }
       />
-
-      {/* Sequência */}
-      <ol className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
-        {STEP_ORDER.map((k, i) => (
-          <li key={k} className="relative rounded-2xl border border-border/50 bg-card/50 p-3">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Passo {i + 1}
-            </p>
-            <p className="mt-1 text-sm font-medium">{stepLabel(k)}</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {isCadenceKey(k)
-                ? `Sem resposta em ${waits[k]} dia(s) útil(eis) → ${i < CADENCE_KEYS.length - 1 ? "próximo template" : "encerrar"}`
-                : "Sem nova mensagem; histórico preservado"}
-            </p>
-            <p className="mt-2 text-lg font-semibold">{rows.filter((r) => r.step === k).length}</p>
-          </li>
-        ))}
-      </ol>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           { label: "Em cadência", value: rows.length },
           { label: "Envios atrasados", value: lateCount, tone: lateCount ? "text-red-400" : "" },
-          { label: "Responderam", value: responded },
+          { label: "Responderam", value: answered.length },
           {
             label: "Taxa de resposta",
-            value: started ? `${Math.round((responded / started) * 100)}%` : "—",
-            hint: `${noAnswer} encerrado(s) sem resposta`,
+            value: started.length
+              ? `${Math.round((answered.length / started.length) * 100)}%`
+              : "—",
+            hint: `${started.length} lead(s) já entraram em cadência`,
           },
         ].map((k) => (
           <div
@@ -151,7 +188,7 @@ function CadenciaPage() {
         <div className="flex justify-center py-16 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
         </div>
-      ) : rows.length === 0 ? (
+      ) : rows.length + responded.length + noAnswer.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-14 text-center">
           <MessageCircle className="mx-auto size-6 text-primary" />
           <p className="mt-2 text-sm text-muted-foreground">
@@ -159,75 +196,22 @@ function CadenciaPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/50">
-          {rows.map((r) => {
-            const late = r.due && r.due < nowIso;
-            return (
-              <div
-                key={r.lead.id}
-                className="grid gap-3 border-b border-border/40 px-4 py-3 last:border-0 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-center"
-              >
-                <div className="min-w-0">
-                  <Link
-                    to="/leads/$id"
-                    params={{ id: r.lead.id }}
-                    className="truncate text-sm font-medium hover:text-primary"
-                  >
-                    {r.lead.nome}
-                  </Link>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {[r.lead.empresa, r.lead.telefone].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                  <PersonChip
-                    person={r.lead.responsavel_id ? people[r.lead.responsavel_id] : null}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm">{stepLabel(r.step)}</p>
-                  <p className={cn("text-[11px] text-muted-foreground", late && "text-red-400")}>
-                    {r.due
-                      ? `Previsto para ${formatDateTime(r.due)}${late ? " · atrasado" : ""}`
-                      : "Sem data prevista"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {r.step === CLOSE_CADENCE_KEY ? (
-                    <Button
-                      size="sm"
-                      disabled={apply.isPending}
-                      onClick={() => {
-                        if (!confirm(`Encerrar ${r.lead.nome} como “Sem resposta”?`)) return;
-                        apply.mutate({
-                          id: r.lead.id,
-                          change: closeCadenceWithoutResponse(r.lead, r.pendingId, {
-                            userId: user.id,
-                            now: new Date(),
-                          }),
-                          success: "Lead encerrado como sem resposta",
-                        });
-                      }}
-                    >
-                      Encerrar
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => setSending(r)}>
-                      Preparar mensagem
-                    </Button>
-                  )}
-                  <Button size="sm" variant="secondary" onClick={() => setResponding(r.lead)}>
-                    Respondeu
-                  </Button>
-                  <Button size="sm" variant="ghost" asChild>
-                    <Link to="/leads/$id" params={{ id: r.lead.id }} aria-label="Abrir lead">
-                      <ArrowRight className="size-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <p className="hidden text-xs text-muted-foreground md:block">
+            Os cartões avançam quando a mensagem é enviada. Arraste para “Responderam” ou “Sem
+            resposta” para registrar o desfecho.
+          </p>
+          <CadenceBoard
+            rows={rows}
+            responded={responded}
+            noAnswer={noAnswer}
+            people={people}
+            waits={waits}
+            onSend={setSending}
+            onRespond={setResponding}
+            onClose={closeNoAnswer}
+          />
+        </>
       )}
 
       {sending && isCadenceKey(sending.step) && (
@@ -238,6 +222,7 @@ function CadenciaPage() {
           template={templates.find((t) => t.chave === sending.step)}
           title={`Enviar ${CADENCE_LABEL[sending.step]} — ${sending.lead.nome}`}
           vars={sendingVars}
+          pendingActivityId={sending.pendingId}
           build={(input) =>
             registerTemplateSent(
               sending.lead,
@@ -251,7 +236,7 @@ function CadenciaPage() {
               },
             )
           }
-          success={`${CADENCE_LABEL[sending.step]} registrado como enviado`}
+          success={`${CADENCE_LABEL[sending.step]} enviado`}
         />
       )}
       {responding && (

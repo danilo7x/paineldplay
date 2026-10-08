@@ -16,7 +16,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { usePeopleMap } from "../api";
-import { ACTIVITY_TYPE_LABEL, stageLabel, type LeadActivity } from "../model";
+import { ACTIVITY_TYPE_LABEL, channelLabel, stageLabel, type LeadActivity } from "../model";
 import { PersonChip, SectionCard } from "./shared";
 import { formatDateTime } from "../format";
 
@@ -137,7 +137,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
                         ? `Era previsto para ${formatDateTime(a.previsto_para)}`
                         : formatDateTime(a.realizado_em ?? a.created_at)}
                     </span>
-                    {a.canal && <span>via {a.canal}</span>}
+                    {a.canal && <span>via {channelLabel(a.canal)}</span>}
                     {a.responsavel_id && (
                       <PersonChip person={people[a.responsavel_id]} fallback="—" />
                     )}

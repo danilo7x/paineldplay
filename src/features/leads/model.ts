@@ -178,6 +178,13 @@ export const CONTACT_CHANNELS: { value: string; label: string }[] = [
   { value: "outro", label: "Outro" },
 ];
 
+/** Nome do canal para exibição (inclui o envio automático pela Evolution API). */
+export function channelLabel(canal: string | null | undefined) {
+  if (!canal) return null;
+  if (canal === "whatsapp_api") return "WhatsApp (API)";
+  return CONTACT_CHANNELS.find((c) => c.value === canal)?.label ?? canal;
+}
+
 export const ACTIVITY_TYPE_LABEL: Record<string, string> = {
   ligacao: "Ligação",
   whatsapp: "WhatsApp",
