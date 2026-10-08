@@ -264,3 +264,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Fluxo de contribuição
+
+Alterações feitas fora da Lovable (por exemplo, via Claude Code) são enviadas em uma branch separada e entram no projeto por Pull Request. Depois do merge na branch conectada, a Lovable sincroniza as mudanças automaticamente. Evite reescrever o histórico (force push, rebase ou amend em commits já publicados).
