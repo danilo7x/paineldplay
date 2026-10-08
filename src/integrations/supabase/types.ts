@@ -83,6 +83,24 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_access: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           cor: string
@@ -206,6 +224,116 @@ export type Database = {
           mes?: string
           receita_meta?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_activities: {
+        Row: {
+          canal: string | null
+          chave: string | null
+          ciclo: number | null
+          created_at: string
+          created_by: string | null
+          etapa_de: string | null
+          etapa_para: string | null
+          id: string
+          lead_id: string
+          observacoes: string | null
+          previsto_para: string | null
+          realizado_em: string | null
+          responsavel_id: string | null
+          resultado: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          canal?: string | null
+          chave?: string | null
+          ciclo?: number | null
+          created_at?: string
+          created_by?: string | null
+          etapa_de?: string | null
+          etapa_para?: string | null
+          id?: string
+          lead_id: string
+          observacoes?: string | null
+          previsto_para?: string | null
+          realizado_em?: string | null
+          responsavel_id?: string | null
+          resultado?: string | null
+          status?: string
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          canal?: string | null
+          chave?: string | null
+          ciclo?: number | null
+          created_at?: string
+          created_by?: string | null
+          etapa_de?: string | null
+          etapa_para?: string | null
+          id?: string
+          lead_id?: string
+          observacoes?: string | null
+          previsto_para?: string | null
+          realizado_em?: string | null
+          responsavel_id?: string | null
+          resultado?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "partner_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_message_templates: {
+        Row: {
+          chave: string
+          conteudo: string
+          created_at: string
+          espera_dias_uteis: number
+          na_cadencia: boolean
+          ordem: number
+          orientacao: string | null
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          chave: string
+          conteudo: string
+          created_at?: string
+          espera_dias_uteis?: number
+          na_cadencia?: boolean
+          ordem: number
+          orientacao?: string | null
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          chave?: string
+          conteudo?: string
+          created_at?: string
+          espera_dias_uteis?: number
+          na_cadencia?: boolean
+          ordem?: number
+          orientacao?: string | null
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -500,55 +628,127 @@ export type Database = {
       }
       partner_leads: {
         Row: {
+          apresentacao_em: string | null
+          cadencia_ciclo: number
+          cadencia_status: string | null
+          canal_origem: string | null
           client_id: string | null
+          condicoes_pagamento: string | null
           contato: string | null
           created_at: string
           created_by: string
+          custos_estimados: number | null
           data_lembrete: string | null
+          data_primeiro_contato: string | null
           empresa: string | null
+          encerrado_em: string | null
+          escopo: string | null
           etapa: string
+          etapa_legada: string | null
           id: string
+          motivo_encerramento: string | null
+          nao_contatar: boolean
+          necessidade_identificada: string | null
+          necessidade_inicial: string | null
           nome: string
           observacoes: string | null
           origem: string | null
+          proxima_acao_responsavel_id: string | null
           proximo_passo: string | null
+          responsavel_id: string | null
+          resultado_final: string | null
+          resultado_primeira_ligacao: string | null
+          reuniao_em: string | null
+          reuniao_local: string | null
+          reuniao_status: string | null
+          subetapa: string | null
+          telefone: string | null
           updated_at: string
           updated_by: string | null
           valor_estimado: number | null
+          valor_proposta: number | null
         }
         Insert: {
+          apresentacao_em?: string | null
+          cadencia_ciclo?: number
+          cadencia_status?: string | null
+          canal_origem?: string | null
           client_id?: string | null
+          condicoes_pagamento?: string | null
           contato?: string | null
           created_at?: string
           created_by: string
+          custos_estimados?: number | null
           data_lembrete?: string | null
+          data_primeiro_contato?: string | null
           empresa?: string | null
+          encerrado_em?: string | null
+          escopo?: string | null
           etapa?: string
+          etapa_legada?: string | null
           id?: string
+          motivo_encerramento?: string | null
+          nao_contatar?: boolean
+          necessidade_identificada?: string | null
+          necessidade_inicial?: string | null
           nome: string
           observacoes?: string | null
           origem?: string | null
+          proxima_acao_responsavel_id?: string | null
           proximo_passo?: string | null
+          responsavel_id?: string | null
+          resultado_final?: string | null
+          resultado_primeira_ligacao?: string | null
+          reuniao_em?: string | null
+          reuniao_local?: string | null
+          reuniao_status?: string | null
+          subetapa?: string | null
+          telefone?: string | null
           updated_at?: string
           updated_by?: string | null
           valor_estimado?: number | null
+          valor_proposta?: number | null
         }
         Update: {
+          apresentacao_em?: string | null
+          cadencia_ciclo?: number
+          cadencia_status?: string | null
+          canal_origem?: string | null
           client_id?: string | null
+          condicoes_pagamento?: string | null
           contato?: string | null
           created_at?: string
           created_by?: string
+          custos_estimados?: number | null
           data_lembrete?: string | null
+          data_primeiro_contato?: string | null
           empresa?: string | null
+          encerrado_em?: string | null
+          escopo?: string | null
           etapa?: string
+          etapa_legada?: string | null
           id?: string
+          motivo_encerramento?: string | null
+          nao_contatar?: boolean
+          necessidade_identificada?: string | null
+          necessidade_inicial?: string | null
           nome?: string
           observacoes?: string | null
           origem?: string | null
+          proxima_acao_responsavel_id?: string | null
           proximo_passo?: string | null
+          responsavel_id?: string | null
+          resultado_final?: string | null
+          resultado_primeira_ligacao?: string | null
+          reuniao_em?: string | null
+          reuniao_local?: string | null
+          reuniao_status?: string | null
+          subetapa?: string | null
+          telefone?: string | null
           updated_at?: string
           updated_by?: string | null
           valor_estimado?: number | null
+          valor_proposta?: number | null
         }
         Relationships: [
           {
@@ -1255,6 +1455,10 @@ export type Database = {
         Args: { _project_id: string }
         Returns: undefined
       }
+      admin_set_commercial_access: {
+        Args: { _enabled: boolean; _user_id: string }
+        Returns: undefined
+      }
       admin_set_user_ativo: {
         Args: { _ativo: boolean; _user_id: string }
         Returns: undefined
@@ -1266,7 +1470,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_access_lead: {
+        Args: { _lead_id: string; _user_id: string }
+        Returns: boolean
+      }
       generate_recurrences: { Args: never; Returns: Json }
+      has_commercial_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1279,6 +1488,16 @@ export type Database = {
         Returns: boolean
       }
       is_staff_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      lead_apply_changes: {
+        Args: {
+          _activities?: Json
+          _activity_updates?: Json
+          _cancel_pending?: boolean
+          _lead_id: string
+          _patch?: Json
+        }
+        Returns: undefined
+      }
       log_activity:
         | {
             Args: {
