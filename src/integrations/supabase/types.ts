@@ -101,6 +101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_whatsapp_instances: {
+        Row: {
+          instance: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          instance: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          instance?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           cor: string
@@ -1468,6 +1489,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: undefined
+      }
+      admin_set_whatsapp_instance: {
+        Args: { _instance: string; _user_id: string }
         Returns: undefined
       }
       can_access_lead: {
