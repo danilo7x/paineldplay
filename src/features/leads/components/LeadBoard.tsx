@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { Person } from "../api";
-import { BOARD_COLUMNS, dueState, isFinalStage, stageLabel, type Lead } from "../model";
+import { BOARD_COLUMNS, dueState, isFinalStage, type Lead } from "../model";
 import { DueBadge, PersonChip, StageBadge } from "./shared";
 import { todayStr } from "../format";
 
@@ -179,80 +179,6 @@ export function LeadBoard({
               ))}
             </div>
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-const LIST_GROUPS: { key: string; label: string }[] = [
-  { key: "atrasada", label: "Atrasadas" },
-  { key: "hoje", label: "Para hoje" },
-  { key: "futura", label: "Próximas" },
-  { key: "sem_data", label: "Sem próxima ação" },
-  { key: "encerrado", label: "Encerrados" },
-];
-
-export function LeadList({
-  leads,
-  people,
-  onOpen,
-}: {
-  leads: Lead[];
-  people: Record<string, Person>;
-  onOpen: (lead: Lead) => void;
-}) {
-  const today = todayStr();
-  const groupOf = (l: Lead) =>
-    isFinalStage(l.etapa) ? "encerrado" : dueState(l.data_lembrete, today);
-  const sorted = [...leads].sort((a, b) =>
-    (a.data_lembrete ?? "9999").localeCompare(b.data_lembrete ?? "9999"),
-  );
-  return (
-    <div className="space-y-5">
-      {LIST_GROUPS.map((g) => {
-        const items = sorted.filter((l) => groupOf(l) === g.key);
-        if (!items.length) return null;
-        return (
-          <section key={g.key}>
-            <h3
-              className={cn(
-                "mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground",
-                g.key === "atrasada" && "text-red-400",
-                g.key === "hoje" && "text-amber-400",
-              )}
-            >
-              {g.label} · {items.length}
-            </h3>
-            <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/50">
-              {items.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => onOpen(l)}
-                  className="grid w-full gap-2 border-b border-border/40 px-4 py-3 text-left transition last:border-0 hover:bg-accent/40 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.6fr)_auto] md:items-center"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{l.nome}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {[l.empresa, l.contato ?? l.telefone].filter(Boolean).join(" · ") || "—"}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <StageBadge etapa={l.etapa} subetapa={l.subetapa} />
-                  </div>
-                  <p className="min-w-0 truncate text-xs text-muted-foreground">
-                    {isFinalStage(l.etapa)
-                      ? `${stageLabel(l.etapa)}${l.motivo_encerramento ? ` — ${l.motivo_encerramento}` : ""}`
-                      : (l.proximo_passo ?? "Sem próxima ação")}
-                  </p>
-                  <div className="flex items-center justify-between gap-3 md:justify-end">
-                    <PersonChip person={l.responsavel_id ? people[l.responsavel_id] : null} />
-                    {!isFinalStage(l.etapa) && <DueBadge date={l.data_lembrete} />}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
         );
       })}
     </div>

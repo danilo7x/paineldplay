@@ -16,7 +16,14 @@ import {
   UserRound,
   Activity,
   LogOut,
-  Target,
+  Columns3,
+  Zap,
+  Database,
+  CalendarClock,
+  BarChart3,
+  MessageSquareText,
+  BookOpenText,
+  ShieldQuestion,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +53,8 @@ type Item = {
   adminOnly?: boolean;
   financeOnly?: boolean;
   commercialOnly?: boolean;
+  /** Regra de item ativo quando a URL não basta (ex.: /leads contém as outras páginas). */
+  match?: (pathname: string) => boolean;
 };
 
 const workspace: Item[] = [
@@ -53,8 +62,43 @@ const workspace: Item[] = [
   { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
   { title: "Clientes", url: "/clientes", icon: Contact },
-  { title: "Acompanhamento de Leads", url: "/leads", icon: Target, commercialOnly: true },
   { title: "Analytics", url: "/analytics", icon: LineChart },
+];
+
+const leadTracking: Item[] = [
+  {
+    title: "Kanban",
+    url: "/leads",
+    icon: Columns3,
+    commercialOnly: true,
+    // A página do lead (/leads/<id>) também pertence ao Kanban.
+    match: (p) => p === "/leads" || p === "/leads/" || /^\/leads\/[0-9a-f-]{36}$/i.test(p),
+  },
+  { title: "Fluxo de Cadência", url: "/leads/cadencia", icon: Zap, commercialOnly: true },
+  { title: "Banco de Leads", url: "/leads/banco", icon: Database, commercialOnly: true },
+  { title: "Agenda Comercial", url: "/leads/agenda", icon: CalendarClock, commercialOnly: true },
+  { title: "Relatórios", url: "/leads/relatorios", icon: BarChart3, commercialOnly: true },
+];
+
+const tools: Item[] = [
+  {
+    title: "Templates",
+    url: "/ferramentas/templates",
+    icon: MessageSquareText,
+    commercialOnly: true,
+  },
+  {
+    title: "Roteiro de Ligação",
+    url: "/ferramentas/roteiro",
+    icon: BookOpenText,
+    commercialOnly: true,
+  },
+  {
+    title: "Matriz de Objeções",
+    url: "/ferramentas/objecoes",
+    icon: ShieldQuestion,
+    commercialOnly: true,
+  },
 ];
 
 const admin: Item[] = [
@@ -116,7 +160,9 @@ export function AppSidebar() {
         <SidebarGroupContent>
           <SidebarMenu>
             {filtered.map((item) => {
-              const active = pathname === item.url || pathname.startsWith(item.url + "/");
+              const active = item.match
+                ? item.match(pathname)
+                : pathname === item.url || pathname.startsWith(item.url + "/");
               const badge = item.url === "/avisos" && unread > 0 ? unread : null;
               return (
                 <SidebarMenuItem key={item.url}>
@@ -162,6 +208,8 @@ export function AppSidebar() {
 
       <SidebarContent>
         {renderGroup("Workspace", workspace)}
+        {renderGroup("Acompanhamento de Leads", leadTracking)}
+        {renderGroup("Ferramentas", tools)}
         {renderGroup("Administração", admin)}
         {renderGroup("Pessoal", personal)}
       </SidebarContent>
