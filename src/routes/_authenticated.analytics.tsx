@@ -38,7 +38,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { bankPhase } from "@/features/leads/bank";
 import { ACTIVE_STAGES, STAGE_META, isFinalStage } from "@/features/leads/model";
 import { MEETING_BOOKED_TITLE } from "@/features/leads/workflow";
 import { PROJECT_SERVICES } from "@/features/projects/services";
@@ -56,17 +55,9 @@ type PipelineLead = {
   reuniao_em: string | null;
   reuniao_status: string | null;
 };
-type BankStats = {
-  total: number;
-  novos_periodo: number;
-  reunioes_periodo: number;
-  por_status: Record<string, number>;
-  semanal: { semana: string; total: number }[];
-};
 type Commercial = {
   leads: PipelineLead[];
   meetingsBooked: number | null;
-  bank: BankStats | null;
 };
 
 const PALETTE = [
@@ -79,8 +70,8 @@ const PALETTE = [
   "#ec4899",
   "#84cc16",
 ];
-/** Duas séries do gráfico semanal (validadas para a superfície escura, inclusive daltonismo). */
-const SERIES = { banco: "#057ef3", kanban: "#d97706" } as const;
+/** Cor única das barras de série simples (mesmo azul dos demais gráficos). */
+const ACCENT = "#057ef3";
 const GRID = "rgba(255,255,255,0.06)";
 const AXIS = "rgba(255,255,255,0.5)";
 
@@ -93,6 +84,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 /** Etapas em que já existe proposta na mesa. */
 const NEGOTIATION_STAGES = ["proposta", "negociacao", "contrato"];
+/** Oportunidade: lead qualificado, da reunião de diagnóstico ao contrato. */
+const OPPORTUNITY_STAGES = ["reuniao", "diagnostico", "proposta", "negociacao", "contrato"];
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", {
@@ -178,7 +171,7 @@ function AnalyticsPage() {
     async function loadCommercial(toExclusiveISO: string): Promise<Commercial | null> {
       if (!hasCommercial) return null;
       const toEnd = new Date(toExclusiveISO + "T00:00:00").toISOString();
-      const [leadsRes, meetingsRes, bankRes] = await Promise.all([
+      const [leadsRes, meetingsRes] = await Promise.all([
         // O RLS devolve o funil inteiro para admins e só os leads de cada um para os demais.
         supabase
           .from("partner_leads")
@@ -191,13 +184,10 @@ function AnalyticsPage() {
           .eq("titulo", MEETING_BOOKED_TITLE)
           .gte("realizado_em", from.toISOString())
           .lt("realizado_em", toEnd),
-        supabase.rpc("lead_bank_stats", { _from: from.toISOString(), _to: toEnd }),
       ]);
       return {
         leads: (leadsRes.data ?? []) as PipelineLead[],
         meetingsBooked: meetingsRes.error ? null : (meetingsRes.count ?? 0),
-        // Sem a migração do Banco de Leads aplicada, os números do banco ficam em branco.
-        bank: bankRes.error ? null : (bankRes.data as unknown as BankStats),
       };
     }
     async function load() {
@@ -211,7 +201,8 @@ function AnalyticsPage() {
           .select("valor, data, project_id, status")
           .gte("data", fromISO)
           .lt("data", toExclusive),
-        supabase.from("projects").select("id, nome, status, servico"),
+        // "*" para não quebrar antes da migração que cria a coluna "servico".
+        supabase.from("projects").select("*"),
         supabase
           .from("project_steps")
           .select("autor_id, status, updated_at")
@@ -371,29 +362,25 @@ function AnalyticsPage() {
       .slice(0, 10);
   }, [steps, members, projects, profiles]);
 
-  // Indicadores comerciais
+  // Indicadores comerciais (leads do Banco de Leads / Kanban, conforme o RLS de cada um)
   const salesKpis = useMemo(() => {
     if (!commercial) return null;
-    const active = commercial.leads.filter((l) => !isFinalStage(l.etapa));
-    const negotiating = active.filter((l) => NEGOTIATION_STAGES.includes(l.etapa));
+    const leads = commercial.leads;
+    const open = leads.filter((l) => !isFinalStage(l.etapa));
+    const opportunities = open.filter((l) => OPPORTUNITY_STAGES.includes(l.etapa));
+    const negotiating = open.filter((l) => NEGOTIATION_STAGES.includes(l.etapa));
     const nowISO = new Date().toISOString();
-    const upcoming = active.filter(
+    const upcoming = open.filter(
       (l) =>
         l.etapa === "reuniao" &&
         (l.reuniao_status === "agendada" || l.reuniao_status === "reagendada") &&
         !!l.reuniao_em &&
         l.reuniao_em >= nowISO,
     ).length;
-    const bank = commercial.bank;
-    const bankOpen = bank
-      ? Object.entries(bank.por_status).reduce(
-          (a, [status, n]) =>
-            bankPhase(status === "sem_status" ? null : status) === "aberto" ? a + n : a,
-          0,
-        )
-      : null;
+    const fromISO = from.toISOString();
+    const toISO = to.toISOString();
     const pipeline = ACTIVE_STAGES.map((stage) => {
-      const rows = active.filter((l) => l.etapa === stage);
+      const rows = open.filter((l) => l.etapa === stage);
       return {
         key: stage,
         label: STAGE_META[stage].label,
@@ -402,45 +389,41 @@ function AnalyticsPage() {
       };
     });
     return {
-      opportunities: active.length,
-      opportunitiesValue: active.reduce((a, l) => a + leadValue(l), 0),
+      total: leads.length,
+      newInPeriod: leads.filter((l) => l.created_at >= fromISO && l.created_at <= toISO).length,
+      open: open.length,
+      opportunities: opportunities.length,
+      opportunitiesValue: opportunities.reduce((a, l) => a + leadValue(l), 0),
       negotiationValue: negotiating.reduce((a, l) => a + leadValue(l), 0),
       negotiationCount: negotiating.length,
       meetings: commercial.meetingsBooked,
       upcoming,
-      bankTotal: bank?.total ?? null,
-      bankNew: bank?.novos_periodo ?? null,
-      bankOpen,
       pipeline,
     };
-  }, [commercial]);
+  }, [commercial, from, to]);
 
-  // Leads abertos por semana: novos no Banco de Leads e novos no Kanban
+  // Leads abertos (cadastrados) por semana, semanas começando na segunda-feira
   const weekly = useMemo(() => {
     if (!commercial) return [];
-    const weeks = new Map<string, { banco: number; kanban: number }>();
+    const weeks = new Map<string, number>();
     const cur = startOfWeek(from, { weekStartsOn: 1 });
     while (cur <= to) {
-      weeks.set(format(cur, "yyyy-MM-dd"), { banco: 0, kanban: 0 });
+      weeks.set(format(cur, "yyyy-MM-dd"), 0);
       cur.setDate(cur.getDate() + 7);
     }
-    commercial.bank?.semanal.forEach((w) => {
-      const row = weeks.get(w.semana);
-      if (row) row.banco += Number(w.total);
-    });
     commercial.leads.forEach((l) => {
       const d = new Date(l.created_at);
       if (d < from || d > to) return;
-      const row = weeks.get(weekKey(d));
-      if (row) row.kanban++;
+      const key = weekKey(d);
+      if (weeks.has(key)) weeks.set(key, (weeks.get(key) ?? 0) + 1);
     });
-    return Array.from(weeks.entries()).map(([k, v]) => ({
+    return Array.from(weeks.entries()).map(([k, leads]) => ({
       semana: format(new Date(k + "T12:00:00"), "dd/MM"),
-      ...v,
+      leads,
     }));
   }, [commercial, from, to]);
 
-  const weeklyEmpty = weekly.every((w) => w.banco === 0 && w.kanban === 0);
+  const weeklyEmpty = weekly.every((w) => w.leads === 0);
 
   return (
     <div className="space-y-6">
@@ -538,7 +521,7 @@ function AnalyticsPage() {
                   <Kpi
                     label="Oportunidades ativas"
                     value={fmtInt(salesKpis.opportunities)}
-                    hint={`${fmtBRL(salesKpis.opportunitiesValue)} no pipeline`}
+                    hint={`${fmtBRL(salesKpis.opportunitiesValue)} · da reunião ao contrato`}
                   />
                 </>
               )}
@@ -547,17 +530,13 @@ function AnalyticsPage() {
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Kpi
                   label="Leads no Banco de Leads"
-                  value={salesKpis.bankTotal == null ? "—" : fmtInt(salesKpis.bankTotal)}
-                  hint={
-                    salesKpis.bankNew == null
-                      ? "banco de leads indisponível"
-                      : `+${fmtInt(salesKpis.bankNew)} no período`
-                  }
+                  value={fmtInt(salesKpis.total)}
+                  hint={`+${fmtInt(salesKpis.newInPeriod)} no período`}
                 />
                 <Kpi
                   label="Leads em aberto"
-                  value={salesKpis.bankOpen == null ? "—" : fmtInt(salesKpis.bankOpen)}
-                  hint="no banco, ainda em prospecção"
+                  value={fmtInt(salesKpis.open)}
+                  hint="ainda sem ganho ou encerramento"
                 />
                 <Kpi
                   label="Reuniões marcadas"
@@ -690,7 +669,6 @@ function AnalyticsPage() {
                       <BarChart
                         data={weekly}
                         margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
-                        barGap={2}
                         barCategoryGap="20%"
                       >
                         <CartesianGrid stroke={GRID} vertical={false} />
@@ -703,18 +681,10 @@ function AnalyticsPage() {
                           cursor={{ fill: "rgba(255,255,255,0.04)" }}
                           labelFormatter={(l) => `Semana de ${l}`}
                         />
-                        <Legend wrapperStyle={{ fontSize: 11 }} formatter={legendText} />
                         <Bar
-                          dataKey="banco"
-                          name="Novos no Banco de Leads"
-                          fill={SERIES.banco}
-                          radius={[4, 4, 0, 0]}
-                          maxBarSize={24}
-                        />
-                        <Bar
-                          dataKey="kanban"
-                          name="Novos no Kanban"
-                          fill={SERIES.kanban}
+                          dataKey="leads"
+                          name="Leads cadastrados"
+                          fill={ACCENT}
                           radius={[4, 4, 0, 0]}
                           maxBarSize={24}
                         />
@@ -839,11 +809,6 @@ function AnalyticsPage() {
   );
 }
 
-/** Texto da legenda em tinta neutra; a cor fica só no marcador. */
-function legendText(value: string) {
-  return <span style={{ color: "rgba(255,255,255,0.75)" }}>{value}</span>;
-}
-
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4">
@@ -895,7 +860,7 @@ function HBarList({
               className="h-full rounded-full"
               style={{
                 width: `${r.size === 0 ? 0 : Math.max(2, (r.size / max) * 100)}%`,
-                backgroundColor: r.muted ? "rgba(255,255,255,0.28)" : SERIES.banco,
+                backgroundColor: r.muted ? "rgba(255,255,255,0.28)" : ACCENT,
               }}
             />
           </div>

@@ -71,12 +71,8 @@ const leadTracking: Item[] = [
     url: "/leads",
     icon: Columns3,
     commercialOnly: true,
-    // A página do lead (/leads/<id>) e a lista do funil também pertencem ao Kanban.
-    match: (p) =>
-      p === "/leads" ||
-      p === "/leads/" ||
-      p === "/leads/lista" ||
-      /^\/leads\/[0-9a-f-]{36}$/i.test(p),
+    // A página do lead (/leads/<id>) também pertence ao Kanban.
+    match: (p) => p === "/leads" || p === "/leads/" || /^\/leads\/[0-9a-f-]{36}$/i.test(p),
   },
   { title: "Fluxo de Cadência", url: "/leads/cadencia", icon: Zap, commercialOnly: true },
   { title: "Banco de Leads", url: "/leads/banco", icon: Database, commercialOnly: true },

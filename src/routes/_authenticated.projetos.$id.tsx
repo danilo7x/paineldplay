@@ -101,7 +101,7 @@ function ProjectDetail() {
   async function fetchAll() {
     setLoading(true);
     const [projRes, membersRes, stepsRes, notesRes, credsRes, teamRes] = await Promise.all([
-      supabase.from("projects").select("id, nome, cliente, client_id, descricao, status, servico").eq("id", id).maybeSingle(),
+      supabase.from("projects").select("*").eq("id", id).maybeSingle(),
       supabase.from("project_members").select("user_id").eq("project_id", id),
       supabase.from("project_steps").select("*").eq("project_id", id).order("ordem"),
       supabase.from("project_notes").select("*").eq("project_id", id).order("created_at", { ascending: false }),
@@ -239,7 +239,7 @@ function ProjectDetail() {
             </div>
             <div className="shrink-0">
               {isAdmin ? (
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
                   <Select
                     value={project.servico ?? "none"}
                     onValueChange={(v) => updateServico(v === "none" ? null : v)}
@@ -282,7 +282,7 @@ function ProjectDetail() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
                   {serviceLabel(project.servico) && (
                     <span className="rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground">
                       {serviceLabel(project.servico)}

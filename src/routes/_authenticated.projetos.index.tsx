@@ -54,7 +54,8 @@ function ProjetosIndex() {
     setLoading(true);
     const { data: rows, error } = await supabase
       .from("projects")
-      .select("id, nome, cliente, status, servico")
+      // "*" para não quebrar antes da migração que cria a coluna "servico".
+      .select("*")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar projetos", { description: error.message });
@@ -265,7 +266,7 @@ function NewProjectDialog({ onCreated }: { onCreated: () => void }) {
       client_id: clientId || null,
       descricao: descricao || null,
       status,
-      servico: servico || null,
+      ...(servico ? { servico } : {}),
       created_by: userId,
     });
     setLoading(false);

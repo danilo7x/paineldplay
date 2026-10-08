@@ -4,7 +4,6 @@ import { addDays, format } from "date-fns";
 import {
   AlarmClock,
   CalendarCheck2,
-  List,
   Loader2,
   MessageCircle,
   Plus,
@@ -157,16 +156,9 @@ function KanbanPage() {
             : "Leads atribuídos a você no processo comercial."
         }
         actions={
-          <>
-            <Button asChild variant="outline" className="gap-2">
-              <Link to="/leads/lista">
-                <List className="size-4" /> Ver em lista
-              </Link>
-            </Button>
-            <Button className="gap-2" onClick={() => setFormOpen(true)}>
-              <Plus className="size-4" /> Cadastrar lead
-            </Button>
-          </>
+          <Button className="gap-2" onClick={() => setFormOpen(true)}>
+            <Plus className="size-4" /> Cadastrar lead
+          </Button>
         }
       />
 

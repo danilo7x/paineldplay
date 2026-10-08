@@ -1,4 +1,3 @@
-import { useId } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -60,16 +59,10 @@ export function DateTimeField({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const id = useId();
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="datetime-local"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <Label>{label}</Label>
+      <Input type="datetime-local" value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }
