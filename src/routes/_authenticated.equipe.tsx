@@ -1,7 +1,16 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, UserPlus, Loader2, Copy, KeyRound, MailPlus, Target } from "lucide-react";
+import {
+  MoreHorizontal,
+  UserPlus,
+  Loader2,
+  Copy,
+  KeyRound,
+  MailPlus,
+  Target,
+  MessageCircle,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -62,6 +71,8 @@ type Member = {
   ativo: boolean;
   role: Role | null;
   comercial: boolean;
+  /** Instância da Evolution API (número de WhatsApp) desta pessoa. */
+  whatsapp: string | null;
 };
 
 export const Route = createFileRoute("/_authenticated/equipe")({
@@ -77,6 +88,7 @@ function EquipePage() {
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [resetMember, setResetMember] = useState<Member | null>(null);
+  const [whatsappMember, setWhatsappMember] = useState<Member | null>(null);
   const [lastAccess, setLastAccess] = useState<Record<string, string>>({});
   const [confirmAction, setConfirmAction] = useState<{
     title: string;
@@ -88,6 +100,7 @@ function EquipePage() {
   async function fetchMembers() {
     setLoading(true);
     const commercialReq = supabase.from("commercial_access").select("user_id");
+    const whatsappReq = supabase.from("commercial_whatsapp_instances").select("user_id, instance");
     const [{ data: profiles, error }, { data: roles }, { data: sessions }] = await Promise.all([
       supabase
       .from("profiles")
@@ -100,6 +113,7 @@ function EquipePage() {
         .order("last_active_at", { ascending: false }),
     ]);
     const { data: commercial } = await commercialReq;
+    const { data: whatsapp } = await whatsappReq;
     if (error) {
       toast.error("Erro ao carregar equipe", { description: error.message });
       setLoading(false);
@@ -113,11 +127,13 @@ function EquipePage() {
     });
     setLastAccess(accessMap);
     const commercialIds = new Set((commercial ?? []).map((c) => c.user_id));
+    const whatsappMap = new Map((whatsapp ?? []).map((w) => [w.user_id, w.instance]));
     setMembers(
       (profiles ?? []).map((p) => ({
         ...p,
         role: roleMap.get(p.id) ?? null,
         comercial: commercialIds.has(p.id),
+        whatsapp: whatsappMap.get(p.id) ?? null,
       })),
     );
     setLoading(false);
@@ -186,6 +202,28 @@ function EquipePage() {
           return;
         }
         toast.success(enabled ? "Acesso comercial liberado" : "Acesso comercial removido");
+        fetchMembers();
+      },
+    });
+  }
+  function setWhatsapp(m: Member, instance: string | null) {
+    setWhatsappMember(null);
+    setConfirmAction({
+      title: instance ? "Conectar WhatsApp" : "Remover WhatsApp",
+      description: instance
+        ? `Confirme sua senha para que as mensagens dos leads de ${m.nome ?? m.email} saiam da instância “${instance}” da Evolution API.`
+        : `Confirme sua senha para desvincular o WhatsApp de ${m.nome ?? m.email}.`,
+      confirmLabel: instance ? "Salvar" : "Remover",
+      run: async () => {
+        const { error } = await supabase.rpc("admin_set_whatsapp_instance", {
+          _user_id: m.id,
+          _instance: instance,
+        });
+        if (error) {
+          toast.error("Não foi possível salvar", { description: error.message });
+          return;
+        }
+        toast.success(instance ? "WhatsApp vinculado" : "WhatsApp removido");
         fetchMembers();
       },
     });
@@ -288,6 +326,13 @@ function EquipePage() {
                             ? "Remover acesso a Leads"
                             : "Liberar Acompanhamento de Leads"}
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={m.role !== "admin" && !m.comercial}
+                        onClick={() => setWhatsappMember(m)}
+                      >
+                        <MessageCircle className="mr-2 size-4" />
+                        {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         disabled={isSelf}
@@ -335,6 +380,14 @@ function EquipePage() {
                           className="ml-1 border-primary/40 text-[10px] text-primary"
                         >
                           Comercial
+                        </Badge>
+                      )}
+                      {m.whatsapp && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-emerald-500/40 text-[10px] text-emerald-300"
+                        >
+                          WhatsApp: {m.whatsapp}
                         </Badge>
                       )}
                     </dd>
@@ -450,6 +503,14 @@ function EquipePage() {
                           Comercial
                         </Badge>
                       )}
+                      {m.whatsapp && (
+                        <Badge
+                          variant="outline"
+                          className="ml-1 border-emerald-500/40 text-[10px] text-emerald-300"
+                        >
+                          WhatsApp: {m.whatsapp}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {last ? (
@@ -510,6 +571,13 @@ function EquipePage() {
                                 ? "Remover acesso a Leads"
                                 : "Liberar Acompanhamento de Leads"}
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={m.role !== "admin" && !m.comercial}
+                            onClick={() => setWhatsappMember(m)}
+                          >
+                            <MessageCircle className="mr-2 size-4" />
+                            {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             disabled={isSelf}
@@ -550,6 +618,12 @@ function EquipePage() {
         }}
       />
 
+      <WhatsappInstanceDialog
+        member={whatsappMember}
+        onClose={() => setWhatsappMember(null)}
+        onSave={setWhatsapp}
+      />
+
       <ConfirmPasswordDialog
         open={!!confirmAction}
         onOpenChange={(v) => {
@@ -564,6 +638,70 @@ function EquipePage() {
         }}
       />
     </div>
+  );
+}
+
+function WhatsappInstanceDialog({
+  member,
+  onClose,
+  onSave,
+}: {
+  member: Member | null;
+  onClose: () => void;
+  onSave: (m: Member, instance: string | null) => void;
+}) {
+  const [instance, setInstance] = useState("");
+  useEffect(() => {
+    if (member) setInstance(member.whatsapp ?? "");
+  }, [member]);
+  return (
+    <Dialog open={!!member} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>WhatsApp de {member?.nome ?? member?.email}</DialogTitle>
+          <DialogDescription>
+            Informe o nome da instância criada na Evolution API com o número desta pessoa. As
+            mensagens dos leads em que ela é responsável saem desse número.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-1.5">
+          <Label>Nome da instância</Label>
+          <Input
+            value={instance}
+            onChange={(e) => setInstance(e.target.value)}
+            placeholder="ex.: danilo"
+            autoCapitalize="none"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Exatamente como aparece no painel da Evolution (maiúsculas e minúsculas contam).
+          </p>
+        </div>
+        <DialogFooter className="gap-2 sm:justify-between">
+          {member?.whatsapp ? (
+            <Button
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => onSave(member, null)}
+            >
+              Remover
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!instance.trim() || instance.trim() === member?.whatsapp}
+              onClick={() => member && onSave(member, instance.trim())}
+            >
+              Salvar
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

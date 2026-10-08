@@ -6,6 +6,8 @@ import {
   Circle,
   Clipboard,
   ExternalLink,
+  Loader2,
+  Send,
   MessageCircle,
   Play,
   XCircle,
@@ -24,7 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useApplyLeadChange } from "../api";
+import { useApplyLeadChange, usePeopleMap } from "../api";
 import {
   CADENCE_LABEL,
   CLOSE_CADENCE_KEY,
@@ -36,6 +38,7 @@ import {
 } from "../cadence";
 import {
   CADENCE_STATUS_LABEL,
+  channelLabel,
   isFinalStage,
   type Lead,
   type LeadActivity,
@@ -52,6 +55,7 @@ import {
 import { ChannelSelect, DateTimeField, DialogActions } from "./dialog-kit";
 import { useLeadRun } from "./useLeadRun";
 import { SectionCard } from "./shared";
+import { sendWhatsapp, useWhatsappStatus } from "../whatsapp";
 import { formatDateTime, fromLocalInput, toLocalInput } from "../format";
 
 export function CadencePanel({
@@ -140,7 +144,7 @@ export function CadencePanel({
                   <p className="text-sm font-medium">{label}</p>
                   <p className={cn("text-[11px] text-muted-foreground", overdue && "text-red-400")}>
                     {s.state === "enviada" &&
-                      `${isClose ? "Encerrada" : "Enviada"} em ${formatDateTime(s.sentAt)}${s.canal ? ` · ${s.canal}` : ""}`}
+                      `${isClose ? "Encerrada" : "Enviada"} em ${formatDateTime(s.sentAt)}${s.canal ? ` · ${channelLabel(s.canal)}` : ""}`}
                     {s.state === "prevista" &&
                       `Previsto para ${formatDateTime(s.dueAt)}${overdue ? " · atrasado" : ""}`}
                     {s.state === "cancelada" && "Não enviada (cadência interrompida)"}
@@ -215,6 +219,7 @@ export function CadencePanel({
             registerTemplateSent(lead, sendKey, sendStep?.activityId ?? null, input, ctx())
           }
           success={`${CADENCE_LABEL[sendKey]} registrado como enviado`}
+          pendingActivityId={sendStep?.state === "prevista" ? (sendStep.activityId ?? null) : null}
         />
       )}
 
@@ -277,6 +282,7 @@ export function SendTemplateDialog({
   vars,
   build,
   success,
+  pendingActivityId,
 }: {
   lead: Lead;
   open: boolean;
@@ -286,8 +292,21 @@ export function SendTemplateDialog({
   vars: TemplateVars;
   build: (input: { sentAt: Date; canal: string; observacoes?: string }) => LeadChange;
   success: string;
+  /** Mensagem prevista que este envio cumpre; necessária para enviar pela API. */
+  pendingActivityId: string | null;
 }) {
   const { run, error, pending } = useLeadRun(lead, onOpenChange);
+  const { data: waStatus, isLoading: waLoading } = useWhatsappStatus(lead.id, open);
+  const { data: owners = {} } = usePeopleMap([lead.responsavel_id]);
+  const ownerName =
+    (lead.responsavel_id && owners[lead.responsavel_id]?.nome?.trim().split(/\s+/)[0]) || null;
+  // A mensagem sai do número do responsável pelo lead (ou do número padrão).
+  const senderLabel = waStatus?.from_owner
+    ? ownerName
+      ? `de ${ownerName}`
+      : "do responsável"
+    : "(número padrão)";
+  const [apiState, setApiState] = useState<"idle" | "sending" | "sent">("idle");
   const [text, setText] = useState("");
   const [sentAt, setSentAt] = useState("");
   const [canal, setCanal] = useState("whatsapp");
@@ -301,6 +320,7 @@ export function SendTemplateDialog({
     setCanal("whatsapp");
     setObs("");
     setCopied(false);
+    setApiState("idle");
   }, [open, template, vars]);
 
   const missing = useMemo(() => {
@@ -309,6 +329,48 @@ export function SendTemplateDialog({
     return Array.from(new Set(found));
   }, [text]);
   const wa = whatsappLink(lead.telefone, text);
+
+  const apiBlocked = !pendingActivityId
+    ? "Não há mensagem prevista para este lead."
+    : waLoading
+      ? "Verificando a conexão do WhatsApp…"
+      : !waStatus?.configured
+        ? "Envio pelo WhatsApp ainda não configurado (Evolution API)."
+        : !waStatus.instance
+          ? `${ownerName ?? "O responsável por este lead"} ainda não tem WhatsApp conectado. Um admin cadastra o número em Equipe.`
+          : !waStatus.connected
+            ? `O WhatsApp ${senderLabel} está desconectado na Evolution API. Conecte de novo pelo QR Code.`
+            : !wa
+              ? "O lead não tem telefone de WhatsApp válido."
+              : missing.length
+                ? "Complete os campos entre colchetes antes de enviar."
+                : null;
+
+  async function sendViaApi() {
+    if (apiBlocked || !pendingActivityId) return;
+    setApiState("sending");
+    try {
+      const { messageId, instance } = await sendWhatsapp({
+        leadId: lead.id,
+        activityId: pendingActivityId,
+        text,
+      });
+      setApiState("sent");
+      const note = `Enviada pela Evolution API (instância ${instance ?? "?"}${messageId ? `, id ${messageId}` : ""})`;
+      run(
+        () =>
+          build({
+            sentAt: new Date(),
+            canal: "whatsapp_api",
+            observacoes: [obs.trim(), note].filter(Boolean).join("\n"),
+          }),
+        success,
+      );
+    } catch (e) {
+      setApiState("idle");
+      toast.error("Mensagem não enviada", { description: (e as Error).message });
+    }
+  }
 
   async function copy() {
     try {
@@ -326,8 +388,8 @@ export function SendTemplateDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            1) Revise e copie a mensagem. 2) Envie pelo WhatsApp. 3) Registre o envio abaixo — só
-            então ela conta como enviada.
+            Revise a mensagem e envie pelo WhatsApp da DPlay com um clique. Se preferir enviar à
+            mão, copie o texto e registre o envio abaixo — só então ela conta como enviada.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
@@ -347,6 +409,30 @@ export function SendTemplateDialog({
             {missing.length > 0 && (
               <p className="text-[11px] text-amber-400">
                 Complete antes de enviar: {missing.join(", ")}
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2 rounded-xl border border-primary/40 bg-primary/5 p-3">
+            <Button
+              type="button"
+              onClick={sendViaApi}
+              disabled={!!apiBlocked || apiState !== "idle" || pending}
+              className="gap-2 sm:w-fit"
+            >
+              {apiState === "sending" || (apiState === "sent" && pending) ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              {apiState === "sent" ? "Mensagem enviada" : `Enviar pelo WhatsApp ${senderLabel}`}
+            </Button>
+            {apiBlocked && apiState === "idle" && (
+              <p className="text-[11px] text-muted-foreground">{apiBlocked}</p>
+            )}
+            {apiState === "sent" && !pending && (
+              <p className="text-[11px] text-amber-400">
+                A mensagem já foi enviada pelo WhatsApp, mas o registro não foi salvo. Clique em
+                “Registrar envio” abaixo — não envie de novo.
               </p>
             )}
           </div>

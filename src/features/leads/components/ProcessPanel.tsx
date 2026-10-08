@@ -354,6 +354,7 @@ export function ProcessPanel({
             )
           }
           success="Tentativa de reagendamento registrada"
+          pendingActivityId={pendingNoShow?.id ?? null}
         />
       )}
       <MilestoneDialog
