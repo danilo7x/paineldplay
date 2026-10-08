@@ -157,6 +157,7 @@ function RaniLayout() {
                     <Link
                       to="/rani/$threadId"
                       params={{ threadId: t.id }}
+                      search={{ send: undefined }}
                       className="flex-1 truncate rounded-lg px-3 py-2 text-sm"
                     >
                       {t.title || "Nova conversa"}
