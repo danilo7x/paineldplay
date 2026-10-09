@@ -38,7 +38,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ACTIVE_STAGES, STAGE_META, isFinalStage } from "@/features/leads/model";
+import {
+  ACTIVE_STAGES,
+  STAGE_META,
+  isFinalStage,
+  stageLabel,
+  type LeadStage,
+} from "@/features/leads/model";
 import { MEETING_BOOKED_TITLE } from "@/features/leads/workflow";
 import { PROJECT_SERVICES } from "@/features/projects/services";
 import { countSales } from "@/lib/sales-count";
@@ -87,6 +93,37 @@ const STATUS_LABELS: Record<string, string> = {
   em_manutencao: "Em manutenção",
   concluido: "Concluído",
   pausado: "Pausado",
+};
+
+/**
+ * Fatias do gráfico do pipeline: as etapas ativas do Kanban, Ganho, os demais
+ * encerramentos agrupados e Perdido. "Encerrados" (cinza neutro) fica entre
+ * Ganho e Perdido para que o verde e o vermelho nunca encostem.
+ */
+const PIPELINE_SLICES: { key: string; label: string; stages: LeadStage[] }[] = [
+  ...ACTIVE_STAGES.map((s) => ({ key: s, label: STAGE_META[s].label, stages: [s] })),
+  { key: "ganho", label: STAGE_META.ganho.label, stages: ["ganho"] },
+  { key: "encerrados", label: "Encerrados", stages: ["sem_resposta", "contrato_nao_concluido"] },
+  { key: "perdido", label: STAGE_META.perdido.label, stages: ["perdido"] },
+];
+
+/**
+ * Cor de cada fatia do pipeline. A cor segue a etapa (não o tamanho da fatia)
+ * e a ordem foi validada para separar fatias vizinhas no fundo escuro,
+ * inclusive para daltônicos.
+ */
+const PIPELINE_COLORS: Record<string, string> = {
+  novo: "#3987e5",
+  primeiro_contato: "#d95926",
+  cadencia: "#199e70",
+  reuniao: "#c98500",
+  diagnostico: "#d55181",
+  proposta: "#9085e9",
+  negociacao: "#8a9a2a",
+  contrato: "#2aa3c9",
+  ganho: "#3aa655",
+  encerrados: "#5f5f5a",
+  perdido: "#e66767",
 };
 
 /** Etapas em que já existe proposta na mesa. */
@@ -388,15 +425,27 @@ function AnalyticsPage() {
     ).length;
     const fromISO = from.toISOString();
     const toISO = to.toISOString();
-    const pipeline = ACTIVE_STAGES.map((stage) => {
-      const rows = open.filter((l) => l.etapa === stage);
+    // Distribuição de todos os leads pelas etapas do Kanban (abertos e encerrados)
+    const pipeline = PIPELINE_SLICES.map((col) => {
+      const rows = leads.filter((l) => (col.stages as string[]).includes(l.etapa));
+      const breakdown =
+        col.stages.length > 1
+          ? col.stages
+              .map((st) => ({ st, n: rows.filter((l) => l.etapa === st).length }))
+              .filter((b) => b.n > 0)
+              .map((b) => `${stageLabel(b.st)}: ${fmtInt(b.n)}`)
+              .join(" · ")
+          : "";
       return {
-        key: stage,
-        label: STAGE_META[stage].label,
+        key: col.key,
+        label: col.label,
         count: rows.length,
+        pct: leads.length ? (rows.length / leads.length) * 100 : 0,
         value: rows.reduce((a, l) => a + leadValue(l), 0),
+        breakdown,
+        color: PIPELINE_COLORS[col.key] ?? ACCENT,
       };
-    });
+    }).filter((r) => r.count > 0);
     return {
       total: leads.length,
       newInPeriod: leads.filter((l) => l.created_at >= fromISO && l.created_at <= toISO).length,
@@ -615,23 +664,17 @@ function AnalyticsPage() {
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <Filter className="size-4 text-primary" />
                   <CardTitle className="text-sm font-medium">Pipeline de vendas</CardTitle>
-                  <span className="ml-auto text-[11px] text-muted-foreground">leads · valor</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    % dos leads por etapa
+                  </span>
                 </CardHeader>
                 <CardContent>
-                  {salesKpis.opportunities === 0 ? (
+                  {salesKpis.total === 0 ? (
                     <div className="h-64">
-                      <EmptyState label="Nenhuma oportunidade ativa no Kanban." />
+                      <EmptyState label="Nenhum lead registrado no Kanban." />
                     </div>
                   ) : (
-                    <HBarList
-                      rows={salesKpis.pipeline.map((r) => ({
-                        key: r.key,
-                        label: r.label,
-                        size: r.count,
-                        value: `${fmtInt(r.count)} · ${fmtBRLCompact(r.value)}`,
-                        title: `${r.label}: ${r.count} leads, ${fmtBRL(r.value)}`,
-                      }))}
-                    />
+                    <PipelinePie rows={salesKpis.pipeline} total={salesKpis.total} />
                   )}
                 </CardContent>
               </Card>
@@ -834,6 +877,89 @@ function Kpi({ label, value, hint }: { label: string; value: string; hint?: stri
           {hint}
         </p>
       )}
+    </div>
+  );
+}
+
+type PipelineSlice = {
+  key: string;
+  label: string;
+  count: number;
+  pct: number;
+  value: number;
+  breakdown: string;
+  color: string;
+};
+
+function fmtPct(v: number) {
+  return `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+/**
+ * Pizza com a fatia de leads em cada etapa do Kanban, na ordem do funil, e a
+ * legenda ao lado com o percentual e a quantidade de cada etapa.
+ */
+function PipelinePie({ rows, total }: { rows: PipelineSlice[]; total: number }) {
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row">
+      <div className="relative h-56 w-full sm:w-1/2">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={rows}
+              dataKey="count"
+              nameKey="label"
+              innerRadius="55%"
+              outerRadius="95%"
+              startAngle={90}
+              endAngle={-270}
+              paddingAngle={rows.length > 1 ? 2 : 0}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              {rows.map((r) => (
+                <Cell key={r.key} fill={r.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={TOOLTIP_STYLE}
+              labelStyle={TOOLTIP_LABEL}
+              itemStyle={TOOLTIP_ITEM}
+              formatter={(v: number, _name, item) => {
+                const r = item.payload as PipelineSlice;
+                return [
+                  `${fmtInt(v)} ${v === 1 ? "lead" : "leads"} · ${fmtPct(r.pct)} · ${fmtBRL(r.value)}`,
+                  r.label,
+                ];
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-semibold tabular-nums">{fmtInt(total)}</span>
+          <span className="text-[11px] text-muted-foreground">leads</span>
+        </div>
+      </div>
+      <ul className="w-full space-y-1.5 sm:w-1/2">
+        {rows.map((r) => (
+          <li
+            key={r.key}
+            className="flex items-center gap-2 text-xs"
+            title={`${r.label}: ${fmtInt(r.count)} leads (${fmtPct(r.pct)})${
+              r.breakdown ? ` — ${r.breakdown}` : ""
+            }`}
+          >
+            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
+            <span className="truncate text-foreground/90">{r.label}</span>
+            <span className="ml-auto shrink-0 tabular-nums text-foreground/90">
+              {fmtPct(r.pct)}
+            </span>
+            <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
+              {fmtInt(r.count)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
