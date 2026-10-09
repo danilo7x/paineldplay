@@ -41,8 +41,15 @@ import { Label } from "@/components/ui/label";
 import { ACTIVE_STAGES, STAGE_META, isFinalStage } from "@/features/leads/model";
 import { MEETING_BOOKED_TITLE } from "@/features/leads/workflow";
 import { PROJECT_SERVICES } from "@/features/projects/services";
+import { countSales } from "@/lib/sales-count";
 
-type Sale = { valor: number; data: string; project_id: string; status: string };
+type Sale = {
+  valor: number;
+  data: string;
+  project_id: string;
+  status: string;
+  subscription_id: string | null;
+};
 type Project = { id: string; nome: string; status: string; servico: string | null };
 type Step = { autor_id: string | null; status: string; updated_at: string };
 type Member = { user_id: string; project_id: string };
@@ -198,7 +205,7 @@ function AnalyticsPage() {
       const [s, p, st, m, pr, c] = await Promise.all([
         supabase
           .from("sales")
-          .select("valor, data, project_id, status")
+          .select("valor, data, project_id, status, subscription_id")
           .gte("data", fromISO)
           .lt("data", toExclusive),
         // "*" para não quebrar antes da migração que cria a coluna "servico".
@@ -233,9 +240,11 @@ function AnalyticsPage() {
   const revenue = useMemo(() => {
     const total = paidSales.reduce((a, s) => a + Number(s.valor), 0);
     const projectsBilled = new Set(paidSales.map((s) => s.project_id)).size;
+    const { vendas, mensalidades } = countSales(paidSales);
     return {
       total,
-      count: paidSales.length,
+      count: vendas,
+      mensalidades,
       projectsBilled,
       ticket: projectsBilled ? total / projectsBilled : 0,
     };
@@ -490,7 +499,11 @@ function AnalyticsPage() {
               <Kpi
                 label="Faturamento no período"
                 value={fmtBRL(revenue.total)}
-                hint={`${fmtInt(revenue.count)} ${revenue.count === 1 ? "venda" : "vendas"}`}
+                hint={`${fmtInt(revenue.count)} ${revenue.count === 1 ? "venda" : "vendas"}${
+                  revenue.mensalidades
+                    ? ` · ${fmtInt(revenue.mensalidades)} ${revenue.mensalidades === 1 ? "mensalidade" : "mensalidades"}`
+                    : ""
+                }`}
               />
               <Kpi
                 label="Ticket médio"
@@ -502,7 +515,7 @@ function AnalyticsPage() {
                   <Kpi
                     label="Vendas no período"
                     value={fmtInt(revenue.count)}
-                    hint="sem canceladas"
+                    hint="sem canceladas · mensalidades contam 1 por assinatura"
                   />
                   <Kpi
                     label="Projetos faturados"
