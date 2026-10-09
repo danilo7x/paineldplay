@@ -38,7 +38,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BOARD_COLUMNS, isFinalStage, stageLabel } from "@/features/leads/model";
+import {
+  ACTIVE_STAGES,
+  STAGE_META,
+  isFinalStage,
+  stageLabel,
+  type LeadStage,
+} from "@/features/leads/model";
 import { MEETING_BOOKED_TITLE } from "@/features/leads/workflow";
 import { PROJECT_SERVICES } from "@/features/projects/services";
 
@@ -83,9 +89,21 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Cor de cada coluna do Kanban no gráfico do pipeline. A cor segue a etapa (não
- * o tamanho da fatia) e a ordem foi validada para separar fatias vizinhas no
- * fundo escuro, inclusive para daltônicos; "Encerrados" fica em cinza neutro.
+ * Fatias do gráfico do pipeline: as etapas ativas do Kanban, Ganho, os demais
+ * encerramentos agrupados e Perdido. "Encerrados" (cinza neutro) fica entre
+ * Ganho e Perdido para que o verde e o vermelho nunca encostem.
+ */
+const PIPELINE_SLICES: { key: string; label: string; stages: LeadStage[] }[] = [
+  ...ACTIVE_STAGES.map((s) => ({ key: s, label: STAGE_META[s].label, stages: [s] })),
+  { key: "ganho", label: STAGE_META.ganho.label, stages: ["ganho"] },
+  { key: "encerrados", label: "Encerrados", stages: ["sem_resposta", "contrato_nao_concluido"] },
+  { key: "perdido", label: STAGE_META.perdido.label, stages: ["perdido"] },
+];
+
+/**
+ * Cor de cada fatia do pipeline. A cor segue a etapa (não o tamanho da fatia)
+ * e a ordem foi validada para separar fatias vizinhas no fundo escuro,
+ * inclusive para daltônicos.
  */
 const PIPELINE_COLORS: Record<string, string> = {
   novo: "#3987e5",
@@ -94,10 +112,11 @@ const PIPELINE_COLORS: Record<string, string> = {
   reuniao: "#c98500",
   diagnostico: "#d55181",
   proposta: "#9085e9",
-  negociacao: "#e66767",
+  negociacao: "#8a9a2a",
   contrato: "#2aa3c9",
   ganho: "#3aa655",
-  encerrados: "#77776f",
+  encerrados: "#5f5f5a",
+  perdido: "#e66767",
 };
 
 /** Etapas em que já existe proposta na mesa. */
@@ -397,8 +416,8 @@ function AnalyticsPage() {
     ).length;
     const fromISO = from.toISOString();
     const toISO = to.toISOString();
-    // Distribuição de todos os leads pelas colunas do Kanban (abertos e encerrados)
-    const pipeline = BOARD_COLUMNS.map((col) => {
+    // Distribuição de todos os leads pelas etapas do Kanban (abertos e encerrados)
+    const pipeline = PIPELINE_SLICES.map((col) => {
       const rows = leads.filter((l) => (col.stages as string[]).includes(l.etapa));
       const breakdown =
         col.stages.length > 1
