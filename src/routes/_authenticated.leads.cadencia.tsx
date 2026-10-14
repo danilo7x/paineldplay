@@ -66,7 +66,7 @@ function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
           isAdmin
             ? !data?.configured
               ? "Cadastre EVOLUTION_API_URL e EVOLUTION_API_KEY nos segredos do projeto (Lovable Cloud)."
-              : "Cadastre a instância de cada pessoa em Equipe → ⋯ → WhatsApp (Evolution)."
+              : "Conecte o WhatsApp de cada pessoa em Equipe → ⋯ → Conectar WhatsApp."
             : undefined
         }
       >
@@ -77,9 +77,7 @@ function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
   return (
     <span className={box}>
       {instances.map((i) => {
-        const nome = i.user_id
-          ? (names[i.user_id]?.nome?.trim().split(/\s+/)[0] ?? i.instance)
-          : "Padrão";
+        const nome = names[i.user_id]?.nome?.trim().split(/\s+/)[0] ?? i.instance;
         return (
           <span
             key={i.instance}

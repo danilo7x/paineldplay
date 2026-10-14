@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 const FUNCTION = "send-whatsapp";
 
 export type WhatsappInstanceStatus = {
-  user_id: string | null;
+  user_id: string;
   instance: string;
   connected: boolean;
 };
@@ -14,10 +14,8 @@ export type WhatsappInstanceStatus = {
 export type WhatsappStatus = {
   configured: boolean;
   connected: boolean;
-  /** Com lead: instância do responsável (ou a padrão) que enviaria a mensagem. */
+  /** Com lead: instância do responsável, que enviaria a mensagem (null = sem número). */
   instance?: string | null;
-  /** Com lead: a instância é a do responsável (false = número padrão). */
-  from_owner?: boolean;
   /** Sem lead: todos os números cadastrados. */
   instances?: WhatsappInstanceStatus[];
 };
@@ -83,3 +81,30 @@ export async function sendWhatsapp(input: {
   if (!data?.ok) throw new Error(data?.error ?? "A mensagem não foi enviada.");
   return { messageId: data.messageId ?? null, instance: data.instance ?? null };
 }
+
+/* ------------------------------------------------------------------ */
+/* Conexão dos números (Equipe → Conectar WhatsApp), só para admin     */
+/* ------------------------------------------------------------------ */
+
+export type ConnectionState = "open" | "connecting" | "close" | "missing";
+
+export type ConnectResult = {
+  instance: string | null;
+  state: ConnectionState;
+  qr?: string | null;
+  pairingCode?: string | null;
+};
+
+async function adminCall(body: Record<string, unknown>): Promise<ConnectResult> {
+  const { data, error } = await supabase.functions.invoke(FUNCTION, { body });
+  if (error) throw await sendError(error);
+  if (data?.error) throw new WhatsappSendError(String(data.error));
+  return data as ConnectResult;
+}
+
+export const whatsappAdmin = {
+  status: (userId: string) => adminCall({ action: "admin_status", user_id: userId }),
+  connect: (userId: string, instance: string, number?: string) =>
+    adminCall({ action: "admin_connect", user_id: userId, instance, number: number || undefined }),
+  logout: (userId: string) => adminCall({ action: "admin_logout", user_id: userId }),
+};

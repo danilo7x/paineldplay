@@ -320,12 +320,8 @@ export function SendTemplateDialog({
   const { data: owners = {} } = usePeopleMap([lead.responsavel_id]);
   const ownerName =
     (lead.responsavel_id && owners[lead.responsavel_id]?.nome?.trim().split(/\s+/)[0]) || null;
-  // A mensagem sai do número do responsável pelo lead (ou do número padrão).
-  const senderLabel = waStatus?.from_owner
-    ? ownerName
-      ? `de ${ownerName}`
-      : "do responsável"
-    : "(número padrão)";
+  // A mensagem sai só do número do responsável pelo lead.
+  const senderLabel = ownerName ? `de ${ownerName}` : "do responsável";
   const [apiState, setApiState] = useState<"idle" | "sending" | "sent">("idle");
   const [text, setText] = useState("");
   const [sentAt, setSentAt] = useState("");
@@ -357,9 +353,11 @@ export function SendTemplateDialog({
       : !waStatus?.configured
         ? "Envio pelo WhatsApp ainda não configurado (Evolution API)."
         : !waStatus.instance
-          ? `${ownerName ?? "O responsável por este lead"} ainda não tem WhatsApp conectado. Um admin cadastra o número em Equipe.`
+          ? lead.responsavel_id
+            ? `${ownerName ?? "O responsável por este lead"} ainda não tem WhatsApp conectado. Um admin conecta em Equipe → ⋯ → Conectar WhatsApp; até lá, envie à mão.`
+            : "Lead sem responsável com WhatsApp conectado: envie à mão (copie a mensagem ou abra a conversa)."
           : !waStatus.connected
-            ? `O WhatsApp ${senderLabel} está desconectado na Evolution API. Conecte de novo pelo QR Code.`
+            ? `O WhatsApp ${senderLabel} está desconectado. Um admin reconecta em Equipe → ⋯ → Conectar WhatsApp.`
             : !wa
               ? "O lead não tem telefone de WhatsApp válido."
               : missing.length
