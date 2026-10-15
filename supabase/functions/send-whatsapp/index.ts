@@ -3,14 +3,21 @@ import {
   ALREADY_SENT_MESSAGE,
   API_CHANNEL,
   NO_INSTANCE_MESSAGE,
+  NO_QR_MESSAGE,
+  connectRequest,
   connectionStateRequest,
+  createInstanceRequest,
   evolutionErrorMessage,
   isConnected,
+  logoutRequest,
   messageIdFrom,
   normalizePhone,
   pickInstance,
+  qrFrom,
   readConfig,
   sendTextRequest,
+  stateFrom,
+  validInstanceName,
   validateSend,
   type EvolutionConfig,
 } from "./logic.ts";
@@ -40,6 +47,13 @@ async function connected(cfg: EvolutionConfig, instance: string) {
   const r = connectionStateRequest(cfg, instance);
   const res = await fetch(r.url, r.init).catch(() => null);
   return !!res && res.ok && isConnected(await readJson(res));
+}
+
+async function stateOf(cfg: EvolutionConfig, instance: string) {
+  const r = connectionStateRequest(cfg, instance);
+  const res = await fetch(r.url, r.init).catch(() => null);
+  if (!res) return null;
+  return stateFrom(res.status, await readJson(res));
 }
 
 /** Instância cadastrada para a pessoa (lida como o usuário, sob RLS). */
@@ -79,12 +93,96 @@ Deno.serve(async (req) => {
     if (!allowed) return json({ error: "Sem acesso ao Acompanhamento de Leads" }, 403);
 
     const body = (await req.json()) as {
-      action?: "status" | "send";
+      action?: "status" | "send" | "admin_status" | "admin_connect" | "admin_logout";
       lead_id?: string;
       activity_id?: string;
       text?: string;
+      user_id?: string;
+      instance?: string;
+      number?: string;
     };
     const cfg = readConfig((k) => Deno.env.get(k));
+
+    // Conexão dos números (Equipe → Conectar WhatsApp): só admin.
+    if (body.action?.startsWith("admin_")) {
+      const { data: adminRow } = await asUser
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!adminRow) return json({ error: "Somente admin" }, 403);
+      if (!cfg) return json({ error: "Envio pelo WhatsApp ainda não configurado." }, 400);
+      if (!body.user_id) return json({ error: "Informe a pessoa (user_id)." }, 400);
+      const unreachable = () => json({ error: "Não foi possível conectar à Evolution API." }, 502);
+
+      if (body.action === "admin_status") {
+        const instance = await instanceOf(asUser, body.user_id);
+        if (!instance) return json({ instance: null, state: "missing" });
+        const state = await stateOf(cfg, instance);
+        return state ? json({ instance, state }) : unreachable();
+      }
+
+      if (body.action === "admin_logout") {
+        const instance = await instanceOf(asUser, body.user_id);
+        if (!instance) return json({ instance: null, state: "missing" });
+        const r = logoutRequest(cfg, instance);
+        const res = await fetch(r.url, r.init).catch(() => null);
+        if (!res) return unreachable();
+        if (!res.ok && res.status !== 404) {
+          const payload = await readJson(res);
+          // Já desconectada: a Evolution responde erro, mas o resultado é o mesmo.
+          if (!/not connected|disconnected|close/i.test(JSON.stringify(payload ?? "")))
+            return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
+        }
+        return json({ instance, state: (await stateOf(cfg, instance)) ?? "close" });
+      }
+
+      if (body.action === "admin_connect") {
+        const instance = validInstanceName(body.instance);
+        if (!instance)
+          return json(
+            { error: "Nome da instância inválido: use só letras, números, - ou _ (ex.: Flavio)." },
+            400,
+          );
+        const number = body.number ? normalizePhone(body.number) : null;
+        if (body.number && !number)
+          return json({ error: "Número inválido. Use DDD + número, ex.: 11999998888." }, 400);
+
+        // Vincula a instância à pessoa (RPC de admin, como o usuário).
+        const { error: linkErr } = await asUser.rpc("admin_set_whatsapp_instance", {
+          _user_id: body.user_id,
+          _instance: instance,
+        });
+        if (linkErr) return json({ error: linkErr.message }, 400);
+
+        const state = await stateOf(cfg, instance);
+        if (!state) return unreachable();
+        if (state === "open") return json({ instance, state, qr: null, pairingCode: null });
+
+        let payload: unknown = null;
+        if (state === "missing") {
+          // Instância nova: a própria criação já devolve o QR Code.
+          const r = createInstanceRequest(cfg, instance, number);
+          const res = await fetch(r.url, r.init).catch(() => null);
+          if (!res) return unreachable();
+          payload = await readJson(res);
+          if (!res.ok) return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
+        }
+        let codes = qrFrom(payload);
+        if (!codes.qr && !codes.pairingCode) {
+          const r = connectRequest(cfg, instance, number);
+          const res = await fetch(r.url, r.init).catch(() => null);
+          if (!res) return unreachable();
+          payload = await readJson(res);
+          if (!res.ok) return json({ error: evolutionErrorMessage(res.status, payload) }, 502);
+          codes = qrFrom(payload);
+        }
+        if (!codes.qr && !codes.pairingCode) return json({ error: NO_QR_MESSAGE }, 502);
+        return json({ instance, state: "connecting", ...codes });
+      }
+      return json({ error: "Ação inválida" }, 400);
+    }
 
     if (body.action === "status") {
       if (!cfg) return json({ configured: false, connected: false, instances: [] });
@@ -96,27 +194,16 @@ Deno.serve(async (req) => {
           .select("responsavel_id")
           .eq("id", body.lead_id)
           .maybeSingle();
-        const ownerInstance = await instanceOf(asUser, lead?.responsavel_id);
-        const instance = pickInstance(ownerInstance, cfg.defaultInstance);
+        const instance = pickInstance(await instanceOf(asUser, lead?.responsavel_id));
         if (!instance) return json({ configured: true, connected: false, instance: null });
-        return json({
-          configured: true,
-          connected: await connected(cfg, instance),
-          instance,
-          // false = sem número do responsável; usa o número padrão.
-          from_owner: !!ownerInstance,
-        });
+        return json({ configured: true, connected: await connected(cfg, instance), instance });
       }
 
-      // Visão geral: cada número cadastrado e o padrão, se houver.
+      // Visão geral: o número de cada pessoa cadastrada.
       const { data: rows } = await asUser
         .from("commercial_whatsapp_instances")
         .select("user_id, instance");
-      const list: { user_id: string | null; instance: string }[] = [
-        ...((rows ?? []) as { user_id: string; instance: string }[]),
-      ];
-      if (cfg.defaultInstance && !list.some((r) => r.instance === cfg.defaultInstance))
-        list.push({ user_id: null, instance: cfg.defaultInstance });
+      const list = (rows ?? []) as { user_id: string; instance: string }[];
       const instances = await Promise.all(
         list.map(async (r) => ({ ...r, connected: await connected(cfg, r.instance) })),
       );
@@ -151,10 +238,7 @@ Deno.serve(async (req) => {
     if (invalid) return json({ error: invalid }, 400);
 
     // A mensagem sai do número do responsável pelo lead.
-    const instance = pickInstance(
-      await instanceOf(asUser, lead!.responsavel_id),
-      cfg.defaultInstance,
-    );
+    const instance = pickInstance(await instanceOf(asUser, lead!.responsavel_id));
     if (!instance) return json({ error: NO_INSTANCE_MESSAGE }, 400);
 
     // Trava atômica: só um envio por mensagem prevista, mesmo com dois cliques ou

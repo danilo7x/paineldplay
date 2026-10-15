@@ -16,6 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { supabase } from "@/integrations/supabase/client";
+import { whatsappAdmin, type ConnectionState } from "@/features/leads/whatsapp";
 import { Button } from "@/components/ui/button";
 import { ConfirmPasswordDialog } from "@/components/ConfirmPasswordDialog";
 import { Input } from "@/components/ui/input";
@@ -354,7 +355,7 @@ function EquipePage() {
                         onClick={() => setWhatsappMember(m)}
                       >
                         <MessageCircle className="mr-2 size-4" />
-                        {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                        Conectar WhatsApp
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={m.role !== "admin" && !m.comercial}
@@ -608,7 +609,7 @@ function EquipePage() {
                             onClick={() => setWhatsappMember(m)}
                           >
                             <MessageCircle className="mr-2 size-4" />
-                            {m.whatsapp ? `WhatsApp: ${m.whatsapp}` : "WhatsApp (Evolution)…"}
+                            Conectar WhatsApp
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             disabled={m.role !== "admin" && !m.comercial}
@@ -659,10 +660,11 @@ function EquipePage() {
         }}
       />
 
-      <WhatsappInstanceDialog
+      <WhatsappConnectDialog
         member={whatsappMember}
         onClose={() => setWhatsappMember(null)}
-        onSave={setWhatsapp}
+        onChanged={fetchMembers}
+        onRemove={(m) => setWhatsapp(m, null)}
       />
 
       <ConfirmPasswordDialog
@@ -682,62 +684,251 @@ function EquipePage() {
   );
 }
 
-function WhatsappInstanceDialog({
+/** Nome de instância sugerido: primeiro nome sem acento (ex.: "Flávio" → "Flavio"). */
+function suggestInstance(m: Member) {
+  return (m.nome ?? m.email ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .split(/[\s@]+/)[0]
+    .replace(/[^A-Za-z0-9_-]/g, "");
+}
+
+const STATE_LABEL: Record<ConnectionState, { text: string; dot: string }> = {
+  open: { text: "Conectado", dot: "bg-emerald-400" },
+  connecting: { text: "Aguardando leitura do QR Code", dot: "bg-amber-400" },
+  close: { text: "Desconectado", dot: "bg-red-400" },
+  missing: { text: "Sem WhatsApp conectado", dot: "bg-zinc-500" },
+};
+
+/** Conecta o WhatsApp da pessoa pela Evolution: QR Code (ou código), status ao vivo e desconexão. */
+function WhatsappConnectDialog({
   member,
   onClose,
-  onSave,
+  onChanged,
+  onRemove,
 }: {
   member: Member | null;
   onClose: () => void;
-  onSave: (m: Member, instance: string | null) => void;
+  onChanged: () => void;
+  onRemove: (m: Member) => void;
 }) {
   const [instance, setInstance] = useState("");
+  const [number, setNumber] = useState("");
+  const [usePairing, setUsePairing] = useState(false);
+  const [state, setState] = useState<ConnectionState | null>(null);
+  const [codes, setCodes] = useState<{ qr: string | null; pairingCode: string | null } | null>(
+    null,
+  );
+  const [busy, setBusy] = useState<null | "connect" | "logout">(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Ao abrir: nome sugerido e estado atual do número já vinculado.
   useEffect(() => {
-    if (member) setInstance(member.whatsapp ?? "");
+    if (!member) return;
+    setInstance(member.whatsapp ?? suggestInstance(member));
+    setNumber("");
+    setUsePairing(false);
+    setCodes(null);
+    setError(null);
+    setState(member.whatsapp ? null : "missing");
+    if (member.whatsapp)
+      whatsappAdmin
+        .status(member.id)
+        .then((r) => setState(r.state))
+        .catch((e: Error) => setError(e.message));
   }, [member]);
+
+  async function connect() {
+    if (!member) return;
+    setBusy("connect");
+    setError(null);
+    try {
+      const r = await whatsappAdmin.connect(
+        member.id,
+        instance.trim(),
+        usePairing ? number : undefined,
+      );
+      setState(r.state);
+      setCodes(
+        r.state === "open" ? null : { qr: r.qr ?? null, pairingCode: r.pairingCode ?? null },
+      );
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function logout() {
+    if (!member) return;
+    setBusy("logout");
+    setError(null);
+    try {
+      const r = await whatsappAdmin.logout(member.id);
+      setState(r.state);
+      setCodes(null);
+      toast.success("WhatsApp desconectado");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Enquanto espera a leitura: confere o status a cada 3 s e renova o QR a cada 30 s.
+  const waiting = !!member && !!codes && state !== "open";
+  useEffect(() => {
+    if (!waiting || !member) return;
+    const poll = setInterval(() => {
+      whatsappAdmin
+        .status(member.id)
+        .then((r) => {
+          if (r.state === "open") {
+            setState("open");
+            setCodes(null);
+            toast.success(`WhatsApp de ${member.nome ?? member.email} conectado`);
+            onChanged();
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+    const refresh = usePairing ? null : setInterval(() => void connect(), 30000);
+    return () => {
+      clearInterval(poll);
+      if (refresh) clearInterval(refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, member, usePairing]);
+
+  const label = state ? STATE_LABEL[state] : null;
+  const nameOk = /^[A-Za-z0-9_-]{2,40}$/.test(instance.trim());
+
   return (
     <Dialog open={!!member} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>WhatsApp de {member?.nome ?? member?.email}</DialogTitle>
           <DialogDescription>
-            Informe o nome da instância criada na Evolution API com o número desta pessoa. As
-            mensagens dos leads em que ela é responsável saem desse número.
+            As mensagens dos leads em que esta pessoa é responsável saem deste número.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label>Nome da instância</Label>
-          <Input
-            value={instance}
-            onChange={(e) => setInstance(e.target.value)}
-            placeholder="ex.: danilo"
-            autoCapitalize="none"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Exatamente como aparece no painel da Evolution (maiúsculas e minúsculas contam).
-          </p>
+
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
+          {label ? (
+            <>
+              <span className={`size-2 rounded-full ${label.dot}`} /> {label.text}
+              {member?.whatsapp && (
+                <span className="ml-auto text-[11px] text-muted-foreground">
+                  instância {member.whatsapp}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <Loader2 className="size-3.5 animate-spin" /> Verificando…
+            </>
+          )}
         </div>
+
+        {state === "open" ? (
+          <p className="text-sm text-muted-foreground">
+            ✓ Pronto. Para trocar o número, desconecte e conecte de novo.
+          </p>
+        ) : codes ? (
+          <div className="grid justify-items-center gap-3 text-center">
+            {codes.qr && !usePairing && (
+              <img
+                src={codes.qr}
+                alt="QR Code do WhatsApp"
+                className="size-64 rounded-lg bg-white p-2"
+              />
+            )}
+            {codes.pairingCode && usePairing && (
+              <p className="rounded-lg border border-border/60 px-4 py-3 font-mono text-2xl tracking-[0.3em]">
+                {codes.pairingCode}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              No celular de {member?.nome?.split(" ")[0] ?? "da pessoa"}: WhatsApp → Configurações →
+              Aparelhos conectados → Conectar um aparelho
+              {usePairing
+                ? " → Conectar com número de telefone, e digite o código acima."
+                : ", e aponte a câmera para o QR Code. Ele é renovado sozinho a cada 30 s."}
+            </p>
+            {usePairing && !codes.pairingCode && (
+              <p className="text-xs text-amber-400">
+                A Evolution não devolveu o código. Tente pelo QR Code.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <Label>Nome da instância na Evolution</Label>
+              <Input
+                value={instance}
+                onChange={(e) => setInstance(e.target.value)}
+                placeholder="ex.: Flavio"
+                autoCapitalize="none"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Só letras, números, - ou _. Se a instância não existir, ela é criada.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={usePairing} onCheckedChange={setUsePairing} />
+              Prefiro código de pareamento (sem QR Code)
+            </label>
+            {usePairing && (
+              <div className="grid gap-1.5">
+                <Label>Número do WhatsApp (com DDD)</Label>
+                <Input
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  placeholder="11999998888"
+                  inputMode="tel"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
         <DialogFooter className="gap-2 sm:justify-between">
           {member?.whatsapp ? (
             <Button
               variant="ghost"
               className="text-destructive"
-              onClick={() => onSave(member, null)}
+              onClick={() => member && onRemove(member)}
             >
-              Remover
+              Remover vínculo
             </Button>
           ) : (
             <span />
           )}
           <div className="flex gap-2">
+            {state === "open" ? (
+              <Button variant="secondary" disabled={!!busy} onClick={logout}>
+                {busy === "logout" && <Loader2 className="size-4 animate-spin" />} Desconectar
+              </Button>
+            ) : codes ? (
+              <Button variant="secondary" disabled={!!busy} onClick={() => setCodes(null)}>
+                Voltar
+              </Button>
+            ) : (
+              <Button
+                disabled={!nameOk || (usePairing && !number.trim()) || !!busy}
+                onClick={connect}
+              >
+                {busy === "connect" && <Loader2 className="size-4 animate-spin" />}
+                {usePairing ? "Gerar código" : "Gerar QR Code"}
+              </Button>
+            )}
             <Button variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={!instance.trim() || instance.trim() === member?.whatsapp}
-              onClick={() => member && onSave(member, instance.trim())}
-            >
-              Salvar
+              Fechar
             </Button>
           </div>
         </DialogFooter>

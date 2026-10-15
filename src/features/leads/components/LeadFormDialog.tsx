@@ -292,7 +292,7 @@ export function LeadFormDialog({
                   autoFocus
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Os envios pelo WhatsApp deste lead saem do número padrão da DPlay.
+                  Sem número conectado no CRM: as mensagens deste lead são enviadas à mão.
                 </p>
               </div>
             )}

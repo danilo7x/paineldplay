@@ -1,7 +1,7 @@
 // Regras do envio pela Evolution API, sem dependências do Deno (testáveis em Node).
 
 /** URL e chave são globais; cada pessoa tem a sua instância (número). */
-export type EvolutionConfig = { url: string; apiKey: string; defaultInstance: string | null };
+export type EvolutionConfig = { url: string; apiKey: string };
 
 export type LeadForSend = {
   id: string;
@@ -32,19 +32,17 @@ export function readConfig(get: (k: string) => string | undefined): EvolutionCon
   const url = get("EVOLUTION_API_URL")?.trim().replace(/\/+$/, "");
   const apiKey = get("EVOLUTION_API_KEY")?.trim();
   if (!url || !apiKey) return null;
-  return { url, apiKey, defaultInstance: get("EVOLUTION_INSTANCE")?.trim() || null };
+  // EVOLUTION_INSTANCE (número padrão) não é mais usado: só envia quem tem número próprio.
+  return { url, apiKey };
 }
 
-/** Instância do responsável pelo lead; sem ela, a padrão (se houver). */
-export function pickInstance(
-  ownerInstance: string | null | undefined,
-  defaultInstance: string | null,
-): string | null {
-  return ownerInstance?.trim() || defaultInstance || null;
+/** A mensagem sai só do número do responsável pelo lead. */
+export function pickInstance(ownerInstance: string | null | undefined): string | null {
+  return ownerInstance?.trim() || null;
 }
 
 export const NO_INSTANCE_MESSAGE =
-  "O responsável por este lead não tem WhatsApp conectado. Cadastre o número dele em Equipe.";
+  "O responsável por este lead não tem WhatsApp conectado. Um admin conecta em Equipe → ⋯ → Conectar WhatsApp; até lá, envie à mão.";
 
 /** Só dígitos; números brasileiros (10 ou 11 dígitos) recebem o DDI 55. */
 export function normalizePhone(raw: string | null | undefined): string | null {
@@ -127,3 +125,76 @@ export function evolutionErrorMessage(status: number, body: unknown): string {
     return "O WhatsApp da instância está desconectado. Conecte de novo pelo QR Code.";
   return `A Evolution respondeu com erro ${status}.`;
 }
+
+/* ------------------------------------------------------------------ */
+/* Conexão de números (Equipe → Conectar WhatsApp), só para admin      */
+/* ------------------------------------------------------------------ */
+
+export type ConnectionState = "open" | "connecting" | "close" | "missing";
+
+/** Estado da instância; 404 da Evolution = instância ainda não criada. */
+export function stateFrom(status: number, body: unknown): ConnectionState {
+  if (status === 404) return "missing";
+  const b = body as { instance?: { state?: string }; state?: string } | null;
+  const state = b?.instance?.state ?? b?.state;
+  return state === "open" || state === "connecting" ? state : "close";
+}
+
+/** Nome de instância aceito: letras, números, "-" e "_" (sem espaços nem acentos). */
+export function validInstanceName(name: string | null | undefined): string | null {
+  const n = (name ?? "").trim();
+  return /^[A-Za-z0-9_-]{2,40}$/.test(n) ? n : null;
+}
+
+export function connectRequest(cfg: EvolutionConfig, instance: string, number?: string | null) {
+  const qs = number ? `?number=${encodeURIComponent(number)}` : "";
+  return {
+    url: `${cfg.url}/instance/connect/${encodeURIComponent(instance)}${qs}`,
+    init: { method: "GET", headers: { apikey: cfg.apiKey } },
+  };
+}
+
+export function createInstanceRequest(
+  cfg: EvolutionConfig,
+  instance: string,
+  number?: string | null,
+) {
+  return {
+    url: `${cfg.url}/instance/create`,
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: cfg.apiKey },
+      body: JSON.stringify({
+        instanceName: instance,
+        integration: "WHATSAPP-BAILEYS",
+        qrcode: true,
+        ...(number ? { number } : {}),
+      }),
+    },
+  };
+}
+
+export function logoutRequest(cfg: EvolutionConfig, instance: string) {
+  return {
+    url: `${cfg.url}/instance/logout/${encodeURIComponent(instance)}`,
+    init: { method: "DELETE", headers: { apikey: cfg.apiKey } },
+  };
+}
+
+/** QR Code e código de pareamento: aceita a resposta de /connect e a de /create. */
+export function qrFrom(body: unknown): { qr: string | null; pairingCode: string | null } {
+  const b = body as {
+    base64?: string;
+    pairingCode?: string | null;
+    qrcode?: { base64?: string; pairingCode?: string | null };
+  } | null;
+  const qr = b?.base64 ?? b?.qrcode?.base64 ?? null;
+  const pairingCode = b?.pairingCode ?? b?.qrcode?.pairingCode ?? null;
+  return {
+    qr: qr && qr.startsWith("data:image") ? qr : qr ? `data:image/png;base64,${qr}` : null,
+    pairingCode: pairingCode || null,
+  };
+}
+
+export const NO_QR_MESSAGE =
+  "A Evolution não gerou o QR Code. Isso costuma acontecer quando a versão do WhatsApp Web configurada no servidor (CONFIG_SESSION_PHONE_VERSION) está desatualizada. Tente de novo em instantes; se persistir, atualize essa configuração no servidor da Evolution.";
