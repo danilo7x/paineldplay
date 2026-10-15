@@ -43,6 +43,13 @@
       "when": 1792032018948,
       "tag": "0005_projects_servico",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792032039287,
+      "tag": "0006_responsavel_outro",
+      "breakpoints": true
     }
   ]
 }
