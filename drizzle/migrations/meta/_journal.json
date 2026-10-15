@@ -36,6 +36,20 @@
       "when": 1791497387700,
       "tag": "0004_responsavel_outro",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792032018948,
+      "tag": "0005_projects_servico",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792032039287,
+      "tag": "0006_responsavel_outro",
+      "breakpoints": true
     }
   ]
 }
