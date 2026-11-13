@@ -222,11 +222,11 @@ export function GlobalSearchTrigger() {
     <button
       type="button"
       onClick={() => openGlobalSearch()}
-      className="relative hidden h-8 w-full max-w-sm items-center gap-2 rounded-full border border-border/50 bg-card/40 pl-8 pr-3 text-left text-xs text-muted-foreground transition hover:border-border md:flex"
+      className="relative hidden h-8 w-full max-w-sm items-center gap-2 rounded-full border border-border bg-card/40 pl-8 pr-3 text-left text-xs text-muted-foreground transition hover:border-border md:flex"
     >
       <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
       <span className="flex-1">Buscar…</span>
-      <kbd className="rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <kbd className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
         ⌘K
       </kbd>
     </button>

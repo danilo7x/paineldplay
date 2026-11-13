@@ -127,8 +127,7 @@ export function PageHeader({
   return (
     <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">{section}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

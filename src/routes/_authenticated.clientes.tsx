@@ -103,8 +103,7 @@ function ClientesPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Workspace</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Cadastro central de clientes com histórico de valor gerado (LTV).
           </p>
@@ -125,7 +124,7 @@ function ClientesPage() {
         </Dialog>
       </header>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="p-4">
           <Input
             placeholder="Buscar por nome, e-mail ou contato…"
@@ -141,7 +140,7 @@ function ClientesPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <Contact className="size-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -157,11 +156,11 @@ function ClientesPage() {
             return (
               <Card
                 key={c.id}
-                className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl"
+                className="rounded-xl border-border bg-card"
               >
                 <CardContent className="space-y-3 p-5">
                   <div className="flex items-start gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                    <div className="grid size-10 shrink-0 place-items-center text-muted-foreground">
                       <Contact className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -198,19 +197,19 @@ function ClientesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/40 bg-background/40 p-3 text-center">
+                  <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-background/40 p-3 text-center">
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">LTV</p>
+                      <p className="text-xs text-muted-foreground">LTV</p>
                       <p className="mt-1 text-sm font-semibold text-emerald-300">
                         {brl(stats?.total ?? 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Vendas</p>
+                      <p className="text-xs text-muted-foreground">Vendas</p>
                       <p className="mt-1 text-sm font-semibold">{stats?.count ?? 0}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Projetos</p>
+                      <p className="text-xs text-muted-foreground">Projetos</p>
                       <p className="mt-1 text-sm font-semibold">{projetos}</p>
                     </div>
                   </div>

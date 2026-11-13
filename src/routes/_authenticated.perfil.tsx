@@ -170,14 +170,13 @@ function PerfilPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Pessoal</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Meu perfil</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Meu perfil</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Estas informações aparecem para outros membros do painel.
         </p>
       </header>
 
-      <Card className="border-border/50 bg-card/60 backdrop-blur">
+      <Card className="border-border bg-card/60">
         <CardContent className="p-0">
           <div className="relative h-40 w-full overflow-hidden rounded-t-xl bg-gradient-to-br from-primary/20 via-primary/10 to-background sm:h-52">
             {profile.cover_url ? (
@@ -203,7 +202,7 @@ function PerfilPage() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                className="gap-1.5 bg-background/80 backdrop-blur"
+                className="gap-1.5 bg-background/80"
                 onClick={() => coverInput.current?.click()}
                 disabled={uploadingCover}
               >
@@ -219,7 +218,7 @@ function PerfilPage() {
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="gap-1.5 bg-background/80 backdrop-blur"
+                  className="gap-1.5 bg-background/80"
                   onClick={handleRemoveCover}
                 >
                   <Trash2 className="size-3.5" />

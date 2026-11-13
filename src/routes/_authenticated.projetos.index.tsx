@@ -116,8 +116,7 @@ function ProjetosIndex() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Workspace</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Projetos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Projetos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? "Todos os projetos da DPlay Solutions."
@@ -146,7 +145,7 @@ function ProjetosIndex() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : projects.length === 0 ? (
-        <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
               <FolderKanban className="size-5" />
@@ -170,14 +169,18 @@ function ProjetosIndex() {
                 params={{ id: p.id }}
                 className="group block"
               >
-                <Card className="h-full rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition group-hover:border-primary/40 group-hover:shadow-[0_10px_40px_-12px_rgba(5,126,243,0.35)]">
+                <Card className="h-full rounded-xl border-border bg-card transition group-hover:border-primary/40">
                   <CardContent className="flex h-full flex-col gap-4 p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold">{p.nome}</p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {p.cliente ?? "Sem cliente definido"}
-                          {serviceLabel(p.servico) && ` · ${serviceLabel(p.servico)}`}
+                          {[
+                            p.cliente && p.cliente !== p.nome ? p.cliente : null,
+                            serviceLabel(p.servico),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || (p.cliente ? "" : "Sem cliente definido")}
                         </p>
                       </div>
                       <span
@@ -189,7 +192,7 @@ function ProjetosIndex() {
 
                     <div className="mt-auto space-y-3">
                       <div>
-                        <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                           <span>Progresso</span>
                           <span>
                             {p.doneSteps}/{p.totalSteps} · {pct}%

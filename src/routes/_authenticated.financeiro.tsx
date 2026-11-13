@@ -288,8 +288,7 @@ function FinanceiroPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Administração</p>
-          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">Financeiro</h1>
+          <h1 className="truncate text-2xl font-semibold tracking-tight">Financeiro</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Visão global de receitas e despesas da empresa.
           </p>
@@ -311,9 +310,9 @@ function FinanceiroPage() {
         </Dialog>
       </header>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/60 p-1">
+          <div className="flex items-center gap-1 rounded-full border border-border bg-card/60 p-1">
             {(
               [
                 { k: "mes", l: "Este mês" },
@@ -394,13 +393,10 @@ function FinanceiroPage() {
         />
       </div>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Reservas sobre a receita
-              </p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight">
                 Provisões de imposto e caixa
               </h2>
@@ -409,27 +405,27 @@ function FinanceiroPage() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Sobra líquida sugerida</p>
+              <p className="text-xs text-muted-foreground">Sobra líquida sugerida</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight text-emerald-300">
                 {brl(receitaTotal * (1 - TAX_RATE - RESERVE_RATE))}
               </p>
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-amber-200/80">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-xs text-muted-foreground">
                 Imposto ({(TAX_RATE * 100).toFixed(0)}%)
               </p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-amber-200">
+              <p className="mt-2 text-xl font-semibold tracking-tight">
                 {brl(receitaTotal * TAX_RATE)}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">Provisão para tributos.</p>
             </div>
-            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-sky-200/80">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-xs text-muted-foreground">
                 Reserva de caixa ({(RESERVE_RATE * 100).toFixed(0)}%)
               </p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-sky-200">
+              <p className="mt-2 text-xl font-semibold tracking-tight">
                 {brl(receitaTotal * RESERVE_RATE)}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">Fundo estratégico da operação.</p>
@@ -438,11 +434,11 @@ function FinanceiroPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="space-y-5 p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Metas de {new Date(goalMonth + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
               </p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight">Realizado x meta</h2>
@@ -461,11 +457,8 @@ function FinanceiroPage() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl lg:col-span-2">
+        <Card className="rounded-xl border-border bg-card lg:col-span-2">
           <CardContent className="p-6">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              Receita x Despesa
-            </p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight">Comparativo mensal</h2>
             <div className="mt-4 h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -506,11 +499,8 @@ function FinanceiroPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="p-6">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              Despesas
-            </p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight">Por categoria</h2>
             {byCategory.length === 0 ? (
               <div className="mt-8 text-center text-xs text-muted-foreground">
@@ -557,7 +547,7 @@ function FinanceiroPage() {
         </Card>
       </div>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="mr-auto text-lg font-semibold tracking-tight">Despesas</h2>
@@ -598,10 +588,10 @@ function FinanceiroPage() {
               Nenhuma despesa neste filtro.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border/50">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableRow className="border-border hover:bg-transparent">
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Valor</TableHead>
@@ -612,7 +602,7 @@ function FinanceiroPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredExpenses.map((e) => (
-                    <TableRow key={e.id} className="border-border/50">
+                    <TableRow key={e.id} className="border-border">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <span>{e.descricao}</span>
@@ -713,19 +703,19 @@ function SummaryCard({
   accent?: string;
 }) {
   return (
-    <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+    <Card className="rounded-xl border-border bg-card">
       <CardContent className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
             {label}
           </p>
-          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+          <div className="shrink-0 text-muted-foreground/60">
             <Icon className="size-4" />
           </div>
         </div>
         <p
           className={cn(
-            "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+            "mt-2 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums",
             accent,
           )}
         >
@@ -871,11 +861,11 @@ function ExpenseDialog({
           </div>
         </div>
         {isChild ? (
-          <div className="rounded-xl border border-border/50 bg-primary/5 p-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border bg-primary/5 p-3 text-xs text-muted-foreground">
             Esta linha foi gerada automaticamente por uma despesa recorrente. Para alterar a recorrência edite a despesa de origem.
           </div>
         ) : (
-          <div className="space-y-3 rounded-xl border border-border/50 bg-card/40 p-4">
+          <div className="space-y-3 rounded-xl border border-border bg-card/40 p-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">Despesa recorrente</p>
@@ -968,9 +958,9 @@ function GoalRow({
   barClass?: string;
 }) {
   return (
-    <div className="space-y-2 rounded-xl border border-border/50 bg-card/40 p-4">
+    <div className="space-y-2 rounded-xl border border-border bg-card/40 p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground">{label}</span>
         <span className={cn("text-sm font-semibold", accent)}>{brl(real)}</span>
       </div>
       <Progress value={pct} className={cn("h-2", barClass && `[&>div]:${barClass}`)} />
@@ -1041,7 +1031,7 @@ function CategoriesDialog({
         <DialogTitle>Categorias de despesa</DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
-        <div className="rounded-xl border border-border/50">
+        <div className="rounded-xl border border-border">
           {categories.length === 0 ? (
             <p className="p-4 text-center text-xs text-muted-foreground">
               Nenhuma categoria cadastrada.
@@ -1054,7 +1044,7 @@ function CategoriesDialog({
                     type="color"
                     value={c.cor}
                     onChange={(e) => updateCor(c.id, e.target.value)}
-                    className="h-8 w-10 cursor-pointer rounded border border-border/50 bg-transparent"
+                    className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent"
                     aria-label={`Cor de ${c.nome}`}
                   />
                   <div className="flex-1">
@@ -1088,7 +1078,7 @@ function CategoriesDialog({
             type="color"
             value={cor}
             onChange={(e) => setCor(e.target.value)}
-            className="h-10 w-12 cursor-pointer rounded border border-border/50 bg-transparent"
+            className="h-10 w-12 cursor-pointer rounded border border-border bg-transparent"
             aria-label="Cor da nova categoria"
           />
           <Button type="submit" disabled={saving} className="gap-2">

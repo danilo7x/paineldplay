@@ -152,7 +152,7 @@ function BancoDeLeadsPage() {
               <button
                 key={l.id}
                 onClick={() => openLead(l)}
-                className="w-full rounded-xl border border-border/50 bg-card/50 p-3 text-left"
+                className="w-full rounded-xl border border-border bg-card/50 p-3 text-left"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -177,7 +177,7 @@ function BancoDeLeadsPage() {
           </div>
 
           {/* Desktop: tabela */}
-          <div className="hidden overflow-x-auto rounded-xl border border-border/50 bg-card/50 backdrop-blur md:block">
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/50 md:block">
             <Table>
               <TableHeader>
                 <TableRow>

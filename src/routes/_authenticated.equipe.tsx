@@ -257,8 +257,7 @@ function EquipePage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Administração</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Equipe</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Equipe</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gerencie sócios e colaboradores da DPlay Solutions.
           </p>
@@ -271,11 +270,11 @@ function EquipePage() {
       {/* Mobile: cards empilhados */}
       <div className="space-y-3 md:hidden">
         {loading ? (
-          <div className="rounded-xl border border-border/50 bg-card/50 p-6 text-center text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-muted-foreground">
             <Loader2 className="mx-auto size-4 animate-spin" />
           </div>
         ) : members.length === 0 ? (
-          <div className="rounded-xl border border-border/50 bg-card/50 p-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
             Nenhum colaborador ainda.
           </div>
         ) : (
@@ -285,7 +284,7 @@ function EquipePage() {
             return (
               <div
                 key={m.id}
-                className="rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur"
+                className="rounded-xl border border-border bg-card/50 p-4"
               >
                 <div className="flex min-w-0 items-start gap-3">
                   <Link
@@ -303,7 +302,7 @@ function EquipePage() {
                       <p className="truncate text-sm font-medium">
                         {m.nome ?? "—"}
                         {isSelf && (
-                          <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                          <span className="ml-2 text-xs text-muted-foreground">
                             você
                           </span>
                         )}
@@ -385,13 +384,13 @@ function EquipePage() {
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-xs text-muted-foreground">
                       Cargo
                     </dt>
                     <dd className="truncate text-foreground/90">{m.cargo ?? "—"}</dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-xs text-muted-foreground">
                       Papel
                     </dt>
                     <dd>
@@ -426,7 +425,7 @@ function EquipePage() {
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-xs text-muted-foreground">
                       Último acesso
                     </dt>
                     <dd className="truncate text-muted-foreground">
@@ -439,7 +438,7 @@ function EquipePage() {
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <dt className="text-xs text-muted-foreground">
                       Ativo
                     </dt>
                     <dd>
@@ -458,7 +457,7 @@ function EquipePage() {
       </div>
 
       {/* Desktop: tabela */}
-      <div className="hidden overflow-x-auto rounded-xl border border-border/50 bg-card/50 backdrop-blur md:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-card/50 md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -505,7 +504,7 @@ function EquipePage() {
                           <p className="truncate text-sm font-medium">
                             {m.nome ?? "—"}
                             {isSelf && (
-                              <span className="ml-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                              <span className="ml-2 text-xs text-muted-foreground">
                                 você
                               </span>
                             )}
@@ -815,7 +814,7 @@ function WhatsappConnectDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-sm">
           {label ? (
             <>
               <span className={`size-2 rounded-full ${label.dot}`} /> {label.text}
@@ -846,7 +845,7 @@ function WhatsappConnectDialog({
               />
             )}
             {codes.pairingCode && usePairing && (
-              <p className="rounded-lg border border-border/60 px-4 py-3 font-mono text-2xl tracking-[0.3em]">
+              <p className="rounded-lg border border-border px-4 py-3 font-mono text-2xl tracking-[0.3em]">
                 {codes.pairingCode}
               </p>
             )}

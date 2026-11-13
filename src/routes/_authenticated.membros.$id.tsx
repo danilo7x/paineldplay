@@ -191,7 +191,7 @@ function MemberProfilePage() {
         )}
       </div>
 
-      <Card className="overflow-hidden border-border/50 bg-card/60 backdrop-blur">
+      <Card className="overflow-hidden border-border bg-card/60">
         <div className="relative h-28 w-full overflow-hidden bg-gradient-to-br from-primary/25 via-primary/10 to-background sm:h-44">
           {profile.cover_url && (
             <img src={profile.cover_url} alt="" className="h-full w-full object-cover" />
@@ -207,7 +207,7 @@ function MemberProfilePage() {
             </Avatar>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                <h1 className="text-2xl font-semibold tracking-tight">
                   {profile.nome ?? "—"}
                 </h1>
                 {role && (
@@ -270,10 +270,10 @@ function MemberProfilePage() {
         />
       </div>
 
-      <Card className="border-border/50 bg-card/60 backdrop-blur">
+      <Card className="border-border bg-card/60">
         <CardContent className="space-y-3 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="text-base font-semibold">
               Projetos
             </h2>
             <span className="text-xs text-muted-foreground">{visibleProjects}</span>
@@ -308,9 +308,9 @@ function MemberProfilePage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/60 backdrop-blur">
+      <Card className="border-border bg-card/60">
         <CardContent className="space-y-3 p-4 sm:p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-base font-semibold">
             Atividades recentes
           </h2>
           {activities.length === 0 ? (
@@ -356,10 +356,10 @@ function StatCard({
   value: number;
 }) {
   return (
-    <Card className="border-border/50 bg-card/60 backdrop-blur">
+    <Card className="border-border bg-card/60">
       <CardContent className="p-4">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="uppercase tracking-widest">{label}</span>
+          <span className="">{label}</span>
           <span className="text-primary">{icon}</span>
         </div>
         <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>

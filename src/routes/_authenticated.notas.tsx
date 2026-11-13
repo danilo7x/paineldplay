@@ -93,8 +93,7 @@ function NotasPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Pessoal</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Notas</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Notas</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Espaço privado só seu. Ninguém mais vê estas notas.
           </p>
@@ -105,7 +104,7 @@ function NotasPage() {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="max-h-[70vh] space-y-1 overflow-y-auto p-3">
             {loading ? (
               <div className="flex justify-center py-10 text-muted-foreground">
@@ -140,7 +139,7 @@ function NotasPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="p-6">
             {activeId ? (
               <div className="space-y-4">
@@ -148,14 +147,14 @@ function NotasPage() {
                   placeholder="Título"
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
-                  className="h-11 rounded-xl border-border/50 bg-card/60 text-lg font-semibold"
+                  className="h-11 rounded-xl border-border bg-card/60 text-lg font-semibold"
                 />
                 <Textarea
                   placeholder="Escreva sua nota…"
                   value={conteudo}
                   onChange={(e) => setConteudo(e.target.value)}
                   rows={16}
-                  className="rounded-xl border-border/50 bg-card/60"
+                  className="rounded-xl border-border bg-card/60"
                 />
                 <div className="flex items-center justify-between">
                   <Button

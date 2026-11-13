@@ -166,7 +166,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
 
   if (indisponivel) {
     return (
-      <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+      <Card className="rounded-xl border-dashed border-border bg-card/40">
         <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
           <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
             <HeartHandshake className="size-5" />
@@ -190,11 +190,11 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
   return (
     <div className="space-y-4" data-testid="sucesso-tab">
       {/* Saúde do projeto */}
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="space-y-5 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Saúde do projeto
               </p>
               <p className="mt-1 text-sm text-muted-foreground">Como o cliente está hoje?</p>
@@ -236,7 +236,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                     !ativo && salvarCS({ farol: f }, `Farol: ${meta.label.toLowerCase()}`)
                   }
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border border-border/50 bg-background/30 px-4 py-3 text-left transition disabled:cursor-not-allowed",
+                    "flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-left transition disabled:cursor-not-allowed",
                     ativo ? cn("ring-2", meta.ring) : "hover:border-border hover:bg-background/50",
                   )}
                 >
@@ -333,9 +333,9 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Histórico */}
-        <Card className="rounded-2xl border-border/50 bg-card/50">
+        <Card className="rounded-xl border-border bg-card/50">
           <CardContent className="p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h3 className="text-base font-semibold">
               Histórico
             </h3>
             {registros.length === 0 ? (
@@ -349,7 +349,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                   return (
                     <li
                       key={r.id}
-                      className="group flex gap-3 rounded-xl border border-border/40 bg-background/30 p-3"
+                      className="group flex gap-3 rounded-xl border border-border bg-background/30 p-3"
                     >
                       <div className="w-16 shrink-0 whitespace-nowrap text-xs text-muted-foreground">
                         {formatarData(r.data)}
@@ -396,10 +396,10 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         </Card>
 
         {/* Indicações */}
-        <Card className="rounded-2xl border-border/50 bg-card/50">
+        <Card className="rounded-xl border-border bg-card/50">
           <CardContent className="p-5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              <h3 className="text-base font-semibold">
                 Indicações
               </h3>
               {canEdit && (
@@ -422,7 +422,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                 {indicacoes.map((x) => (
                   <li
                     key={x.id}
-                    className="group rounded-xl border border-border/40 bg-background/30 p-3"
+                    className="group rounded-xl border border-border bg-background/30 p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -593,7 +593,7 @@ function NovoRegistroDialog({
                       aria-checked={nota === n}
                       onClick={() => setNota(n)}
                       className={cn(
-                        "size-9 rounded-lg border border-border/60 text-sm font-semibold transition hover:border-primary/50",
+                        "size-9 rounded-lg border border-border text-sm font-semibold transition hover:border-primary/50",
                         nota === n && tom && cn("border-transparent", TOM_CLASSE[tom]),
                       )}
                     >

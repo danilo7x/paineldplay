@@ -59,7 +59,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
     <SectionCard title="Linha do tempo" icon={History}>
       {planned.length > 0 && (
         <div className="mb-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">
             Previstas (ainda não realizadas)
           </p>
           <ul className="space-y-1.5">
@@ -91,13 +91,13 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         </div>
       )}
 
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+      <p className="mb-2 text-xs font-semibold text-muted-foreground">
         Histórico · mais recentes primeiro
       </p>
       {history.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhuma atividade registrada.</p>
       ) : (
-        <ol className="relative space-y-3 border-l border-border/60 pl-5">
+        <ol className="relative space-y-3 border-l border-border pl-5">
           {history.map((a) => {
             const Icon = ICONS[a.tipo] ?? StickyNote;
             const cancelled = a.status === "cancelada";
@@ -105,7 +105,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
               <li key={a.id} className="relative">
                 <span
                   className={cn(
-                    "absolute -left-[29px] grid size-6 place-items-center rounded-full border border-border/60 bg-card",
+                    "absolute -left-[29px] grid size-6 place-items-center rounded-full border border-border bg-card",
                     cancelled && "opacity-60",
                   )}
                 >
@@ -118,7 +118,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
                         ? `${a.titulo}: ${a.etapa_de ? `${stageLabel(a.etapa_de)} → ` : ""}${stageLabel(a.etapa_para)}`
                         : a.titulo}
                     </p>
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {cancelled ? "Cancelada" : (ACTIVITY_TYPE_LABEL[a.tipo] ?? a.tipo)}
                     </span>
                   </div>

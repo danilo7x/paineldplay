@@ -1,4 +1,5 @@
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
@@ -9,29 +10,20 @@ import {
   Users,
   Handshake,
   Contact,
-  FolderLock,
-  StickyNote,
   Megaphone,
   Sparkles,
-  UserRound,
-  Activity,
-  LogOut,
   Columns3,
   Zap,
   Database,
   CalendarClock,
   BarChart3,
   MessageSquareText,
-  BookOpenText,
-  ShieldQuestion,
   HeartHandshake,
+  ChevronRight,
 } from "lucide-react";
-import { toast } from "sonner";
-
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -44,8 +36,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Route as AuthRoute } from "@/routes/_authenticated";
 import logo from "@/assets/dplay-logo-transparent.png.asset.json";
-import { useProfile } from "@/lib/profile-context";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 type Item = {
   title: string;
@@ -58,73 +49,64 @@ type Item = {
   match?: (pathname: string) => boolean;
 };
 
+/** Menu principal: o dia a dia de todo mundo. */
 const workspace: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
   { title: "Sucesso do Cliente", url: "/sucesso", icon: HeartHandshake },
   { title: "Clientes", url: "/clientes", icon: Contact },
+  { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Analytics", url: "/analytics", icon: LineChart },
 ];
 
-const leadTracking: Item[] = [
+const comercial: Item[] = [
   {
-    title: "Kanban",
+    title: "Kanban de leads",
     url: "/leads",
     icon: Columns3,
     commercialOnly: true,
     // A página do lead (/leads/<id>) também pertence ao Kanban.
     match: (p) => p === "/leads" || p === "/leads/" || /^\/leads\/[0-9a-f-]{36}$/i.test(p),
   },
-  { title: "Fluxo de Cadência", url: "/leads/cadencia", icon: Zap, commercialOnly: true },
-  { title: "Banco de Leads", url: "/leads/banco", icon: Database, commercialOnly: true },
-  { title: "Agenda Comercial", url: "/leads/agenda", icon: CalendarClock, commercialOnly: true },
+  { title: "Agenda comercial", url: "/leads/agenda", icon: CalendarClock, commercialOnly: true },
+  { title: "Fluxo de cadência", url: "/leads/cadencia", icon: Zap, commercialOnly: true },
+  { title: "Banco de leads", url: "/leads/banco", icon: Database, commercialOnly: true },
   { title: "Relatórios", url: "/leads/relatorios", icon: BarChart3, commercialOnly: true },
-];
-
-const tools: Item[] = [
   {
-    title: "Templates",
+    // Templates, roteiro e objeções ficam numa página só, com abas.
+    title: "Ferramentas de venda",
     url: "/ferramentas/templates",
     icon: MessageSquareText,
     commercialOnly: true,
-  },
-  {
-    title: "Roteiro de Ligação",
-    url: "/ferramentas/roteiro",
-    icon: BookOpenText,
-    commercialOnly: true,
-  },
-  {
-    title: "Matriz de Objeções",
-    url: "/ferramentas/objecoes",
-    icon: ShieldQuestion,
-    commercialOnly: true,
+    match: (p) => p.startsWith("/ferramentas"),
   },
 ];
 
-const admin: Item[] = [
+const gestao: Item[] = [
   { title: "Financeiro", url: "/financeiro", icon: Banknote, financeOnly: true },
   { title: "Equipe", url: "/equipe", icon: Users, adminOnly: true },
   { title: "Central dos Sócios", url: "/socios", icon: Handshake, adminOnly: true },
 ];
 
-const personal: Item[] = [
-  { title: "Meus Arquivos", url: "/arquivos", icon: FolderLock },
-  { title: "Notas", url: "/notas", icon: StickyNote },
+/** Comunicação interna. Perfil, arquivos, notas e atividade ficam no menu do avatar (topo). */
+const geral: Item[] = [
   { title: "Avisos", url: "/avisos", icon: Megaphone },
   { title: "Rani", url: "/rani", icon: Sparkles },
-  { title: "Perfil", url: "/perfil", icon: UserRound },
-  { title: "Atividade", url: "/atividade", icon: Activity },
 ];
 
+const GROUPS_KEY = "dplay-sidebar-grupos";
+
+function isActive(item: Item, pathname: string) {
+  return item.match
+    ? item.match(pathname)
+    : pathname === item.url || pathname.startsWith(item.url + "/");
+}
+
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
-  const { user, isAdmin, isFinance, isContador, hasCommercial } = AuthRoute.useRouteContext();
-  const { profile, firstName, initials } = useProfile();
+  const { user, isAdmin, isFinance, hasCommercial } = AuthRoute.useRouteContext();
   const { data: unread = 0 } = useQuery({
     queryKey: ["sidebar-unread", user.id],
     queryFn: async () => {
@@ -142,128 +124,110 @@ export function AppSidebar() {
     staleTime: 15_000,
   });
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    toast.success("Sessão encerrada");
-    navigate({ to: "/", replace: true });
+  // Grupos recolhíveis: lembra o que a pessoa abriu e sempre abre o grupo da página atual.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try {
+      setOpen(JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "{}"));
+    } catch {
+      /* sem localStorage: segue com tudo fechado */
+    }
+  }, []);
+  function toggle(key: string, value: boolean) {
+    setOpen((prev) => {
+      const next = { ...prev, [key]: value };
+      try {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
+      } catch {
+        /* ignora */
+      }
+      return next;
+    });
   }
 
-  const renderGroup = (label: string, items: Item[]) => {
-    const filtered = items.filter(
+  const visible = (items: Item[]) =>
+    items.filter(
       (i) =>
         (!i.adminOnly || isAdmin) &&
         (!i.financeOnly || isFinance) &&
         (!i.commercialOnly || hasCommercial),
     );
+
+  const renderItems = (items: Item[]) => (
+    <SidebarMenu>
+      {items.map((item) => {
+        const active = isActive(item, pathname);
+        const badge = item.url === "/avisos" && unread > 0 ? unread : null;
+        return (
+          <SidebarMenuItem key={item.url}>
+            <SidebarMenuButton
+              asChild
+              isActive={active}
+              tooltip={item.title}
+              className="h-9 text-[13px] text-sidebar-foreground/80 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground"
+            >
+              <Link to={item.url as never}>
+                <item.icon className={cn("size-4", active ? "text-primary" : "opacity-70")} />
+                <span className="flex-1 truncate">{item.title}</span>
+                {badge && !collapsed && (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+
+  const renderGroup = (key: string, label: string | null, items: Item[], collapsible = false) => {
+    const filtered = visible(items);
     if (!filtered.length) return null;
+    const hasActive = filtered.some((i) => isActive(i, pathname));
+    const isOpen = !collapsible || collapsed || hasActive || !!open[key];
     return (
-      <SidebarGroup>
-        {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {filtered.map((item) => {
-              const active = item.match
-                ? item.match(pathname)
-                : pathname === item.url || pathname.startsWith(item.url + "/");
-              const badge = item.url === "/avisos" && unread > 0 ? unread : null;
-              return (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                    <Link to={item.url as never}>
-                      <item.icon className="size-4" />
-                      <span className="flex-1">{item.title}</span>
-                      {badge && !collapsed && (
-                        <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                          {badge}
-                        </span>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroupContent>
+      <SidebarGroup className="py-1">
+        {label && !collapsed && (
+          collapsible ? (
+            <button
+              type="button"
+              onClick={() => toggle(key, !isOpen)}
+              aria-expanded={isOpen}
+              className="flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-sidebar-foreground/55 transition hover:text-sidebar-foreground"
+            >
+              <span className="flex-1 text-left">{label}</span>
+              <ChevronRight
+                className={cn("size-3.5 transition-transform", isOpen && "rotate-90")}
+              />
+            </button>
+          ) : (
+            <SidebarGroupLabel className="text-sidebar-foreground/55">{label}</SidebarGroupLabel>
+          )
+        )}
+        {isOpen && <SidebarGroupContent>{renderItems(filtered)}</SidebarGroupContent>}
       </SidebarGroup>
     );
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
-      <SidebarHeader>
-        <div className="flex items-center gap-2.5 px-1 py-1.5">
-          <img
-            src={logo.url}
-            alt=""
-            className="size-8 shrink-0 aspect-square object-contain"
-          />
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="px-3 pb-2 pt-3">
+        <Link to="/dashboard" className="flex items-center gap-2.5 rounded-md px-1 py-1">
+          <img src={logo.url} alt="" className="size-7 shrink-0 object-contain" />
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">DPlay Solutions</p>
-              <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground">
-                CRM interno
-              </p>
-            </div>
+            <span className="truncate text-sm font-semibold tracking-tight">DPlay CRM</span>
           )}
-        </div>
+        </Link>
       </SidebarHeader>
 
-      <SidebarContent>
-        {renderGroup("Workspace", workspace)}
-        {renderGroup("Acompanhamento de Leads", leadTracking)}
-        {renderGroup("Ferramentas", tools)}
-        {renderGroup("Administração", admin)}
-        {renderGroup("Pessoal", personal)}
+      <SidebarContent className="gap-0 px-1">
+        {renderGroup("workspace", null, workspace)}
+        {renderGroup("comercial", "Comercial", comercial, true)}
+        {renderGroup("gestao", "Gestão", gestao, true)}
+        {renderGroup("geral", "Comunicação", geral)}
       </SidebarContent>
-
-      <SidebarFooter>
-        {collapsed ? (
-          <div className="flex flex-col items-center gap-2 py-1">
-            <Avatar className="size-8">
-              <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
-              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              onClick={handleSignOut}
-              className="grid size-8 place-items-center rounded-md text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-              aria-label="Sair"
-              title="Sair"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/60 px-2 py-2">
-            <Avatar className="size-8 shrink-0">
-              <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
-              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium">{profile?.nome || firstName}</p>
-              <p className="truncate text-[10px] text-muted-foreground">
-                {profile?.cargo ||
-                  (isAdmin
-                    ? "Administrador"
-                    : isContador
-                      ? "Contadora"
-                      : "Colaborador")}
-              </p>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="rounded-md p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-              aria-label="Sair"
-              title="Sair"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
-        )}
-      </SidebarFooter>
     </Sidebar>
   );
 }

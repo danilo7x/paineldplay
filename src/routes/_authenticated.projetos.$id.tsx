@@ -218,19 +218,20 @@ function ProjectDetail() {
         </Link>
       </div>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="space-y-5 p-6">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
             <div className="min-w-0">
-              {project.client_id ? (
+              {/* O cliente só aparece quando o nome é diferente do projeto. */}
+              {project.cliente && project.cliente === project.nome ? null : project.client_id ? (
                 <Link
                   to="/clientes"
-                  className="text-[10px] uppercase tracking-[0.14em] text-primary hover:underline"
+                  className="text-xs text-primary hover:underline"
                 >
                   {project.cliente ?? "Cliente"}
                 </Link>
               ) : (
-                <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {project.cliente ?? "Sem cliente"}
                 </p>
               )}
@@ -249,7 +250,7 @@ function ProjectDetail() {
                     onValueChange={(v) => updateServico(v === "none" ? null : v)}
                   >
                     <SelectTrigger
-                      className="h-8 w-auto gap-2 rounded-full border-border/60 bg-background/40 px-3 text-xs"
+                      className="h-8 w-auto gap-2 rounded-full border-border bg-background/40 px-3 text-xs"
                       aria-label="Serviço do projeto"
                     >
                       <SelectValue />
@@ -288,7 +289,7 @@ function ProjectDetail() {
               ) : (
                 <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
                   {serviceLabel(project.servico) && (
-                    <span className="rounded-full border border-border/60 px-2.5 py-1 text-xs text-muted-foreground">
+                    <span className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
                       {serviceLabel(project.servico)}
                     </span>
                   )}
@@ -334,10 +335,10 @@ function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Faturamento do projeto
             </p>
             <p className="mt-1 text-2xl font-semibold tracking-tight">
@@ -485,10 +486,10 @@ function ProgressTab({
   }
 
   return (
-    <Card className="rounded-2xl border-border/50 bg-card/50 backdrop-blur-xl">
+    <Card className="rounded-xl border-border bg-card/50">
       <CardContent className="space-y-4 p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-base font-semibold">
             Timeline
           </h2>
           {canEdit && (
@@ -515,7 +516,7 @@ function ProgressTab({
             Nenhuma etapa registrada ainda.
           </p>
         ) : (
-          <ol className="relative space-y-4 border-l border-border/50 pl-6">
+          <ol className="relative space-y-4 border-l border-border pl-6">
             {steps.map((s, idx) => {
               const meta = STEP_STATUS_META[s.status];
               const author = s.autor_id ? authorMap.get(s.autor_id) : null;
@@ -526,7 +527,7 @@ function ProgressTab({
                   >
                     {s.status === "concluido" && <Check className="size-2.5 text-background" />}
                   </span>
-                  <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+                  <div className="rounded-lg border border-border p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{s.titulo}</p>
@@ -534,11 +535,14 @@ function ProgressTab({
                           <p className="mt-1 text-xs text-muted-foreground">{s.descricao}</p>
                         )}
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          <span className={`rounded-full px-2 py-0.5 ${meta.className}`}>
-                            {meta.label}
-                          </span>
+                          {/* Quem edita já vê o status no seletor ao lado. */}
+                          {!canEdit && (
+                            <span className={`rounded-full px-2 py-0.5 ${meta.className}`}>
+                              {meta.label}
+                            </span>
+                          )}
                           {author && <span>por {author.nome ?? author.email}</span>}
-                          <span>· {new Date(s.created_at).toLocaleDateString("pt-BR")}</span>
+                          <span>{new Date(s.created_at).toLocaleDateString("pt-BR")}</span>
                         </div>
                       </div>
                       {canEdit && (
@@ -720,7 +724,7 @@ function NotesTab({
   return (
     <div className="space-y-4">
       {canEdit && (
-        <Card className="rounded-2xl border-border/50 bg-card/50 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card/50">
           <CardContent className="p-4">
             <form onSubmit={submit} className="space-y-3">
               <Textarea
@@ -747,7 +751,7 @@ function NotesTab({
             const author = n.autor_id ? authorMap.get(n.autor_id) : null;
             const canDelete = isAdmin || n.autor_id === currentUserId;
             return (
-              <Card key={n.id} className="rounded-2xl border-border/50 bg-card/50 backdrop-blur-xl">
+              <Card key={n.id} className="rounded-xl border-border bg-card/50">
                 <CardContent className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -843,7 +847,7 @@ function CredentialsTab({
           {creds.map((c) => (
             <Card
               key={c.id}
-              className="rounded-2xl border-border/50 bg-card/60 backdrop-blur-xl"
+              className="rounded-xl border-border bg-card/60"
             >
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -911,9 +915,9 @@ function FieldRow({
   revealed?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-background/40 px-2.5 py-1.5">
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/40 px-2.5 py-1.5">
       <div className="min-w-0">
-        <p className="text-[9px] uppercase tracking-widest text-muted-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
         <p className="truncate font-mono text-xs">{value ?? "—"}</p>
       </div>
       <div className="flex items-center gap-1">
@@ -1051,11 +1055,11 @@ function MembersTab({
   }
 
   return (
-    <Card className="rounded-2xl border-border/50 bg-card/50 backdrop-blur-xl">
+    <Card className="rounded-xl border-border bg-card/50">
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[220px] flex-1 space-y-1.5">
-            <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            <Label className="text-xs text-muted-foreground">
               Adicionar colaborador
             </Label>
             <Select value={selected} onValueChange={setSelected}>
@@ -1089,7 +1093,7 @@ function MembersTab({
             members.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between rounded-xl border border-border/40 bg-background/40 px-3 py-2"
+                className="flex items-center justify-between rounded-xl border border-border bg-background/40 px-3 py-2"
               >
                 <Link
                   to="/membros/$id"

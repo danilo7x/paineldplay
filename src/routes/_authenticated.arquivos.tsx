@@ -127,8 +127,7 @@ function ArquivosPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Pessoal</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Meus arquivos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Meus arquivos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? "Cofre dos sócios e arquivos pessoais de cada colaborador."
@@ -158,13 +157,13 @@ function ArquivosPage() {
       ) : isAdmin ? (
         <div className="space-y-8">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="text-base font-semibold">
               Cofre dos sócios
             </h2>
             <FileGrid files={cofre} onDownload={download} onDelete={remove} />
           </section>
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="text-base font-semibold">
               Arquivos da equipe
             </h2>
             {equipe.size === 0 ? (
@@ -206,7 +205,7 @@ function ArquivosPage() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+    <Card className="rounded-xl border-dashed border-border bg-card/40">
       <CardContent className="py-10 text-center text-sm text-muted-foreground">{text}</CardContent>
     </Card>
   );
@@ -227,10 +226,10 @@ function FileGrid({
       {files.map((f) => (
         <Card
           key={f.id}
-          className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl"
+          className="rounded-xl border-border bg-card"
         >
           <CardContent className="flex items-start gap-3 p-4">
-            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20">
+            <div className="grid size-10 shrink-0 place-items-center text-muted-foreground">
               <FileText className="size-4" />
             </div>
             <div className="min-w-0 flex-1">

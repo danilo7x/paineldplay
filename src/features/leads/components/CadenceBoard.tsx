@@ -109,14 +109,13 @@ export function CadenceBoard({
               handleDrop(col, e.dataTransfer.getData("text/lead-id"));
             }}
             className={cn(
-              "flex w-[85%] shrink-0 snap-start flex-col rounded-2xl border-2 bg-card/40 p-2 transition sm:w-72",
-              col.border,
+              "flex w-[85%] shrink-0 snap-start flex-col rounded-xl border border-border bg-card/50 p-2 transition sm:w-72",
               over === col.key && "border-primary bg-primary/5",
             )}
           >
             <div className="mb-2 px-1">
               <div className="flex items-center justify-between">
-                <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="truncate text-xs font-semibold text-muted-foreground">
                   {col.title}
                 </p>
                 <Badge variant="secondary" className="text-[10px]">
@@ -141,7 +140,7 @@ export function CadenceBoard({
                       e.dataTransfer.effectAllowed = "move";
                     }}
                     className={cn(
-                      "overflow-hidden rounded-xl border border-border/60 bg-background/70 p-3",
+                      "overflow-hidden rounded-xl border border-border bg-background/70 p-3",
                       late && "border-red-500/40",
                     )}
                   >
@@ -217,7 +216,7 @@ export function CadenceBoard({
                   key={l.id}
                   to="/leads/$id"
                   params={{ id: l.id }}
-                  className="group flex items-center gap-2 rounded-xl border border-border/60 bg-background/70 p-3 transition hover:border-primary/40"
+                  className="group flex items-center gap-2 rounded-xl border border-border bg-background/70 p-3 transition hover:border-primary/40"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{l.nome}</span>

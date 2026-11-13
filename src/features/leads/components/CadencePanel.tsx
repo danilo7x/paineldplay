@@ -146,7 +146,7 @@ export function CadencePanel({
               <li
                 key={s.key}
                 className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border/50 bg-background/40 px-3 py-2",
+                  "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border bg-background/40 px-3 py-2",
                   s.state === "prevista" && "border-primary/40 bg-primary/5",
                 )}
               >
@@ -418,7 +418,7 @@ export function SendTemplateDialog({
         </DialogHeader>
         <div className="grid gap-3">
           {template?.orientacao && (
-            <p className="rounded-lg border border-border/60 bg-background/40 p-2.5 text-[11px] text-muted-foreground">
+            <p className="rounded-lg border border-border bg-background/40 p-2.5 text-[11px] text-muted-foreground">
               {template.orientacao}
             </p>
           )}
@@ -473,7 +473,7 @@ export function SendTemplateDialog({
             )}
           </div>
 
-          <div className="grid gap-3 rounded-xl border border-border/60 bg-background/40 p-3">
+          <div className="grid gap-3 rounded-xl border border-border bg-background/40 p-3">
             <p className="text-xs font-medium">Registrar envio</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <DateTimeField label="Enviada em" value={sentAt} onChange={setSentAt} />

@@ -253,10 +253,10 @@ function AgendaSection() {
           {days.map((d) => {
             const dayEvents = events.filter((e) => isSameDay(parseISO(e.inicio), d));
             return (
-              <Card key={d.toISOString()} className={cn("border-border/60", isSameDay(d, new Date()) && "ring-1 ring-primary/40")}>
+              <Card key={d.toISOString()} className={cn("border-border", isSameDay(d, new Date()) && "ring-1 ring-primary/40")}>
                 <CardContent className="space-y-2 p-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       {format(d, "EEE dd/MM", { locale: ptBR })}
                     </div>
                     {isSameDay(d, new Date()) && <Badge variant="secondary" className="text-[10px]">Hoje</Badge>}
@@ -267,7 +267,7 @@ function AgendaSection() {
                     <button
                       key={e.id}
                       onClick={() => { setEditing(e); setOpen(true); }}
-                      className="w-full rounded-lg border border-border/60 bg-card/40 p-2 text-left transition hover:border-primary/40"
+                      className="w-full rounded-lg border border-border bg-card/40 p-2 text-left transition hover:border-primary/40"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -618,15 +618,15 @@ function TarefasSection() {
           {COLS.map((col) => {
             const items = filtered.filter((t) => t.status === col.key);
             return (
-              <div key={col.key} className="min-w-[85%] shrink-0 snap-start rounded-2xl border border-border/60 bg-card/40 p-2 sm:min-w-0">
+              <div key={col.key} className="min-w-[85%] shrink-0 snap-start rounded-xl border border-border bg-card/40 p-2 sm:min-w-0">
                 <div className="mb-2 flex items-center justify-between px-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{col.label}</p>
                   <Badge variant="secondary" className="text-[10px]">{items.length}</Badge>
                 </div>
                 <div className="space-y-2">
                   {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-muted-foreground/70">— vazio —</p>}
                   {items.map((t) => (
-                     <div key={t.id} className="space-y-2 overflow-hidden rounded-xl border border-border/60 bg-background/60 p-3">
+                     <div key={t.id} className="space-y-2 overflow-hidden rounded-xl border border-border bg-background/60 p-3">
                       <div className="flex items-start gap-2">
                         <button onClick={() => updateStatus.mutate({ id: t.id, status: t.status === "feito" ? "a_fazer" : "feito" })}
                           className="mt-0.5 shrink-0 text-muted-foreground hover:text-primary">
@@ -656,7 +656,7 @@ function TarefasSection() {
                           <AuthorChip author={authors[t.responsavel_id]} />
                         )}
                       </div>
-                       <div className="space-y-1.5 border-t border-border/40 pt-2 pl-6">
+                       <div className="space-y-1.5 border-t border-border pt-2 pl-6">
                          <div className="flex min-w-0">
                            <div className="min-w-0 flex-1 truncate">
                              <AuthorChip author={authors[t.created_by]} label="criado por" />
@@ -863,7 +863,7 @@ function NotasSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="flex rounded-lg border border-border/60 bg-card/40 p-0.5">
+        <div className="flex rounded-lg border border-border bg-card/40 p-0.5">
           <button onClick={() => setTab("nota")}
             className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium", tab === "nota" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
             <StickyNote className="size-3.5" /> Notas
@@ -885,7 +885,7 @@ function NotasSection() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((n) => (
-            <Card key={n.id} className="border-border/60">
+            <Card key={n.id} className="border-border">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -912,7 +912,7 @@ function NotasSection() {
                     </SelectContent>
                   </Select>
                 )}
-                <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                <div className="flex items-center justify-between border-t border-border pt-2">
                   <AuthorChip author={authors[n.created_by]} label="por" />
                   <span className="text-[10px] text-muted-foreground">{format(parseISO(n.updated_at), "dd/MM HH:mm", { locale: ptBR })}</span>
                 </div>
@@ -1040,16 +1040,16 @@ function LeadsSection() {
           const n = open.filter((l) => l.etapa === s).length;
           return (
             <div key={s} className={cn("rounded-xl border-2 bg-card/40 p-2.5", STAGE_META[s].border)}>
-              <p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{STAGE_META[s].label}</p>
+              <p className="truncate text-xs text-muted-foreground">{STAGE_META[s].label}</p>
               <p className="mt-1 text-lg font-semibold">{n}</p>
             </div>
           );
         })}
       </div>
 
-      <Card className="rounded-2xl border-border/50 bg-card/50">
+      <Card className="rounded-xl border-border bg-card/50">
         <CardContent className="p-3">
-          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Próximas ações</p>
+          <p className="mb-2 px-1 text-xs font-semibold text-muted-foreground">Próximas ações</p>
           {next.length === 0 ? (
             <p className="px-1 py-3 text-sm text-muted-foreground">Nenhuma ação agendada.</p>
           ) : (
@@ -1170,7 +1170,7 @@ function DecisoesSection() {
       ) : (
         <div className="space-y-2">
           {items.map((d) => (
-            <Card key={d.id} className="border-border/60">
+            <Card key={d.id} className="border-border">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -1183,7 +1183,7 @@ function DecisoesSection() {
                     <Button size="icon" variant="ghost" className="size-6 text-destructive" onClick={() => del.mutate(d.id)}><Trash2 className="size-3" /></Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                <div className="flex items-center justify-between border-t border-border pt-2">
                   <AuthorChip author={authors[d.created_by]} label="por" />
                   <span className="text-[10px] text-muted-foreground">{format(parseISO(d.data), "dd/MM/yyyy", { locale: ptBR })}</span>
                 </div>
@@ -1320,7 +1320,7 @@ function MetasSection() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((g) => (
-            <Card key={g.id} className="border-border/60">
+            <Card key={g.id} className="border-border">
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -1354,7 +1354,7 @@ function MetasSection() {
                     ))}
                   </div>
                 </div>
-                <div className="border-t border-border/40 pt-2">
+                <div className="border-t border-border pt-2">
                   <AuthorChip author={authors[g.created_by]} label="criada por" />
                 </div>
               </CardContent>

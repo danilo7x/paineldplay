@@ -115,8 +115,8 @@ function RaniLayout() {
   return (
     <div className="grid h-[calc(100vh-8rem)] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       {/* Sidebar */}
-      <aside className="hidden flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl lg:flex">
-        <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+      <aside className="hidden flex-col overflow-hidden rounded-xl border border-border bg-card lg:flex">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <RaniMark size={22} />
             <span className="text-sm font-semibold tracking-tight">Rani</span>
@@ -196,7 +196,7 @@ function RaniLayout() {
           )}
         </div>
 
-        <div className="border-t border-border/40 px-4 py-3 text-[11px] text-muted-foreground">
+        <div className="border-t border-border px-4 py-3 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Sparkles className="size-3" /> Rani ativa • conectada aos seus dados
           </div>

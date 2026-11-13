@@ -61,101 +61,62 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
-  /* DPlay CRM — tema único (preto-azulado escuro). */
-  --radius: 0.75rem;
-
-  /* Fundo geral: quase preto, leve tom azulado (#05070E - #070A12) */
-  --background: oklch(0.14 0.02 260);
-  --foreground: oklch(0.96 0.01 250);
-
-  /* Cards: azul-petróleo bem escuro (#0B0F1A) */
-  --card: oklch(0.18 0.025 258);
-  --card-foreground: oklch(0.96 0.01 250);
-  --popover: oklch(0.18 0.025 258);
-  --popover-foreground: oklch(0.96 0.01 250);
-
-  /* Azul principal #057EF3 */
-  --primary: oklch(0.62 0.20 250);
-  --primary-foreground: oklch(0.98 0.01 250);
-
-  --secondary: oklch(0.22 0.03 258);
-  --secondary-foreground: oklch(0.96 0.01 250);
-
-  --muted: oklch(0.22 0.025 258);
-  --muted-foreground: oklch(0.68 0.02 250);
-
-  --accent: oklch(0.25 0.035 258);
-  --accent-foreground: oklch(0.98 0.01 250);
-
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 250);
-
-  --border: oklch(0.28 0.02 258 / 60%);
-  --input: oklch(0.24 0.02 258);
-  --ring: oklch(0.62 0.20 250);
-
-  /* Charts: gradiente de azul */
-  --chart-1: oklch(0.62 0.20 250);   /* azul principal */
-  --chart-2: oklch(0.72 0.16 235);   /* azul-céu */
-  --chart-3: oklch(0.50 0.20 258);   /* azul profundo */
-  --chart-4: oklch(0.70 0.18 155);   /* verde receita */
-  --chart-5: oklch(0.65 0.22 25);    /* vermelho despesa */
-
-  /* Sidebar */
-  --sidebar: oklch(0.16 0.022 258);
-  --sidebar-foreground: oklch(0.90 0.015 250);
-  --sidebar-primary: oklch(0.62 0.20 250);
-  --sidebar-primary-foreground: oklch(0.98 0.01 250);
-  --sidebar-accent: oklch(0.22 0.03 258);
-  --sidebar-accent-foreground: oklch(0.98 0.01 250);
-  --sidebar-border: oklch(0.28 0.02 258 / 50%);
-  --sidebar-ring: oklch(0.62 0.20 250);
-
-  /* Extras específicos DPlay */
-  --blue-primary: #057EF3;
-  --blue-deep: #0157C6;
-  --blue-sky: #31B7FF;
-  --success: oklch(0.70 0.18 155);
-  --gradient-primary: linear-gradient(135deg, #057EF3 0%, #0157C6 100%);
-  --gradient-panel: linear-gradient(180deg, oklch(0.19 0.03 258) 0%, oklch(0.16 0.025 258) 100%);
-  --shadow-elegant: 0 10px 40px -12px rgba(5, 126, 243, 0.35);
-}
-
+:root,
 .dark {
-  /* Alias — o app já é permanentemente escuro. */
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* DPlay CRM — tema único escuro, neutro e com bom contraste.
+     O app usa <html class="dark">, então os dois seletores precisam ser iguais. */
+  --radius: 0.625rem;
+
+  /* Fundo grafite com leve tom azulado; cards um degrau acima. */
+  --background: oklch(0.155 0.008 260);
+  --foreground: oklch(0.96 0.004 260);
+  --card: oklch(0.19 0.01 260);
+  --card-foreground: oklch(0.96 0.004 260);
+  --popover: oklch(0.205 0.01 260);
+  --popover-foreground: oklch(0.96 0.004 260);
+
+  /* Azul DPlay #057EF3 */
+  --primary: oklch(0.62 0.19 250);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.24 0.01 260);
+  --secondary-foreground: oklch(0.96 0.004 260);
+  --muted: oklch(0.235 0.01 260);
+  /* Texto secundário mais claro que antes, para facilitar a leitura. */
+  --muted-foreground: oklch(0.73 0.01 260);
+  --accent: oklch(0.255 0.012 260);
+  --accent-foreground: oklch(0.98 0.003 260);
+
+  --destructive: oklch(0.64 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.62 0.19 250);
+
+  --chart-1: oklch(0.62 0.19 250);
+  --chart-2: oklch(0.74 0.13 230);
+  --chart-3: oklch(0.52 0.16 262);
+  --chart-4: oklch(0.72 0.16 155);
+  --chart-5: oklch(0.66 0.2 25);
+
+  --sidebar: oklch(0.14 0.008 260);
+  --sidebar-foreground: oklch(0.86 0.006 260);
+  --sidebar-primary: oklch(0.62 0.19 250);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.215 0.01 260);
+  --sidebar-accent-foreground: oklch(0.98 0.003 260);
+  --sidebar-border: oklch(1 0 0 / 6%);
+  --sidebar-ring: oklch(0.62 0.19 250);
+
+  /* Extras DPlay */
+  --blue-primary: #057ef3;
+  --blue-deep: #0157c6;
+  --blue-sky: #31b7ff;
+  --success: oklch(0.72 0.16 155);
+  --gradient-primary: linear-gradient(135deg, #057ef3 0%, #0157c6 100%);
+  --gradient-panel: var(--card);
+  --shadow-elegant: none;
 }
 
 @layer base {
@@ -166,6 +127,12 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Números alinhados em tabelas e indicadores. */
+  table {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -178,8 +145,8 @@ textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-text-fill-color: var(--foreground);
   caret-color: var(--foreground);
-  -webkit-box-shadow: 0 0 0 1000px var(--input) inset;
-  box-shadow: 0 0 0 1000px var(--input) inset;
+  -webkit-box-shadow: 0 0 0 1000px var(--muted) inset;
+  box-shadow: 0 0 0 1000px var(--muted) inset;
   border-radius: inherit;
   transition: background-color 9999s ease-in-out 0s;
 }

@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { FerramentasTabs } from "@/features/leads/components/FerramentasTabs";
 import { PageHeader } from "@/features/leads/components/LeadFilters";
 import { TemplatesList } from "@/features/leads/components/ScriptAndTemplates";
 
@@ -14,6 +15,7 @@ function TemplatesPage() {
   const { isAdmin } = Route.useRouteContext();
   return (
     <div className="space-y-6">
+      <FerramentasTabs />
       <PageHeader
         section="Ferramentas"
         title="Templates"

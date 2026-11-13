@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { Person } from "../api";
-import { BOARD_COLUMNS, dueState, isFinalStage, type Lead } from "../model";
+import { BOARD_COLUMNS, STAGE_META, dueState, isFinalStage, type Lead } from "../model";
 import { DueBadge, OwnerChip, StageBadge } from "./shared";
 import { todayStr } from "../format";
 
@@ -50,9 +50,9 @@ export function LeadCard({
         }
       }}
       className={cn(
-        "group cursor-pointer overflow-hidden rounded-xl border border-border/60 bg-background/70 p-3 text-left transition hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        !closed && due === "atrasada" && "border-red-500/40",
-        !closed && due === "hoje" && "border-amber-500/40",
+        "group cursor-pointer overflow-hidden rounded-xl border border-border bg-background/70 p-3 text-left transition hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        !closed && due === "atrasada" && "border-l-2 border-l-red-400/70",
+        !closed && due === "hoje" && "border-l-2 border-l-amber-400/70",
       )}
     >
       <div className="flex items-start gap-1.5">
@@ -95,15 +95,20 @@ export function LeadCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="mt-2">
-        <StageBadge etapa={lead.etapa} subetapa={lead.subetapa} />
-      </div>
+      {/* A coluna já mostra a etapa; a etiqueta só aparece quando acrescenta algo. */}
+      {(closed || lead.subetapa) && (
+        <div className="mt-2">
+          <StageBadge etapa={lead.etapa} subetapa={lead.subetapa} />
+        </div>
+      )}
       {!closed && (
         <div className="mt-2 space-y-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <DueBadge date={lead.data_lembrete} />
-          </div>
-          <p className="line-clamp-2 text-[11px] text-muted-foreground">
+          {lead.data_lembrete && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <DueBadge date={lead.data_lembrete} />
+            </div>
+          )}
+          <p className="line-clamp-2 text-xs text-muted-foreground">
             {lead.proximo_passo ? `→ ${lead.proximo_passo}` : "Sem próxima ação definida"}
           </p>
         </div>
@@ -155,14 +160,20 @@ export function LeadBoard({
               if (lead) onMove(lead, col.key);
             }}
             className={cn(
-              "flex w-[85%] shrink-0 snap-start flex-col rounded-2xl border-2 bg-card/40 p-2 transition sm:w-72",
-              col.border,
+              "flex w-[85%] shrink-0 snap-start flex-col rounded-xl border border-border bg-card/50 p-2 transition sm:w-72",
               over === col.key && "border-primary bg-primary/5",
             )}
           >
             <div className="mb-2 flex items-center justify-between px-1">
-              <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {col.label}
+              <p className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                <span
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    STAGE_META[col.stages[0]]?.dot ?? "bg-zinc-400",
+                  )}
+                  aria-hidden
+                />
+                <span className="truncate">{col.label}</span>
               </p>
               <Badge variant="secondary" className="text-[10px]">
                 {items.length}

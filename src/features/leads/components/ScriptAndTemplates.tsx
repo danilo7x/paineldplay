@@ -43,7 +43,7 @@ export function CallScriptContent() {
   return (
     <div className="space-y-4">
       {CALL_SCRIPT.map((s, i) => (
-        <section key={s.title} className="rounded-xl border border-border/50 bg-card/50 p-3 sm:p-4">
+        <section key={s.title} className="rounded-xl border border-border bg-card/50 p-3 sm:p-4">
           <h3 className="text-sm font-semibold">
             <span className="mr-2 text-primary">{i + 1}.</span>
             {s.title}
@@ -137,7 +137,7 @@ export function ObjectionsBrowser({ compact = false }: { compact?: boolean }) {
         {items.map((o) => (
           <section
             key={o.titulo}
-            className="rounded-xl border border-border/50 bg-card/50 p-3 sm:p-4"
+            className="rounded-xl border border-border bg-card/50 p-3 sm:p-4"
           >
             <div className="flex items-start gap-2">
               <span
@@ -149,7 +149,7 @@ export function ObjectionsBrowser({ compact = false }: { compact?: boolean }) {
               />
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold">{o.titulo}</h3>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {OBJECTION_STAGE_META[o.etapa].label}
                 </p>
               </div>
@@ -247,7 +247,7 @@ function TemplateEditor({ template, canEdit }: { template: MessageTemplate; canE
   }
 
   return (
-    <section className="rounded-xl border border-border/50 bg-card/50 p-3">
+    <section className="rounded-xl border border-border bg-card/50 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">{template.titulo}</h3>
         {template.na_cadencia && (

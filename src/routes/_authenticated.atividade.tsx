@@ -261,7 +261,7 @@ function AtividadePage() {
             </Select>
           </div>
 
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardContent className="p-0">
               {loading ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">Carregando…</div>
@@ -295,7 +295,7 @@ function AtividadePage() {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm">
+                          <div className="text-sm">
                             {a.actor_id ? (
                               <Link
                                 to="/membros/$id"
@@ -314,7 +314,7 @@ function AtividadePage() {
                               {ENTITY_LABEL[a.entity_type] ?? a.entity_type}
                             </Badge>{" "}
                             <span className="font-medium">{a.entity_name ?? ""}</span>
-                          </p>
+                          </div>
                           {a.severity && a.severity !== "info" && (
                             <Badge
                               variant="outline"
@@ -395,7 +395,7 @@ function AtividadePage() {
 
         {isAdmin && (
           <TabsContent value="equipe" className="space-y-3">
-            <Card className="rounded-2xl">
+            <Card className="rounded-xl">
               <CardHeader>
                 <CardTitle className="text-base">Sessões ativas na equipe</CardTitle>
               </CardHeader>
@@ -434,7 +434,7 @@ function AtividadePage() {
 
 function SessionCard({ s, current }: { s: SessionRow; current: boolean }) {
   return (
-    <Card className="rounded-2xl">
+    <Card className="rounded-xl">
       <CardContent className="flex items-start gap-3 p-4">
         <div className="grid size-10 place-items-center rounded-xl bg-primary/15 text-primary">
           <DeviceIcon type={s.device_type} />
