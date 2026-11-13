@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ChevronRight, HeartHandshake, Loader2, Search } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -279,11 +280,29 @@ function SucessoPage() {
           <Card className="rounded-xl border-border bg-card/50">
             <CardContent className="p-0">
               {visiveis.length === 0 ? (
-                <p className="py-14 text-center text-sm text-muted-foreground">
-                  {filtro === "atencao"
-                    ? "Nenhum projeto precisando de atenção. 🎉"
-                    : "Nenhum projeto neste filtro."}
-                </p>
+                <div className="space-y-3 py-14 text-center text-sm text-muted-foreground">
+                  {filtro === "atencao" && contagem.sem > 0 ? (
+                    <>
+                      {/* Sem farol não é "tudo certo": ainda falta avaliar esses projetos. */}
+                      <p>
+                        Nada urgente agora, mas{" "}
+                        {contagem.sem === 1
+                          ? "1 projeto ainda não tem farol"
+                          : `${contagem.sem} projetos ainda não têm farol`}
+                        .
+                      </p>
+                      <Button size="sm" variant="outline" onClick={() => setFiltro("sem")}>
+                        Definir farol
+                      </Button>
+                    </>
+                  ) : (
+                    <p>
+                      {filtro === "atencao"
+                        ? "Nenhum projeto precisando de atenção. 🎉"
+                        : "Nenhum projeto neste filtro."}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <ul className="divide-y divide-border/40" data-testid="cs-lista">
                   {visiveis.map((l) => (
@@ -453,12 +472,12 @@ function ResumoCard({
     </CardContent>
   );
   const cls = cn(
-    "rounded-xl border-border bg-card text-left transition",
+    "h-full rounded-xl border-border bg-card text-left transition",
     onClick && "hover:border-primary/40",
     ativo && "border-primary/60 ring-1 ring-primary/40",
   );
   return onClick ? (
-    <button type="button" onClick={onClick} className="block w-full">
+    <button type="button" onClick={onClick} className="block h-full w-full">
       <Card className={cls}>{Conteudo}</Card>
     </button>
   ) : (
