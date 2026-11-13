@@ -64,6 +64,13 @@
       "when": 1794605916980,
       "tag": "0008_sucesso_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794613368057,
+      "tag": "0009_sucesso_cliente",
+      "breakpoints": true
     }
   ]
 }
