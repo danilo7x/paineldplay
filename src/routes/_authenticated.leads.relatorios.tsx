@@ -46,7 +46,7 @@ type Bar = { label: string; value: number; hint?: string };
 function BarList({ title, bars, empty }: { title: string; bars: Bar[]; empty?: string }) {
   const max = Math.max(1, ...bars.map((b) => b.value));
   return (
-    <section className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4 sm:p-5">
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <h2 className="mb-3 text-sm font-semibold">{title}</h2>
       {bars.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty ?? "Sem dados no período."}</p>
@@ -77,8 +77,8 @@ function BarList({ title, bars, empty }: { title: string; bars: Bar[]; empty?: s
 
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4">
-      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
       {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
     </div>

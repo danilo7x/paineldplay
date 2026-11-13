@@ -95,7 +95,7 @@ export function CallDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <details className="group rounded-xl border border-border/60 bg-background/40 p-3 text-sm">
+          <details className="group rounded-xl border border-border bg-background/40 p-3 text-sm">
             <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium text-primary">
               <BookOpenText className="size-3.5" /> Roteiro de ligação (apoio)
             </summary>

@@ -348,8 +348,7 @@ function FaturamentoPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Workspace</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Faturamento</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Faturamento</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? "Todas as vendas dos projetos da DPlay."
@@ -410,10 +409,10 @@ function FaturamentoPage() {
         />
       </div>
 
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/60 p-1">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-card/60 p-1">
               {PERIODS.map((p) => (
                 <button
                   key={p.key}
@@ -482,10 +481,10 @@ function FaturamentoPage() {
               Nenhuma venda no filtro atual.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border/50">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableRow className="border-border hover:bg-transparent">
                     <TableHead>
                       <SortHeader
                         label="Cliente"
@@ -527,7 +526,7 @@ function FaturamentoPage() {
                     const proj = projectMap.get(s.project_id);
                     const meta = STATUS_META[s.status];
                     return (
-                      <TableRow key={s.id} className="border-border/50">
+                      <TableRow key={s.id} className="border-border">
                         <TableCell>
                           <div className="font-medium">{s.cliente_nome}</div>
                           {s.cliente_email && (
@@ -711,19 +710,19 @@ function SummaryCard({
   accent?: string;
 }) {
   return (
-    <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+    <Card className="rounded-xl border-border bg-card">
       <CardContent className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
             {label}
           </p>
-          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+          <div className="shrink-0 text-muted-foreground/60">
             <Icon className="size-4" />
           </div>
         </div>
         <p
           className={cn(
-            "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+            "mt-2 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums",
             accent,
           )}
         >
@@ -859,7 +858,7 @@ function SaleDialog({
       </DialogHeader>
       <form onSubmit={submit} className="space-y-4">
         {canPickType && (
-          <div className="inline-flex rounded-full border border-border/50 bg-card/60 p-1">
+          <div className="inline-flex rounded-full border border-border bg-card/60 p-1">
             {(["avulsa", "assinatura"] as const).map((t) => (
               <button
                 key={t}
@@ -1009,7 +1008,7 @@ function SaleDialog({
           <Textarea id="s-obs" rows={3} value={obs ?? ""} onChange={(e) => setObs(e.target.value)} />
         </div>
         {tipo === "avulsa" && (
-          <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+          <div className="rounded-xl border border-border bg-background/40 p-3">
             <div className="flex items-center gap-3">
               <Switch id="s-nf" checked={nfEmitida} onCheckedChange={setNfEmitida} />
               <Label htmlFor="s-nf" className="cursor-pointer text-sm">Nota fiscal emitida</Label>
@@ -1064,11 +1063,11 @@ function SubscriptionsCard({
   }
 
   return (
-    <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+    <Card className="rounded-xl border-border bg-card">
       <CardContent className="space-y-3 p-5">
         <div className="flex items-center gap-2">
           <Repeat className="size-4 text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-base font-semibold">
             Assinaturas
           </h2>
           <span className="ml-auto text-xs text-muted-foreground">
@@ -1198,7 +1197,7 @@ function SubscriptionRow({
   };
 
   return (
-    <div className="rounded-xl border border-border/40 bg-background/40">
+    <div className="rounded-xl border border-border bg-background/40">
       <div className="flex min-w-0 flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-3">
         <button
           type="button"
@@ -1266,9 +1265,9 @@ function SubscriptionRow({
       </div>
 
       {expanded && (
-        <div className="border-t border-border/40 p-3 space-y-3">
+        <div className="border-t border-border p-3 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground">
               Mensalidades
             </p>
             <Button
@@ -1296,7 +1295,7 @@ function SubscriptionRow({
               Nenhuma mensalidade gerada ainda. Use "Gerar / atualizar".
             </p>
           ) : (
-            <ul className="divide-y divide-border/40 rounded-lg border border-border/40">
+            <ul className="divide-y divide-border/40 rounded-lg border border-border">
               {items.map((sale) => {
                 const comp = sale.competencia ?? sale.data;
                 const count = attachCounts[sale.id] ?? 0;
@@ -1371,14 +1370,14 @@ function SubscriptionRow({
 
           {upcoming.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1.5 text-xs text-muted-foreground">
                 Próximas competências
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {upcoming.map((d) => (
                   <span
                     key={d.toISOString()}
-                    className="rounded-full border border-border/50 bg-card/40 px-2 py-0.5 text-[10px] capitalize text-muted-foreground"
+                    className="rounded-full border border-border bg-card/40 px-2 py-0.5 text-[10px] capitalize text-muted-foreground"
                   >
                     {d
                       .toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
@@ -1502,7 +1501,7 @@ function AttachmentsDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
           <DialogTitle>Anexos · {sale.cliente_nome}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-card/40 p-4 text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card/40 p-4 text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground">
             {uploading ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -1526,7 +1525,7 @@ function AttachmentsDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
               Nenhum anexo ainda.
             </div>
           ) : (
-            <ul className="divide-y divide-border/50 rounded-xl border border-border/50">
+            <ul className="divide-y divide-border/50 rounded-xl border border-border">
               {items.map((a) => (
                 <li key={a.id} className="flex items-center gap-3 p-3">
                   <Paperclip className="size-4 shrink-0 text-muted-foreground" />

@@ -85,10 +85,10 @@ export function ProcessPanel({
   return (
     <SectionCard title="Diagnóstico e proposta" icon={ClipboardList}>
       {/* Reunião de diagnóstico */}
-      <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+      <div className="rounded-xl border border-border bg-background/40 p-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               <CalendarCheck2 className="size-3.5" /> Reunião de diagnóstico
             </p>
             {lead.reuniao_em ? (
@@ -176,11 +176,11 @@ export function ProcessPanel({
               key={g.stage}
               className={cn(
                 "rounded-xl border p-3",
-                isCurrent ? "border-primary/40 bg-primary/5" : "border-border/50 bg-background/30",
+                isCurrent ? "border-primary/40 bg-primary/5" : "border-border bg-background/30",
                 !isCurrent && !past && "opacity-60",
               )}
             >
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 {g.label}
                 {isCurrent && (
                   <span className="ml-2 normal-case tracking-normal text-primary">etapa atual</span>
@@ -220,7 +220,7 @@ export function ProcessPanel({
               </ul>
 
               {isCurrent && !closed && (
-                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border/40 pt-3">
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-3">
                   {g.stage === "proposta" && (
                     <>
                       <span className="w-full text-[11px] text-muted-foreground">
@@ -315,7 +315,7 @@ export function ProcessPanel({
             .filter(([, v]) => v)
             .map(([k, v]) => (
               <div key={k} className="min-w-0 rounded-lg bg-background/40 p-2.5">
-                <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{k}</dt>
+                <dt className="text-xs text-muted-foreground">{k}</dt>
                 <dd className="whitespace-pre-wrap break-words">{v}</dd>
               </div>
             ))}

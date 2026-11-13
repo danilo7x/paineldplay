@@ -438,8 +438,7 @@ function AnalyticsPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Insights</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {hasCommercial
               ? "Indicadores comerciais, faturamento, equipe e projetos."
@@ -483,12 +482,12 @@ function AnalyticsPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Array.from({ length: hasCommercial ? 8 : 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-2xl" />
+              <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-72 rounded-2xl" />
+              <Skeleton key={i} className="h-72 rounded-xl" />
             ))}
           </div>
         </div>
@@ -566,7 +565,7 @@ function AnalyticsPage() {
           </section>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="rounded-2xl border-border/50 bg-card/50 md:col-span-2">
+            <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
               <CardHeader className="flex flex-row items-center gap-2 pb-2">
                 <TrendingUp className="size-4 text-primary" />
                 <CardTitle className="text-sm font-medium">Faturamento por mês</CardTitle>
@@ -611,7 +610,7 @@ function AnalyticsPage() {
             </Card>
 
             {salesKpis && (
-              <Card className="rounded-2xl border-border/50 bg-card/50">
+              <Card className="rounded-xl border-border bg-card/50">
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <Filter className="size-4 text-primary" />
                   <CardTitle className="text-sm font-medium">Pipeline de vendas</CardTitle>
@@ -638,7 +637,7 @@ function AnalyticsPage() {
             )}
 
             <Card
-              className={`rounded-2xl border-border/50 bg-card/50 ${salesKpis ? "" : "md:col-span-2"}`}
+              className={`rounded-xl border-border bg-card/50 ${salesKpis ? "" : "md:col-span-2"}`}
             >
               <CardHeader className="flex flex-row items-center gap-2 pb-2">
                 <Layers className="size-4 text-primary" />
@@ -669,7 +668,7 @@ function AnalyticsPage() {
             </Card>
 
             {salesKpis && (
-              <Card className="rounded-2xl border-border/50 bg-card/50 md:col-span-2">
+              <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
                 <CardHeader className="flex flex-row flex-wrap items-center gap-2 pb-2">
                   <CalendarRange className="size-4 text-primary" />
                   <CardTitle className="text-sm font-medium">Leads abertos por semana</CardTitle>
@@ -708,7 +707,7 @@ function AnalyticsPage() {
               </Card>
             )}
 
-            <Card className="rounded-2xl border-border/50 bg-card/50">
+            <Card className="rounded-xl border-border bg-card/50">
               <CardHeader className="flex flex-row items-center gap-2 pb-2">
                 <PieIcon className="size-4 text-primary" />
                 <CardTitle className="text-sm font-medium">Receita por projeto</CardTitle>
@@ -744,7 +743,7 @@ function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/50 bg-card/50">
+            <Card className="rounded-xl border-border bg-card/50">
               <CardHeader className="flex flex-row items-center gap-2 pb-2">
                 <Activity className="size-4 text-primary" />
                 <CardTitle className="text-sm font-medium">Status dos projetos</CardTitle>
@@ -776,7 +775,7 @@ function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/50 bg-card/50 md:col-span-2">
+            <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
               <CardHeader className="flex flex-row items-center gap-2 pb-2">
                 <Users className="size-4 text-primary" />
                 <CardTitle className="text-sm font-medium">Desempenho por colaborador</CardTitle>
@@ -824,8 +823,8 @@ function AnalyticsPage() {
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4">
-      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-2 truncate text-2xl font-semibold" title={value}>
         {value}
       </p>

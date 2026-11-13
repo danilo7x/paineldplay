@@ -211,13 +211,13 @@ function KanbanPage() {
             disabled={!k.key}
             onClick={() => k.key && set("action", filters.action === k.key ? "todas" : k.key)}
             className={cn(
-              "rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4 text-left backdrop-blur-xl transition disabled:cursor-default",
+              "rounded-xl border border-border bg-card p-4 text-left transition disabled:cursor-default",
               k.key && "hover:border-primary/40",
               k.key && filters.action === k.key && "border-primary/60",
             )}
           >
             <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {k.label}
               </p>
               <k.icon className={cn("size-4", k.tone)} />
@@ -243,13 +243,13 @@ function KanbanPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : error ? (
-        <Card className="rounded-2xl border-destructive/40 bg-destructive/5">
+        <Card className="rounded-xl border-destructive/40 bg-destructive/5">
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Não foi possível carregar os leads: {(error as Error).message}
           </CardContent>
         </Card>
       ) : leads.length === 0 ? (
-        <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
               <Target className="size-5" />

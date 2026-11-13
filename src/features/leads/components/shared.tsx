@@ -62,7 +62,7 @@ export function OwnerChip({
 export function StageBadge({ etapa, subetapa }: { etapa: string; subetapa?: string | null }) {
   const meta = STAGE_META[etapa as LeadStage];
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[10px] font-medium">
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium">
       <span className={cn("size-1.5 shrink-0 rounded-full", meta?.dot ?? "bg-muted-foreground")} />
       <span className="truncate">
         {meta?.label ?? etapa}
@@ -98,7 +98,7 @@ export function DueBadge({
         "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
         state === "atrasada" && "border-red-500/50 bg-red-500/10 text-red-400",
         state === "hoje" && "border-amber-500/50 bg-amber-500/10 text-amber-400",
-        state === "futura" && "border-border/60 text-muted-foreground",
+        state === "futura" && "border-border text-muted-foreground",
         className,
       )}
     >
@@ -125,7 +125,7 @@ export function SectionCard({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4 backdrop-blur-xl sm:p-5",
+        "rounded-xl border border-border bg-card p-4 sm:p-5",
         className,
       )}
     >

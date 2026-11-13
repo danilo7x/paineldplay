@@ -204,7 +204,7 @@ function LeadDetailPage() {
 
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
             {lead.nome}
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -297,7 +297,7 @@ function LeadDetailPage() {
                 i === stageIdx && "border-primary bg-primary/15 font-medium text-primary",
                 (i > stageIdx || closed) &&
                   i !== stageIdx &&
-                  "border-border/50 text-muted-foreground/60",
+                  "border-border text-muted-foreground/60",
               )}
             >
               <span className={cn("size-1.5 rounded-full", STAGE_META[s].dot)} />
@@ -546,7 +546,7 @@ function Info({
 }) {
   return (
     <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</dt>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 whitespace-pre-wrap break-words">{children}</dd>
     </div>
   );

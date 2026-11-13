@@ -88,13 +88,13 @@ function AgendaPage() {
               g.items.length === 0 ? null : (
                 <section key={g.key}>
                   <h2
-                    className={cn("mb-2 text-xs font-semibold uppercase tracking-widest", g.tone)}
+                    className={cn("mb-2 text-xs font-semibold", g.tone)}
                   >
                     {g.title} · {g.items.length}
                   </h2>
-                  <ul className="overflow-hidden rounded-2xl border border-border/50 bg-card/50">
+                  <ul className="overflow-hidden rounded-xl border border-border bg-card/50">
                     {g.items.map((l) => (
-                      <li key={l.id} className="border-b border-border/40 last:border-0">
+                      <li key={l.id} className="border-b border-border last:border-0">
                         <Link
                           to="/leads/$id"
                           params={{ id: l.id }}
@@ -127,7 +127,7 @@ function AgendaPage() {
             )}
           </div>
 
-          <section className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4">
+          <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <CalendarCheck2 className="size-4 text-primary" /> Reuniões e apresentações
             </h2>
@@ -143,7 +143,7 @@ function AgendaPage() {
                       <Link
                         to="/leads/$id"
                         params={{ id: m.lead.id }}
-                        className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-background/40 p-3 transition hover:border-primary/40"
+                        className="flex items-start gap-2.5 rounded-xl border border-border bg-background/40 p-3 transition hover:border-primary/40"
                       >
                         <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
                         <span className="min-w-0">

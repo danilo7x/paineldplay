@@ -49,7 +49,7 @@ function WhatsappBadge({ isAdmin }: { isAdmin: boolean }) {
   const instances = data?.instances ?? [];
   const { data: names = {} } = usePeopleMap(instances.map((i) => i.user_id));
   const box =
-    "inline-flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs";
+    "inline-flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border bg-card/60 px-3 py-1.5 text-xs";
   const dot = (on: boolean) => cn("size-2 rounded-full", on ? "bg-emerald-400" : "bg-red-400");
 
   if (isLoading)
@@ -202,9 +202,9 @@ function CadenciaPage() {
         ].map((k) => (
           <div
             key={k.label}
-            className="rounded-2xl border border-border/50 bg-gradient-to-b from-card/80 to-card/40 p-4"
+            className="rounded-xl border border-border bg-card p-4"
           >
-            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">{k.label}</p>
+            <p className="text-xs text-muted-foreground">{k.label}</p>
             <p className={cn("mt-2 text-2xl font-semibold", k.tone)}>{k.value}</p>
             {k.hint && <p className="text-[11px] text-muted-foreground">{k.hint}</p>}
           </div>
@@ -216,7 +216,7 @@ function CadenciaPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : rows.length + responded.length + noAnswer.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-14 text-center">
+        <div className="rounded-xl border border-dashed border-border bg-card/40 py-14 text-center">
           <MessageCircle className="mx-auto size-6 text-primary" />
           <p className="mt-2 text-sm text-muted-foreground">
             Nenhum lead em cadência. Ela começa quando o lead não atende a ligação.

@@ -5,7 +5,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity,
   AlertTriangle,
-  ArrowUpRight,
   DollarSign,
   FolderKanban,
   Megaphone,
@@ -305,7 +304,7 @@ function DashboardPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-background/70 backdrop-blur-md"
+            className="pointer-events-none fixed inset-0 z-40 grid place-items-center bg-background/70"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 10 }}
@@ -314,7 +313,7 @@ function DashboardPage() {
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="text-center"
             >
-              <p className="text-xs uppercase tracking-[0.3em] text-primary/80">DPlay Solutions</p>
+              <p className="text-xs text-primary/80">DPlay Solutions</p>
               <h1 className="mt-3 bg-gradient-to-br from-white via-white to-primary bg-clip-text px-6 text-4xl font-semibold tracking-tight text-transparent sm:text-5xl md:text-6xl">
                 Bem-vindo, {firstName}
               </h1>
@@ -337,31 +336,27 @@ function DashboardPage() {
         className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
       >
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Visão geral</p>
-          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-            Olá, {firstName} 👋
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {isFinance
-              ? "Você tem acesso total ao painel."
-              : "Seus projetos e faturamento aparecerão aqui."}
+          <h1 className="truncate text-2xl font-semibold tracking-tight">Olá, {firstName}</h1>
+          <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
+            {new Date().toLocaleDateString("pt-BR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-          {isAdmin ? "Administrador" : isFinance ? "Contadora" : "Colaborador"}
-        </span>
       </motion.header>
 
       <motion.div
         variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
         className={cn(
-          "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4",
+          "grid grid-cols-2 gap-3 sm:gap-4",
           isFinance ? "xl:grid-cols-5" : "xl:grid-cols-4",
         )}
       >
         {loading
           ? Array.from({ length: isFinance ? 5 : 4 }).map((_, i) => (
-              <Card key={i} className="rounded-2xl border-border/50 bg-card/40 backdrop-blur-xl">
+              <Card key={i} className="rounded-xl border-border bg-card/40">
                 <CardContent className="p-6">
                   <Skeleton className="h-3 w-24" />
                   <Skeleton className="mt-4 h-8 w-32" />
@@ -372,41 +367,36 @@ function DashboardPage() {
           : kpis.map((k) => (
           <Card
             key={k.key}
-            className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl transition hover:border-primary/40"
+            className="rounded-xl border-border bg-card transition hover:border-primary/40"
           >
-            <CardContent className="p-5 sm:p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 flex-1 truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                   {k.label}
                 </p>
-                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                <div className="shrink-0 text-muted-foreground/60">
                   <k.icon className="size-4" />
                 </div>
               </div>
               <p
                 className={cn(
-                  "mt-3 w-full whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",
+                  "mt-2 w-full truncate whitespace-nowrap text-lg font-semibold tracking-tight tabular-nums sm:text-2xl",
                   (k as { accent?: string }).accent,
                 )}
               >
                 {k.value}
               </p>
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-                <ArrowUpRight className="size-3" /> {k.hint}
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>
             </CardContent>
           </Card>
         ))}
       </motion.div>
 
       <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}>
-      <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+      <Card className="rounded-xl border-border bg-card">
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Faturamento
-              </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight">
                 Evolução do faturamento
               </h2>
@@ -414,7 +404,7 @@ function DashboardPage() {
                 Vendas agregadas por mês, respeitando seu nível de acesso.
               </p>
             </div>
-            <div className="flex items-center gap-1 rounded-full border border-border/50 bg-card/60 p-1">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-card/60 p-1">
               {periods.map((p) => (
                 <button
                   key={p}
@@ -457,7 +447,10 @@ function DashboardPage() {
                   tickLine={false}
                   axisLine={false}
                   fontSize={11}
-                  width={32}
+                  width={56}
+                  tickFormatter={(v: number) =>
+                    v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR")} mil` : `R$ ${v}`
+                  }
                 />
                 <Tooltip
                   contentStyle={{
@@ -490,17 +483,14 @@ function DashboardPage() {
         className="grid gap-4 lg:grid-cols-3"
       >
         {/* Últimas atividades */}
-        <Card className="min-w-0 rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="min-w-0 rounded-xl border-border bg-card">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                <span className="grid size-8 place-items-center text-muted-foreground">
                   <Activity className="size-4" />
                 </span>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Atividade
-                  </p>
                   <h3 className="text-sm font-semibold tracking-tight">Últimas atividades</h3>
                 </div>
               </div>
@@ -550,17 +540,14 @@ function DashboardPage() {
         </Card>
 
         {/* Avisos recentes */}
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/20">
+                <span className="grid size-8 place-items-center text-muted-foreground">
                   <Megaphone className="size-4" />
                 </span>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Comunicação
-                  </p>
                   <h3 className="text-sm font-semibold tracking-tight">Avisos recentes</h3>
                 </div>
               </div>
@@ -594,14 +581,14 @@ function DashboardPage() {
                     <li key={n.id}>
                       <Link
                         to="/avisos"
-                        className="flex items-start gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                        className="flex items-start gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
                       >
                         <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot}`} />
                         <div className="min-w-0 flex-1">
                           <p className="flex items-center gap-1.5">
                             <span className="line-clamp-1 font-medium">{n.titulo}</span>
                             {n.critico && (
-                              <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-rose-300">
+                              <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-xs font-semibold text-rose-300">
                                 crítico
                               </span>
                             )}
@@ -623,17 +610,14 @@ function DashboardPage() {
         </Card>
 
         {/* Projetos em atenção */}
-        <Card className="rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl">
+        <Card className="rounded-xl border-border bg-card">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center rounded-full bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/20">
+                <span className="grid size-8 place-items-center text-amber-300">
                   <AlertTriangle className="size-4" />
                 </span>
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Operação
-                  </p>
                   <h3 className="text-sm font-semibold tracking-tight">Projetos em atenção</h3>
                 </div>
               </div>
@@ -667,7 +651,7 @@ function DashboardPage() {
                       <Link
                         to="/projetos/$id"
                         params={{ id: p.id }}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                        className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
                       >
                         <div className="min-w-0">
                           <p className="truncate font-medium">{p.nome}</p>

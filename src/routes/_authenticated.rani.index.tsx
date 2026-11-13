@@ -60,7 +60,7 @@ function RaniHome() {
         <RaniMark size={72} />
         <div className="space-y-2">
           <div className="flex items-center justify-center gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight">
               Olá, <span className="capitalize">{firstName}</span> 👋
             </h1>
             <Badge
@@ -82,7 +82,7 @@ function RaniHome() {
               <button
                 onClick={() => startWith(s)}
                 disabled={creating}
-                className="w-full rounded-2xl border border-border/50 bg-card/60 px-4 py-3 text-left text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-card hover:text-foreground disabled:opacity-60"
+                className="w-full rounded-xl border border-border bg-card/60 px-4 py-3 text-left text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-card hover:text-foreground disabled:opacity-60"
               >
                 {s}
               </button>

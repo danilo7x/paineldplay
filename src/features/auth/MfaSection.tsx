@@ -129,7 +129,7 @@ export function MfaSection() {
   }
 
   return (
-    <Card className="rounded-2xl border-border/50 bg-card/50 backdrop-blur">
+    <Card className="rounded-xl border-border bg-card/50">
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -164,7 +164,7 @@ export function MfaSection() {
             {verified.map((f) => (
               <div
                 key={f.id}
-                className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-3 py-2 text-sm"
               >
                 <div className="flex items-center gap-2">
                   <Smartphone className="size-4 text-muted-foreground" />
@@ -212,7 +212,7 @@ export function MfaSection() {
                   Ou digite manualmente
                 </Label>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 truncate rounded-md border border-border/40 bg-background/50 px-3 py-2 font-mono text-xs">
+                  <code className="flex-1 truncate rounded-md border border-border bg-background/50 px-3 py-2 font-mono text-xs">
                     {enroll.secret}
                   </code>
                   <Button

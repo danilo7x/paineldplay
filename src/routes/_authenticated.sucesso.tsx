@@ -170,8 +170,7 @@ function SucessoPage() {
   return (
     <div className="space-y-6" data-testid="sucesso-page">
       <header>
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Workspace</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Sucesso do Cliente</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Sucesso do Cliente</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Quem precisa de atenção, quando é o próximo contato e o que os clientes acham da DPlay.
         </p>
@@ -182,7 +181,7 @@ function SucessoPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : indisponivel ? (
-        <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
               <HeartHandshake className="size-5" />
@@ -277,7 +276,7 @@ function SucessoPage() {
           </div>
 
           {/* Projetos */}
-          <Card className="rounded-2xl border-border/50 bg-card/50">
+          <Card className="rounded-xl border-border bg-card/50">
             <CardContent className="p-0">
               {visiveis.length === 0 ? (
                 <p className="py-14 text-center text-sm text-muted-foreground">
@@ -363,7 +362,7 @@ function SucessoPage() {
 
           {/* Indicações */}
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="text-base font-semibold">
               Indicações ({indicacoes.length})
             </h2>
             {indicacoes.length === 0 ? (
@@ -372,7 +371,7 @@ function SucessoPage() {
                 projeto.
               </p>
             ) : (
-              <Card className="rounded-2xl border-border/50 bg-card/50">
+              <Card className="rounded-xl border-border bg-card/50">
                 <CardContent className="p-0">
                   <ul className="divide-y divide-border/40">
                     {indicacoes.map((x) => (
@@ -438,7 +437,7 @@ function ResumoCard({
 }) {
   const Conteudo = (
     <CardContent className="p-4">
-      <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
         {dot && <span className={cn("size-2 rounded-full", dot)} />}
         {titulo}
       </p>
@@ -454,7 +453,7 @@ function ResumoCard({
     </CardContent>
   );
   const cls = cn(
-    "rounded-2xl border-border/50 bg-gradient-to-b from-card/80 to-card/40 text-left backdrop-blur-xl transition",
+    "rounded-xl border-border bg-card text-left transition",
     onClick && "hover:border-primary/40",
     ativo && "border-primary/60 ring-1 ring-primary/40",
   );

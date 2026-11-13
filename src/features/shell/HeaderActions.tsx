@@ -3,14 +3,16 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  Activity,
   AlertTriangle,
   Bell,
   CheckCheck,
+  FolderLock,
   LogIn,
   LogOut,
   Megaphone,
-  Settings,
   ShoppingCart,
+  StickyNote,
   UserPlus,
   UserRound,
 } from "lucide-react";
@@ -202,16 +204,6 @@ export function HeaderActions() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Engrenagem → Perfil */}
-      <Link
-        to="/perfil"
-        className="grid size-8 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
-        aria-label="Configurações"
-        title="Configurações da conta"
-      >
-        <Settings className="size-4" />
-      </Link>
-
       {/* Avatar + menu do usuário */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -219,7 +211,7 @@ export function HeaderActions() {
             className="ml-1 rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Menu do usuário"
           >
-            <Avatar className="size-8 border border-border/60">
+            <Avatar className="size-8 border border-border">
               <AvatarImage src={profile?.avatar_url ?? undefined} alt="" />
               <AvatarFallback className="bg-primary/20 text-[11px] font-semibold text-primary">
                 {initials}
@@ -229,11 +221,11 @@ export function HeaderActions() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
-            <p className="truncate text-sm font-medium">{firstName}</p>
+            <p className="truncate text-sm font-medium">{profile?.nome || firstName}</p>
             <p className="truncate text-[11px] font-normal text-muted-foreground">
               {profile?.email ?? user.email}
             </p>
-            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               {isAdmin ? "Administrador" : "Colaborador"}
             </p>
           </DropdownMenuLabel>
@@ -244,8 +236,18 @@ export function HeaderActions() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to="/perfil" className="cursor-pointer">
-              <Settings className="mr-2 size-4" /> Configurações
+            <Link to="/arquivos" className="cursor-pointer">
+              <FolderLock className="mr-2 size-4" /> Meus arquivos
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/notas" className="cursor-pointer">
+              <StickyNote className="mr-2 size-4" /> Notas
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/atividade" className="cursor-pointer">
+              <Activity className="mr-2 size-4" /> Atividade
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

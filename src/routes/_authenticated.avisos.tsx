@@ -192,8 +192,7 @@ function AvisosPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Comunicação</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Avisos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Avisos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? "Publique comunicados para toda a equipe e acompanhe leituras."
@@ -223,7 +222,7 @@ function AvisosPage() {
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : notices.length === 0 ? (
-        <Card className="rounded-2xl border-dashed border-border/60 bg-card/40">
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
               <Megaphone className="size-5" />
@@ -244,10 +243,10 @@ function AvisosPage() {
             return (
               <Card
                 key={n.id}
-                className={`rounded-2xl bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl ${
+                className={`rounded-xl bg-card ${
                   needsAck
                     ? "border-rose-500/50 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]"
-                    : "border-border/50"
+                    : "border-border"
                 }`}
               >
                 <CardContent className="space-y-4 p-6">
@@ -310,7 +309,7 @@ function AvisosPage() {
                           key={a.id}
                           type="button"
                           onClick={() => downloadAttachment(a)}
-                          className="inline-flex items-center gap-2 rounded-lg border border-border/50 bg-card/60 px-3 py-1.5 text-xs transition hover:border-primary/50 hover:text-foreground"
+                          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-1.5 text-xs transition hover:border-primary/50 hover:text-foreground"
                         >
                           <Paperclip className="size-3.5" />
                           <span className="max-w-[220px] truncate">{a.filename}</span>
@@ -343,7 +342,7 @@ function AvisosPage() {
                   )}
 
                   {isAdmin && activeTeam.length > 0 && (
-                    <div className="rounded-xl border border-border/50 bg-card/40 p-4">
+                    <div className="rounded-xl border border-border bg-card/40 p-4">
                       <div className="mb-3 flex items-center justify-between text-xs">
                         <span className="font-medium">
                           Leituras: {readers.length} de {activeTeam.length}
@@ -399,8 +398,7 @@ function ReaderColumn({
   return (
     <div>
       <p
-        className={`mb-2 text-[10px] uppercase tracking-widest ${
-          accent ? "text-emerald-300" : "text-muted-foreground"
+        className={`mb-2 text-xs ${ accent ? "text-emerald-300" : "text-muted-foreground"
         }`}
       >
         {label} ({people.length})
@@ -566,7 +564,7 @@ function NoticeDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end justify-between rounded-lg border border-border/50 bg-card/40 px-3 py-2">
+          <div className="flex items-end justify-between rounded-lg border border-border bg-card/40 px-3 py-2">
             <div>
               <Label htmlFor="n-critico" className="text-xs">
                 Aviso crítico
@@ -584,7 +582,7 @@ function NoticeDialog({
               {existing.map((a) => (
                 <li
                   key={a.id}
-                  className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-card/40 px-2 py-1 text-xs"
+                  className="flex items-center justify-between gap-2 rounded-md border border-border bg-card/40 px-2 py-1 text-xs"
                 >
                   <span className="flex items-center gap-2 truncate">
                     <Paperclip className="size-3.5" /> {a.filename}

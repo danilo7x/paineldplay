@@ -328,7 +328,7 @@ function RaniThreadPage() {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <header className="flex items-center gap-3 rounded-2xl border border-border/40 bg-card/40 px-4 py-3 backdrop-blur-xl">
+      <header className="flex items-center gap-3 rounded-xl border border-border bg-card/40 px-4 py-3">
         <RaniMark size={36} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ function RaniThreadPage() {
 
       <div
         ref={scrollRef}
-        className="relative flex-1 overflow-y-auto rounded-2xl border border-border/40 bg-card/30 p-4 backdrop-blur-xl"
+        className="relative flex-1 overflow-y-auto rounded-xl border border-border bg-card/30 p-4"
       >
         {loading ? (
           <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -389,7 +389,7 @@ function MessageRow({ m, tools }: { m: RaniMessage; tools?: ToolEvent[] }) {
       <div className={cn("min-w-0", isUser ? "max-w-[80%]" : "max-w-[85%] flex-1")}>
         {!isUser && tools && tools.length > 0 && <ToolActivity tools={tools} />}
         {isUser ? (
-          <div className="whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-sm">
+          <div className="whitespace-pre-wrap rounded-xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-sm">
             {m.content}
           </div>
         ) : m.content ? (
@@ -472,7 +472,7 @@ function AttachmentsBar({
           href={urls[a.path] || "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border border-border/50 bg-card/60 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+          className="inline-flex max-w-[220px] items-center gap-1.5 truncate rounded-full border border-border bg-card/60 px-2.5 py-1 text-[11px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
         >
           <Paperclip className="size-3 shrink-0" />
           <span className="truncate">{a.name}</span>
@@ -486,7 +486,7 @@ function TypingIndicator() {
   return (
     <li className="flex items-center gap-3">
       <RaniMark size={28} />
-      <div className="rounded-2xl rounded-bl-md border border-border/40 bg-background/60 px-4 py-2.5">
+      <div className="rounded-xl rounded-bl-md border border-border bg-background/60 px-4 py-2.5">
         <span className="inline-flex gap-1">
           <span
             className="size-1.5 animate-bounce rounded-full bg-[#057EF3]"
