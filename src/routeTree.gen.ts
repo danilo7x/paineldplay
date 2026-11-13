@@ -24,6 +24,7 @@ import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated.perfil'
 import { Route as AuthenticatedRaniRouteImport } from './routes/_authenticated.rani'
 import { Route as AuthenticatedSociosRouteImport } from './routes/_authenticated.socios'
+import { Route as AuthenticatedSucessoRouteImport } from './routes/_authenticated.sucesso'
 import { Route as AuthenticatedFerramentasObjecoesRouteImport } from './routes/_authenticated.ferramentas.objecoes'
 import { Route as AuthenticatedFerramentasRoteiroRouteImport } from './routes/_authenticated.ferramentas.roteiro'
 import { Route as AuthenticatedFerramentasTemplatesRouteImport } from './routes/_authenticated.ferramentas.templates'
@@ -113,6 +114,11 @@ const AuthenticatedRaniRoute = AuthenticatedRaniRouteImport.update({
 const AuthenticatedSociosRoute = AuthenticatedSociosRouteImport.update({
   id: '/socios',
   path: '/socios',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSucessoRoute = AuthenticatedSucessoRouteImport.update({
+  id: '/sucesso',
+  path: '/sucesso',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFerramentasObjecoesRoute =
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/rani': typeof AuthenticatedRaniRouteWithChildren
   '/socios': typeof AuthenticatedSociosRoute
+  '/sucesso': typeof AuthenticatedSucessoRoute
   '/ferramentas/objecoes': typeof AuthenticatedFerramentasObjecoesRoute
   '/ferramentas/roteiro': typeof AuthenticatedFerramentasRoteiroRoute
   '/ferramentas/templates': typeof AuthenticatedFerramentasTemplatesRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/notas': typeof AuthenticatedNotasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/socios': typeof AuthenticatedSociosRoute
+  '/sucesso': typeof AuthenticatedSucessoRoute
   '/ferramentas/objecoes': typeof AuthenticatedFerramentasObjecoesRoute
   '/ferramentas/roteiro': typeof AuthenticatedFerramentasRoteiroRoute
   '/ferramentas/templates': typeof AuthenticatedFerramentasTemplatesRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/rani': typeof AuthenticatedRaniRouteWithChildren
   '/_authenticated/socios': typeof AuthenticatedSociosRoute
+  '/_authenticated/sucesso': typeof AuthenticatedSucessoRoute
   '/_authenticated/ferramentas/objecoes': typeof AuthenticatedFerramentasObjecoesRoute
   '/_authenticated/ferramentas/roteiro': typeof AuthenticatedFerramentasRoteiroRoute
   '/_authenticated/ferramentas/templates': typeof AuthenticatedFerramentasTemplatesRoute
@@ -310,6 +319,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/rani'
     | '/socios'
+    | '/sucesso'
     | '/ferramentas/objecoes'
     | '/ferramentas/roteiro'
     | '/ferramentas/templates'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/notas'
     | '/perfil'
     | '/socios'
+    | '/sucesso'
     | '/ferramentas/objecoes'
     | '/ferramentas/roteiro'
     | '/ferramentas/templates'
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/rani'
     | '/_authenticated/socios'
+    | '/_authenticated/sucesso'
     | '/_authenticated/ferramentas/objecoes'
     | '/_authenticated/ferramentas/roteiro'
     | '/_authenticated/ferramentas/templates'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/socios'
       fullPath: '/socios'
       preLoaderRoute: typeof AuthenticatedSociosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sucesso': {
+      id: '/_authenticated/sucesso'
+      path: '/sucesso'
+      fullPath: '/sucesso'
+      preLoaderRoute: typeof AuthenticatedSucessoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/ferramentas/objecoes': {
@@ -637,6 +656,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedRaniRoute: typeof AuthenticatedRaniRouteWithChildren
   AuthenticatedSociosRoute: typeof AuthenticatedSociosRoute
+  AuthenticatedSucessoRoute: typeof AuthenticatedSucessoRoute
   AuthenticatedFerramentasObjecoesRoute: typeof AuthenticatedFerramentasObjecoesRoute
   AuthenticatedFerramentasRoteiroRoute: typeof AuthenticatedFerramentasRoteiroRoute
   AuthenticatedFerramentasTemplatesRoute: typeof AuthenticatedFerramentasTemplatesRoute
@@ -665,6 +685,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedRaniRoute: AuthenticatedRaniRouteWithChildren,
   AuthenticatedSociosRoute: AuthenticatedSociosRoute,
+  AuthenticatedSucessoRoute: AuthenticatedSucessoRoute,
   AuthenticatedFerramentasObjecoesRoute: AuthenticatedFerramentasObjecoesRoute,
   AuthenticatedFerramentasRoteiroRoute: AuthenticatedFerramentasRoteiroRoute,
   AuthenticatedFerramentasTemplatesRoute:

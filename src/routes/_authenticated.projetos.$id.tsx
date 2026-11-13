@@ -46,6 +46,7 @@ import {
   type ProjectStepStatus,
 } from "@/features/projects/status";
 import { PROJECT_SERVICES, serviceLabel } from "@/features/projects/services";
+import { SucessoTab } from "@/features/sucesso/SucessoTab";
 
 type Project = {
   id: string;
@@ -78,11 +79,14 @@ type Credential = {
 
 export const Route = createFileRoute("/_authenticated/projetos/$id")({
   component: ProjectDetail,
+  validateSearch: (search: Record<string, unknown>): { aba?: string } =>
+    typeof search.aba === "string" ? { aba: search.aba } : {},
 });
 
 function ProjectDetail() {
   const { id } = Route.useParams();
   const { user, isAdmin } = Route.useRouteContext();
+  const { aba } = Route.useSearch();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -356,10 +360,13 @@ function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="progresso">
+      <Tabs defaultValue={aba === "sucesso" ? "sucesso" : "progresso"}>
         <TabsList className="rounded-full bg-card/60">
           <TabsTrigger value="progresso" className="rounded-full">
             Progresso
+          </TabsTrigger>
+          <TabsTrigger value="sucesso" className="rounded-full">
+            Sucesso do cliente
           </TabsTrigger>
           <TabsTrigger value="notas" className="rounded-full">
             Notas
@@ -382,6 +389,14 @@ function ProjectDetail() {
             canEdit={canEditContent}
             currentUserId={user.id}
             onChange={fetchAll}
+          />
+        </TabsContent>
+        <TabsContent value="sucesso" className="mt-4">
+          <SucessoTab
+            projectId={project.id}
+            canEdit={canEditContent}
+            isAdmin={isAdmin}
+            currentUserId={user.id}
           />
         </TabsContent>
         <TabsContent value="notas" className="mt-4">

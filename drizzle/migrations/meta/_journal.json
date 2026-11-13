@@ -57,6 +57,13 @@
       "when": 1794520014734,
       "tag": "0007_tighten_team_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794605916980,
+      "tag": "0008_sucesso_cliente",
+      "breakpoints": true
     }
   ]
 }

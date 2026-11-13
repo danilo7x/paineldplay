@@ -24,6 +24,7 @@ import {
   MessageSquareText,
   BookOpenText,
   ShieldQuestion,
+  HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +62,7 @@ const workspace: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Faturamento", url: "/faturamento", icon: Wallet },
   { title: "Projetos", url: "/projetos", icon: FolderKanban },
+  { title: "Sucesso do Cliente", url: "/sucesso", icon: HeartHandshake },
   { title: "Clientes", url: "/clientes", icon: Contact },
   { title: "Analytics", url: "/analytics", icon: LineChart },
 ];
