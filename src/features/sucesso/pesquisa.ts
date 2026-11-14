@@ -1,9 +1,8 @@
 /**
  * Pesquisas de satisfação, no formato dos dois roteiros de reunião da DPlay:
- * - Reunião de Coleta de Satisfação Geral (durante o projeto)
- * - Reunião de Alinhamento Final (RAF), no encerramento
+ * - Reunião de Alinhamento Final (RAF): a pesquisa padrão, feita no encerramento
+ * - Reunião de Coleta de Satisfação Geral: opcional, para projetos mais longos
  */
-import { diasAte } from "./meta";
 
 export type PesquisaTipo = "coleta" | "raf";
 
@@ -43,9 +42,9 @@ export const PESQUISA_META: Record<
   }
 > = {
   coleta: {
-    titulo: "Coleta de satisfação",
+    titulo: "Coleta intermediária",
     curto: "Coleta",
-    quando: "Durante o projeto",
+    quando: "Opcional, durante projetos mais longos",
     perguntas: [
       { chave: "comunicacao", texto: "Relacionamento e comunicação com a equipe" },
       { chave: "andamento", texto: "Andamento das atividades" },
@@ -53,9 +52,9 @@ export const PESQUISA_META: Record<
     ],
   },
   raf: {
-    titulo: "Alinhamento final (RAF)",
-    curto: "RAF",
-    quando: "No encerramento do projeto",
+    titulo: "Pesquisa final (RAF)",
+    curto: "Final",
+    quando: "Na reunião de alinhamento final",
     perguntas: [
       { chave: "qualidade_entregaveis", texto: "Qualidade dos entregáveis" },
       { chave: "facilidade_uso", texto: "Facilidade no uso das ferramentas" },
@@ -141,9 +140,6 @@ export const PLANO_INDICACOES = {
   descricaoFechada: "mensalidade seguinte abatida",
 };
 
-/** De quantos em quantos dias o cliente ativo deve passar por uma coleta de satisfação. */
-export const DIAS_ENTRE_COLETAS = 90;
-
 export type NpsCategoria = "promotor" | "neutro" | "detrator";
 
 /** NPS: até 6 não recomendaria, 7–8 neutro, 9–10 recomendaria. */
@@ -208,10 +204,4 @@ export function farolSugerido(media: number | null, nps: number | null) {
   const medio = (media != null && media < 4) || (nps != null && nps <= 8);
   if (media == null && nps == null) return null;
   return ruim ? "vermelho" : medio ? "amarelo" : "verde";
-}
-
-/** Coleta pendente: projeto ativo sem nenhuma pesquisa nos últimos 90 dias. */
-export function coletaPendente(ultima: Pesquisa | undefined) {
-  if (!ultima) return true;
-  return diasAte(ultima.data) < -DIAS_ENTRE_COLETAS;
 }

@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatarData } from "./meta";
 import {
-  DIAS_ENTRE_COLETAS,
   INTERESSES,
   NPS_META,
   PESQUISA_META,
@@ -28,12 +27,6 @@ type Props = {
 };
 
 const BARRA = { bom: "bg-emerald-400", medio: "bg-amber-400", ruim: "bg-red-400" } as const;
-
-function somarDias(data: string, dias: number) {
-  const d = new Date(`${data.slice(0, 10)}T00:00:00`);
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
 
 function somarMeses(data: string, meses: number) {
   const d = new Date(`${data.slice(0, 10)}T00:00:00`);
@@ -58,36 +51,38 @@ export function SatisfacaoCard({ pesquisas, canEdit, podeExcluir, onNova, onExcl
           <div>
             <h3 className="text-base font-semibold">Satisfação do cliente</h3>
             <p className="text-sm text-muted-foreground">
-              Registre as respostas na própria reunião com o cliente.
+              Registre as respostas na própria reunião de alinhamento final.
             </p>
           </div>
           {canEdit && (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="gap-2" onClick={() => onNova("coleta")}>
-                <ClipboardCheck className="size-4" /> Coleta de satisfação
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" className="gap-2" onClick={() => onNova("raf")}>
+                <Flag className="size-4" /> Pesquisa final (RAF)
               </Button>
-              <Button size="sm" variant="outline" className="gap-2" onClick={() => onNova("raf")}>
-                <Flag className="size-4" /> Alinhamento final (RAF)
+              {/* Coleta no meio do projeto é rara (projetos pequenos), por isso fica discreta. */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-2 text-muted-foreground"
+                onClick={() => onNova("coleta")}
+              >
+                <ClipboardCheck className="size-4" /> Coleta intermediária
               </Button>
             </div>
           )}
         </div>
 
         {!atual ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(Object.keys(PESQUISA_META) as PesquisaTipo[]).map((t) => (
-              <div key={t} className="rounded-lg border border-dashed border-border p-4">
-                <p className="text-sm font-medium">{PESQUISA_META[t].titulo}</p>
-                <p className="text-xs text-muted-foreground">
-                  {PESQUISA_META[t].quando}
-                  {t === "coleta" && ` · a cada ${DIAS_ENTRE_COLETAS} dias`}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {PESQUISA_META[t].perguntas.length} perguntas de satisfação, recomendação de 1 a
-                  10 e feedback aberto.
-                </p>
-              </div>
-            ))}
+          <div className="rounded-lg border border-dashed border-border p-4 text-sm">
+            <p className="font-medium">Ainda sem pesquisa de satisfação</p>
+            <p className="mt-1 text-muted-foreground">
+              Na reunião de alinhamento final, clique em “Pesquisa final (RAF)” e marque as
+              respostas do cliente: {PESQUISA_META.raf.perguntas.length} perguntas de satisfação,
+              recomendação de 1 a 10, feedback aberto e interesse em outras soluções.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Em projetos mais longos, use a coleta intermediária para medir no meio do caminho.
+            </p>
           </div>
         ) : (
           <>
@@ -145,11 +140,7 @@ export function SatisfacaoCard({ pesquisas, canEdit, podeExcluir, onNova, onExcl
               <div className="rounded-lg border border-border p-4">
                 <p className="text-xs text-muted-foreground">{PESQUISA_META[atual.tipo].titulo}</p>
                 <p className="mt-1 text-sm font-medium">{formatarData(atual.data)}</p>
-                {atual.tipo === "coleta" ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Próxima coleta até {formatarData(somarDias(atual.data, DIAS_ENTRE_COLETAS))}
-                  </p>
-                ) : atual.meses_acompanhamento ? (
+                {atual.tipo === "raf" && atual.meses_acompanhamento ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Acompanhamento até{" "}
                     {formatarData(somarMeses(atual.data, atual.meses_acompanhamento))} (

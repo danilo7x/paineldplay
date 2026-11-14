@@ -35,7 +35,6 @@ import {
   PLANO_INDICACOES,
   TEMAS,
   calcularNps,
-  coletaPendente,
   escalaDe,
   formatarMedia,
   mediaPesquisa,
@@ -49,7 +48,8 @@ export const Route = createFileRoute("/_authenticated/sucesso")({
 });
 
 type Projeto = { id: string; nome: string; cliente: string | null; status: string };
-type Pendencia = "coleta" | "raf" | null;
+/** A pesquisa padrão é a da reunião final: projeto concluído sem ela fica pendente. */
+type Pendencia = "raf" | null;
 type Linha = Projeto & {
   ativo: boolean;
   farol: Farol | null;
@@ -142,13 +142,10 @@ function SucessoPage() {
         // Registros antigos de NPS valem até a primeira pesquisa guiada.
         const nps = ultimaPesquisa?.nps ?? regs.find((r) => r.tipo === "nps")?.nota ?? null;
         const ativo = ATIVOS.has(p.status);
-        const pendencia: Pendencia = semPesquisas
-          ? null
-          : p.status === "concluido" && !pqs.some((x) => x.tipo === "raf")
+        const pendencia: Pendencia =
+          !semPesquisas && p.status === "concluido" && !pqs.some((x) => x.tipo === "raf")
             ? "raf"
-            : ativo && coletaPendente(ultimaPesquisa)
-              ? "coleta"
-              : null;
+            : null;
         const proximo = c?.proximo_contato ?? null;
         const atrasado = proximo ? diasAte(proximo) < 0 : false;
         const farol = c?.farol ?? null;
@@ -198,30 +195,28 @@ function SucessoPage() {
     return n;
   }, [carteira]);
 
-  const pendentes = useMemo(() => {
-    const coleta = todas.filter((l) => l.pendencia === "coleta").length;
-    const raf = todas.filter((l) => l.pendencia === "raf").length;
-    return { coleta, raf, total: coleta + raf };
-  }, [todas]);
+  const pendentes = useMemo(() => todas.filter((l) => l.pendencia).length, [todas]);
 
+  // A pesquisa acontece no encerramento, então os indicadores de satisfação contam
+  // todos os projetos avaliados (inclusive concluídos), e não só os ativos.
   const nps = useMemo(
-    () => calcularNps(carteira.map((l) => l.nps).filter((x): x is number => x != null)),
-    [carteira],
+    () => calcularNps(todas.map((l) => l.nps).filter((x): x is number => x != null)),
+    [todas],
   );
 
   const satisfacao = useMemo(() => {
-    const medias = carteira.map((l) => l.media).filter((x): x is number => x != null);
+    const medias = todas.map((l) => l.media).filter((x): x is number => x != null);
     if (!medias.length) return null;
     return {
       media: medias.reduce((a, b) => a + b, 0) / medias.length,
       satisfeitos: medias.filter((m) => m >= 4).length,
       total: medias.length,
     };
-  }, [carteira]);
+  }, [todas]);
 
-  /** Média de cada tema na pesquisa mais recente de cada projeto da carteira. */
+  /** Média de cada tema na pesquisa mais recente de cada projeto avaliado. */
   const temas = useMemo(() => {
-    const ultimas = carteira.map((l) => l.ultimaPesquisa).filter((x): x is Pesquisa => !!x);
+    const ultimas = todas.map((l) => l.ultimaPesquisa).filter((x): x is Pesquisa => !!x);
     return TEMAS.map((t) => {
       const ns = ultimas
         .flatMap((p) => t.chaves.map((k) => p[k]))
@@ -232,7 +227,7 @@ function SucessoPage() {
         n: ns.length,
       };
     }).filter((t) => t.media != null) as { label: string; media: number; n: number }[];
-  }, [carteira]);
+  }, [todas]);
   const piorTema = temas.length > 1 ? temas.reduce((a, b) => (b.media < a.media ? b : a)) : null;
 
   /** Interesse em outras soluções, levantado no alinhamento final. */
@@ -327,7 +322,7 @@ function SucessoPage() {
               destaque
             />
             <ResumoCard
-              titulo="NPS da carteira"
+              titulo="NPS dos clientes"
               valor={nps.valor ?? "—"}
               sub={
                 nps.total
@@ -350,12 +345,12 @@ function SucessoPage() {
               }
             />
             <ResumoCard
-              titulo="Pesquisas pendentes"
-              valor={semPesquisas ? "—" : pendentes.total}
+              titulo="Pesquisa final pendente"
+              valor={semPesquisas ? "—" : pendentes}
               sub={
                 semPesquisas
                   ? "Aguardando atualização do banco"
-                  : `${pendentes.coleta} coleta${pendentes.coleta === 1 ? "" : "s"} · ${pendentes.raf} RAF`
+                  : "Projetos concluídos sem a pesquisa da reunião final"
               }
               ativo={filtro === "pendentes"}
               onClick={semPesquisas ? undefined : () => setFiltro("pendentes")}
@@ -376,7 +371,7 @@ function SucessoPage() {
             {(
               [
                 ["atencao", "Precisam de atenção", null],
-                ["pendentes", `Pesquisa pendente (${pendentes.total})`, null],
+                ["pendentes", `Pesquisa final pendente (${pendentes})`, null],
                 ["todos", "Todos", null],
                 ["vermelho", `${contagem.vermelho}`, FAROL_META.vermelho.dot],
                 ["amarelo", `${contagem.amarelo}`, FAROL_META.amarelo.dot],
@@ -438,7 +433,7 @@ function SucessoPage() {
                       {filtro === "atencao"
                         ? "Nenhum projeto precisando de atenção. 🎉"
                         : filtro === "pendentes"
-                          ? "Todas as pesquisas em dia. 🎉"
+                          ? "Todos os projetos concluídos já têm a pesquisa final. 🎉"
                           : "Nenhum projeto neste filtro."}
                     </p>
                   )}
@@ -474,7 +469,7 @@ function SucessoPage() {
                                 <span className="truncate">{l.nome}</span>
                                 {l.pendencia && (
                                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                    {l.pendencia === "raf" ? "RAF pendente" : "Coleta pendente"}
+                                    Pesquisa final pendente
                                   </span>
                                 )}
                               </p>
@@ -548,7 +543,7 @@ function SucessoPage() {
                   <div>
                     <h2 className="text-base font-semibold">Satisfação por tema</h2>
                     <p className="text-xs text-muted-foreground">
-                      Média das respostas mais recentes de cada cliente.
+                      Média da pesquisa mais recente de cada cliente avaliado.
                     </p>
                   </div>
                   {temas.length === 0 ? (
