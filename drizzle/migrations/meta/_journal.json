@@ -71,6 +71,13 @@
       "when": 1794613368057,
       "tag": "0009_sucesso_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794614684821,
+      "tag": "0010_pesquisas_satisfacao",
+      "breakpoints": true
     }
   ]
 }

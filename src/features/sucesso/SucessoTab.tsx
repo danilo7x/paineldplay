@@ -50,6 +50,19 @@ import {
   type Registro,
   type RegistroTipo,
 } from "./meta";
+import { PesquisaDialog } from "./PesquisaDialog";
+import { SatisfacaoCard } from "./SatisfacaoCard";
+import {
+  PLANO_INDICACOES,
+  escalaDe,
+  formatarMedia,
+  mediaPesquisa,
+  type Pesquisa,
+  type PesquisaTipo,
+} from "./pesquisa";
+
+/** Contato e reunião são registros rápidos; NPS e satisfação entram pela pesquisa guiada. */
+const REGISTROS_RAPIDOS: RegistroTipo[] = ["contato", "reuniao"];
 
 type Pessoa = { id: string; nome: string | null };
 
@@ -71,9 +84,13 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
   const [motivo, setMotivo] = useState("");
   const [novoRegistro, setNovoRegistro] = useState<RegistroTipo | null>(null);
   const [novaIndicacao, setNovaIndicacao] = useState(false);
+  const [pesquisas, setPesquisas] = useState<Pesquisa[]>([]);
+  // A tabela de pesquisas vem numa atualização do banco separada; sem ela o resto da aba funciona.
+  const [semPesquisas, setSemPesquisas] = useState(false);
+  const [novaPesquisa, setNovaPesquisa] = useState<PesquisaTipo | null>(null);
 
   const carregar = useCallback(async () => {
-    const [c, r, i, p] = await Promise.all([
+    const [c, r, i, p, pq] = await Promise.all([
       supabase.from("project_cs").select("*").eq("project_id", projectId).maybeSingle(),
       supabase
         .from("project_cs_registros")
@@ -87,6 +104,12 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         .eq("project_id", projectId)
         .order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, nome").eq("ativo", true).order("nome"),
+      supabase
+        .from("project_cs_pesquisas")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
     if (tabelaAusente(c.error) || tabelaAusente(r.error) || tabelaAusente(i.error)) {
       setIndisponivel(true);
@@ -101,6 +124,8 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
     setRegistros((r.data as Registro[]) ?? []);
     setIndicacoes((i.data as Indicacao[]) ?? []);
     setPessoas(((p.data as Pessoa[]) ?? []).filter((x) => x.nome));
+    setSemPesquisas(tabelaAusente(pq.error));
+    setPesquisas((pq.data as Pesquisa[] | null) ?? []);
     setLoading(false);
   }, [projectId]);
 
@@ -144,6 +169,13 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
     setRegistros((rs) => rs.filter((r) => r.id !== id));
   }
 
+  async function excluirPesquisa(id: string) {
+    if (!window.confirm("Excluir esta pesquisa de satisfação?")) return;
+    const { error } = await supabase.from("project_cs_pesquisas").delete().eq("id", id);
+    if (error) return toast.error("Não foi possível excluir.");
+    setPesquisas((ps) => ps.filter((x) => x.id !== id));
+  }
+
   async function mudarStatusIndicacao(id: string, status: IndicacaoStatus) {
     const { error } = await supabase.from("project_cs_indicacoes").update({ status }).eq("id", id);
     if (error) return toast.error("Não foi possível atualizar a indicação.");
@@ -182,8 +214,15 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
 
   const ultimo = (tipo: RegistroTipo) => registros.find((r) => r.tipo === tipo);
   const ultimoContato = registros.find((r) => r.tipo === "contato" || r.tipo === "reuniao");
-  const nps = ultimo("nps");
-  const csat = ultimo("csat");
+  const ultimaPesquisa = pesquisas[0];
+  const mediaAtual = ultimaPesquisa ? mediaPesquisa(ultimaPesquisa) : null;
+  // Registros antigos de NPS/CSAT continuam valendo até a primeira pesquisa guiada.
+  const npsAtual = ultimaPesquisa?.nps ?? ultimo("nps")?.nota ?? null;
+  const csatAntigo = ultimaPesquisa ? null : (ultimo("csat")?.nota ?? null);
+  const indicacoesAtivas = indicacoes.filter((x) => x.status !== "perdida").length;
+  const indicacoesFechadas = indicacoes.filter((x) => x.status === "fechada").length;
+  const rumoAoDesconto = indicacoesAtivas % PLANO_INDICACOES.leadsParaDesconto;
+  const descontosGanhos = Math.floor(indicacoesAtivas / PLANO_INDICACOES.leadsParaDesconto);
   const proximo = cs?.proximo_contato ?? null;
   const atrasado = proximo ? diasAte(proximo) < 0 : false;
 
@@ -194,9 +233,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         <CardContent className="space-y-5 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs text-muted-foreground">
-                Saúde do projeto
-              </p>
+              <p className="text-xs text-muted-foreground">Saúde do projeto</p>
               <p className="mt-1 text-sm text-muted-foreground">Como o cliente está hoje?</p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
@@ -205,14 +242,30 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                 valor={ultimoContato ? formatarData(ultimoContato.data) : "—"}
               />
               <Resumo
-                titulo="NPS"
-                valor={nps ? String(nps.nota) : "—"}
-                tom={nps ? notaTom("nps", nps.nota) : null}
+                titulo="Satisfação"
+                valor={
+                  mediaAtual != null
+                    ? `${escalaDe(mediaAtual).emoji} ${formatarMedia(mediaAtual)}/5`
+                    : csatAntigo != null
+                      ? `${csatAntigo}/5`
+                      : "—"
+                }
+                tom={
+                  mediaAtual != null
+                    ? mediaAtual >= 4
+                      ? "bom"
+                      : mediaAtual >= 3
+                        ? "medio"
+                        : "ruim"
+                    : csatAntigo != null
+                      ? notaTom("csat", csatAntigo)
+                      : null
+                }
               />
               <Resumo
-                titulo="CSAT"
-                valor={csat ? `${csat.nota}/5` : "—"}
-                tom={csat ? notaTom("csat", csat.nota) : null}
+                titulo="Recomendação"
+                valor={npsAtual != null ? `${npsAtual}/10` : "—"}
+                tom={npsAtual != null ? notaTom("nps", npsAtual) : null}
               />
             </div>
           </div>
@@ -314,10 +367,28 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         </CardContent>
       </Card>
 
-      {/* Registrar */}
+      {/* Pesquisas de satisfação (roteiros de Coleta e de Alinhamento Final) */}
+      {semPesquisas ? (
+        <Card className="rounded-xl border-dashed border-border bg-card/40">
+          <CardContent className="p-5 text-sm text-muted-foreground">
+            As pesquisas de satisfação passam a funcionar assim que a atualização do banco
+            “pesquisas de satisfação” for aplicada.
+          </CardContent>
+        </Card>
+      ) : (
+        <SatisfacaoCard
+          pesquisas={pesquisas}
+          canEdit={canEdit}
+          podeExcluir={(p) => isAdmin || p.autor_id === currentUserId}
+          onNova={setNovaPesquisa}
+          onExcluir={excluirPesquisa}
+        />
+      )}
+
+      {/* Registrar contato ou reunião */}
       {canEdit && (
         <div className="flex flex-wrap gap-2">
-          {(Object.keys(REGISTRO_META) as RegistroTipo[]).map((t) => (
+          {REGISTROS_RAPIDOS.map((t) => (
             <Button
               key={t}
               variant="outline"
@@ -335,12 +406,10 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         {/* Histórico */}
         <Card className="rounded-xl border-border bg-card/50">
           <CardContent className="p-5">
-            <h3 className="text-base font-semibold">
-              Histórico
-            </h3>
+            <h3 className="text-base font-semibold">Histórico</h3>
             {registros.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Nenhum contato ou pesquisa registrado ainda.
+                Nenhum contato ou reunião registrado ainda.
               </p>
             ) : (
               <ul className="mt-4 space-y-3" data-testid="cs-historico">
@@ -399,9 +468,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         <Card className="rounded-xl border-border bg-card/50">
           <CardContent className="p-5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold">
-                Indicações
-              </h3>
+              <h3 className="text-base font-semibold">Indicações</h3>
               {canEdit && (
                 <Button
                   size="sm"
@@ -413,8 +480,35 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                 </Button>
               )}
             </div>
+            {/* Plano de Indicações: 5 indicações = desconto; 1 fechada = mensalidade abatida. */}
+            <div className="mt-3 rounded-lg bg-muted/40 p-3" data-testid="plano-indicacoes">
+              <div className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">Rumo ao desconto</span>
+                <span className="font-medium">
+                  {rumoAoDesconto} de {PLANO_INDICACOES.leadsParaDesconto}
+                </span>
+              </div>
+              <div className="mt-1.5 grid grid-cols-5 gap-1">
+                {Array.from({ length: PLANO_INDICACOES.leadsParaDesconto }, (_, n) => (
+                  <span
+                    key={n}
+                    className={cn(
+                      "h-1.5 rounded-full",
+                      n < rumoAoDesconto ? "bg-primary" : "bg-muted",
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {descontosGanhos > 0 &&
+                  `${descontosGanhos}× ${PLANO_INDICACOES.descricaoDesconto} conquistado. `}
+                {indicacoesFechadas > 0
+                  ? `${indicacoesFechadas} fechada${indicacoesFechadas > 1 ? "s" : ""}: ${PLANO_INDICACOES.descricaoFechada}.`
+                  : `A cada ${PLANO_INDICACOES.leadsParaDesconto}: ${PLANO_INDICACOES.descricaoDesconto}.`}
+              </p>
+            </div>
             {indicacoes.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 Cliente satisfeito indicou alguém? Anote aqui.
               </p>
             ) : (
@@ -473,6 +567,20 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         onSaved={async (proximoContato) => {
           setNovoRegistro(null);
           if (proximoContato) await salvarCS({ proximo_contato: proximoContato });
+          carregar();
+        }}
+      />
+      <PesquisaDialog
+        tipo={novaPesquisa}
+        projectId={projectId}
+        farolAtual={cs?.farol ?? null}
+        onClose={() => setNovaPesquisa(null)}
+        onSaved={async ({ proximoContato, farol }) => {
+          setNovaPesquisa(null);
+          const patch: Partial<ProjectCS> = {};
+          if (proximoContato) patch.proximo_contato = proximoContato;
+          if (farol) patch.farol = farol;
+          if (Object.keys(patch).length) await salvarCS(patch);
           carregar();
         }}
       />
