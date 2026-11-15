@@ -28,6 +28,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Disclosure } from "@/components/Disclosure";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -539,28 +540,30 @@ function AnalyticsPage() {
               )}
             </div>
             {salesKpis && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi
-                  label="Leads no Banco de Leads"
-                  value={fmtInt(salesKpis.total)}
-                  hint={`+${fmtInt(salesKpis.newInPeriod)} no período`}
-                />
-                <Kpi
-                  label="Leads em aberto"
-                  value={fmtInt(salesKpis.open)}
-                  hint="ainda sem ganho ou encerramento"
-                />
-                <Kpi
-                  label="Reuniões marcadas"
-                  value={salesKpis.meetings == null ? "—" : fmtInt(salesKpis.meetings)}
-                  hint={`no período · ${fmtInt(salesKpis.upcoming)} ${salesKpis.upcoming === 1 ? "agendada" : "agendadas"} a seguir`}
-                />
-                <Kpi
-                  label="Projetos faturados"
-                  value={fmtInt(revenue.projectsBilled)}
-                  hint="com venda no período"
-                />
-              </div>
+              <Disclosure label="Mais indicadores" labelOpen="Menos indicadores">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <Kpi
+                    label="Leads no Banco de Leads"
+                    value={fmtInt(salesKpis.total)}
+                    hint={`+${fmtInt(salesKpis.newInPeriod)} no período`}
+                  />
+                  <Kpi
+                    label="Leads em aberto"
+                    value={fmtInt(salesKpis.open)}
+                    hint="ainda sem ganho ou encerramento"
+                  />
+                  <Kpi
+                    label="Reuniões marcadas"
+                    value={salesKpis.meetings == null ? "—" : fmtInt(salesKpis.meetings)}
+                    hint={`no período · ${fmtInt(salesKpis.upcoming)} ${salesKpis.upcoming === 1 ? "agendada" : "agendadas"} a seguir`}
+                  />
+                  <Kpi
+                    label="Projetos faturados"
+                    value={fmtInt(revenue.projectsBilled)}
+                    hint="com venda no período"
+                  />
+                </div>
+              </Disclosure>
             )}
           </section>
 
@@ -666,37 +669,149 @@ function AnalyticsPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
 
-            {salesKpis && (
-              <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
-                <CardHeader className="flex flex-row flex-wrap items-center gap-2 pb-2">
-                  <CalendarRange className="size-4 text-primary" />
-                  <CardTitle className="text-sm font-medium">Leads abertos por semana</CardTitle>
+          <Disclosure label="Mais análises" labelOpen="Menos análises">
+            <div className="grid gap-4 md:grid-cols-2">
+              {salesKpis && (
+                <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
+                  <CardHeader className="flex flex-row flex-wrap items-center gap-2 pb-2">
+                    <CalendarRange className="size-4 text-primary" />
+                    <CardTitle className="text-sm font-medium">Leads abertos por semana</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-72">
+                    {weeklyEmpty ? (
+                      <EmptyState label="Nenhum lead registrado no período." />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={weekly}
+                          margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+                          barCategoryGap="20%"
+                        >
+                          <CartesianGrid stroke={GRID} vertical={false} />
+                          <XAxis dataKey="semana" stroke={AXIS} fontSize={11} minTickGap={12} />
+                          <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
+                          <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            labelStyle={TOOLTIP_LABEL}
+                            itemStyle={TOOLTIP_ITEM}
+                            cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                            labelFormatter={(l) => `Semana de ${l}`}
+                          />
+                          <Bar
+                            dataKey="leads"
+                            name="Leads cadastrados"
+                            fill={ACCENT}
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={24}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="rounded-xl border-border bg-card/50">
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <PieIcon className="size-4 text-primary" />
+                  <CardTitle className="text-sm font-medium">Receita por projeto</CardTitle>
                 </CardHeader>
                 <CardContent className="h-72">
-                  {weeklyEmpty ? (
-                    <EmptyState label="Nenhum lead registrado no período." />
+                  {byProject.length === 0 ? (
+                    <EmptyState label="Nenhuma venda para distribuir." />
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={weekly}
-                        margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
-                        barCategoryGap="20%"
-                      >
+                      <PieChart>
+                        <Pie
+                          data={byProject}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={55}
+                          outerRadius={95}
+                          paddingAngle={2}
+                        >
+                          {byProject.map((_, i) => (
+                            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={TOOLTIP_STYLE}
+                          labelStyle={TOOLTIP_LABEL}
+                          itemStyle={TOOLTIP_ITEM}
+                          formatter={(v: number) => fmtBRL(v)}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl border-border bg-card/50">
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <Activity className="size-4 text-primary" />
+                  <CardTitle className="text-sm font-medium">Status dos projetos</CardTitle>
+                </CardHeader>
+                <CardContent className="h-72">
+                  {byStatus.length === 0 ? (
+                    <EmptyState label="Nenhum projeto cadastrado." />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={byStatus} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                         <CartesianGrid stroke={GRID} vertical={false} />
-                        <XAxis dataKey="semana" stroke={AXIS} fontSize={11} minTickGap={12} />
+                        <XAxis dataKey="status" stroke={AXIS} fontSize={11} />
                         <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
                         <Tooltip
                           contentStyle={TOOLTIP_STYLE}
                           labelStyle={TOOLTIP_LABEL}
                           itemStyle={TOOLTIP_ITEM}
-                          cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                          labelFormatter={(l) => `Semana de ${l}`}
                         />
                         <Bar
-                          dataKey="leads"
-                          name="Leads cadastrados"
-                          fill={ACCENT}
+                          dataKey="count"
+                          name="Projetos"
+                          fill="#057ef3"
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={48}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <Users className="size-4 text-primary" />
+                  <CardTitle className="text-sm font-medium">Desempenho por colaborador</CardTitle>
+                </CardHeader>
+                <CardContent className="h-80">
+                  {byCollab.length === 0 ? (
+                    <EmptyState label="Sem atividade da equipe no período." />
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={byCollab} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                        <CartesianGrid stroke={GRID} vertical={false} />
+                        <XAxis dataKey="nome" stroke={AXIS} fontSize={11} />
+                        <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={TOOLTIP_STYLE}
+                          labelStyle={TOOLTIP_LABEL}
+                          itemStyle={TOOLTIP_ITEM}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar
+                          dataKey="etapas"
+                          name="Etapas concluídas"
+                          fill="#22c55e"
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={24}
+                        />
+                        <Bar
+                          dataKey="projetos"
+                          name="Projetos ativos"
+                          fill="#057ef3"
                           radius={[4, 4, 0, 0]}
                           maxBarSize={24}
                         />
@@ -705,116 +820,8 @@ function AnalyticsPage() {
                   )}
                 </CardContent>
               </Card>
-            )}
-
-            <Card className="rounded-xl border-border bg-card/50">
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <PieIcon className="size-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Receita por projeto</CardTitle>
-              </CardHeader>
-              <CardContent className="h-72">
-                {byProject.length === 0 ? (
-                  <EmptyState label="Nenhuma venda para distribuir." />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={byProject}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={55}
-                        outerRadius={95}
-                        paddingAngle={2}
-                      >
-                        {byProject.map((_, i) => (
-                          <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={TOOLTIP_STYLE}
-                        labelStyle={TOOLTIP_LABEL}
-                        itemStyle={TOOLTIP_ITEM}
-                        formatter={(v: number) => fmtBRL(v)}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-xl border-border bg-card/50">
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Activity className="size-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Status dos projetos</CardTitle>
-              </CardHeader>
-              <CardContent className="h-72">
-                {byStatus.length === 0 ? (
-                  <EmptyState label="Nenhum projeto cadastrado." />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={byStatus} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                      <CartesianGrid stroke={GRID} vertical={false} />
-                      <XAxis dataKey="status" stroke={AXIS} fontSize={11} />
-                      <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
-                      <Tooltip
-                        contentStyle={TOOLTIP_STYLE}
-                        labelStyle={TOOLTIP_LABEL}
-                        itemStyle={TOOLTIP_ITEM}
-                      />
-                      <Bar
-                        dataKey="count"
-                        name="Projetos"
-                        fill="#057ef3"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={48}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-xl border-border bg-card/50 md:col-span-2">
-              <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                <Users className="size-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Desempenho por colaborador</CardTitle>
-              </CardHeader>
-              <CardContent className="h-80">
-                {byCollab.length === 0 ? (
-                  <EmptyState label="Sem atividade da equipe no período." />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={byCollab} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                      <CartesianGrid stroke={GRID} vertical={false} />
-                      <XAxis dataKey="nome" stroke={AXIS} fontSize={11} />
-                      <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
-                      <Tooltip
-                        contentStyle={TOOLTIP_STYLE}
-                        labelStyle={TOOLTIP_LABEL}
-                        itemStyle={TOOLTIP_ITEM}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar
-                        dataKey="etapas"
-                        name="Etapas concluídas"
-                        fill="#22c55e"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={24}
-                      />
-                      <Bar
-                        dataKey="projetos"
-                        name="Projetos ativos"
-                        fill="#057ef3"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={24}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          </Disclosure>
         </>
       )}
     </div>

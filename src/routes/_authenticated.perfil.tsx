@@ -178,18 +178,21 @@ function PerfilPage() {
 
       <Card className="border-border bg-card/60">
         <CardContent className="p-0">
-          <div className="relative h-40 w-full overflow-hidden rounded-t-xl bg-gradient-to-br from-primary/20 via-primary/10 to-background sm:h-52">
+          {/* Sem capa, a faixa fica baixa e sem texto: a capa é opcional. */}
+          <div
+            className={
+              profile.cover_url
+                ? "relative h-40 w-full overflow-hidden rounded-t-xl bg-muted sm:h-52"
+                : "relative h-16 w-full overflow-hidden rounded-t-xl bg-muted"
+            }
+          >
             {profile.cover_url ? (
               <img
                 src={profile.cover_url}
                 alt="Capa do perfil"
                 className="h-full w-full object-cover"
               />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                Adicione uma capa opcional
-              </div>
-            )}
+            ) : null}
             <input
               ref={coverInput}
               type="file"

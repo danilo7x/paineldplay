@@ -32,6 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Disclosure } from "@/components/Disclosure";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -208,12 +209,14 @@ function FinanceiroPage() {
     () => goals.find((g) => g.mes.slice(0, 10) === goalMonth) ?? null,
     [goals, goalMonth],
   );
-  const goalReceitaPct = currentGoal && Number(currentGoal.receita_meta) > 0
-    ? Math.min(100, (receitaTotal / Number(currentGoal.receita_meta)) * 100)
-    : 0;
-  const goalLucroPct = currentGoal && Number(currentGoal.lucro_meta) > 0
-    ? Math.min(100, (lucro / Number(currentGoal.lucro_meta)) * 100)
-    : 0;
+  const goalReceitaPct =
+    currentGoal && Number(currentGoal.receita_meta) > 0
+      ? Math.min(100, (receitaTotal / Number(currentGoal.receita_meta)) * 100)
+      : 0;
+  const goalLucroPct =
+    currentGoal && Number(currentGoal.lucro_meta) > 0
+      ? Math.min(100, (lucro / Number(currentGoal.lucro_meta)) * 100)
+      : 0;
 
   const monthlySeries = useMemo(() => {
     const fromDate = new Date(range.from + "T00:00:00");
@@ -272,7 +275,11 @@ function FinanceiroPage() {
   }
 
   async function encerrarRecorrencia(exp: Expense) {
-    if (!confirm(`Encerrar a recorrência de "${exp.descricao}"? Novas ocorrências deixam de ser geradas.`))
+    if (
+      !confirm(
+        `Encerrar a recorrência de "${exp.descricao}"? Novas ocorrências deixam de ser geradas.`,
+      )
+    )
       return;
     const templateId = exp.origem_id ?? exp.id;
     const { error } = await supabase
@@ -353,10 +360,20 @@ function FinanceiroPage() {
             </div>
           )}
           <div className="ml-auto flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpenCats(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setOpenCats(true)}
+            >
               <Tag className="size-3.5" /> Categorias
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setOpenGoals(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setOpenGoals(true)}
+            >
               <Target className="size-3.5" /> Metas
             </Button>
           </div>
@@ -393,68 +410,95 @@ function FinanceiroPage() {
         />
       </div>
 
-      <Card className="rounded-xl border-border bg-card">
-        <CardContent className="p-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight">
-                Provisões de imposto e caixa
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Cálculo automático a partir da receita bruta do período selecionado.
-              </p>
+      <Disclosure label="Provisões e metas do mês" labelOpen="Esconder provisões e metas">
+        <Card className="rounded-xl border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <h2 className="mt-1 text-lg font-semibold tracking-tight">
+                  Provisões de imposto e caixa
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Cálculo automático a partir da receita bruta do período selecionado.
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Sobra líquida sugerida</p>
+                <p className="mt-1 text-2xl font-semibold tracking-tight text-emerald-300">
+                  {brl(receitaTotal * (1 - TAX_RATE - RESERVE_RATE))}
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Sobra líquida sugerida</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight text-emerald-300">
-                {brl(receitaTotal * (1 - TAX_RATE - RESERVE_RATE))}
-              </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Imposto ({(TAX_RATE * 100).toFixed(0)}%)
+                </p>
+                <p className="mt-2 text-xl font-semibold tracking-tight">
+                  {brl(receitaTotal * TAX_RATE)}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Provisão para tributos.</p>
+              </div>
+              <div className="rounded-lg border border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Reserva de caixa ({(RESERVE_RATE * 100).toFixed(0)}%)
+                </p>
+                <p className="mt-2 text-xl font-semibold tracking-tight">
+                  {brl(receitaTotal * RESERVE_RATE)}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Fundo estratégico da operação.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border p-4">
-              <p className="text-xs text-muted-foreground">
-                Imposto ({(TAX_RATE * 100).toFixed(0)}%)
-              </p>
-              <p className="mt-2 text-xl font-semibold tracking-tight">
-                {brl(receitaTotal * TAX_RATE)}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Provisão para tributos.</p>
-            </div>
-            <div className="rounded-lg border border-border p-4">
-              <p className="text-xs text-muted-foreground">
-                Reserva de caixa ({(RESERVE_RATE * 100).toFixed(0)}%)
-              </p>
-              <p className="mt-2 text-xl font-semibold tracking-tight">
-                {brl(receitaTotal * RESERVE_RATE)}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">Fundo estratégico da operação.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className="rounded-xl border-border bg-card">
-        <CardContent className="space-y-5 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-xs text-muted-foreground">
-                Metas de {new Date(goalMonth + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-              </p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight">Realizado x meta</h2>
+        <Card className="rounded-xl border-border bg-card">
+          <CardContent className="space-y-5 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  Metas de{" "}
+                  {new Date(goalMonth + "T00:00:00").toLocaleDateString("pt-BR", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+                <h2 className="mt-1 text-lg font-semibold tracking-tight">Realizado x meta</h2>
+              </div>
+              {!currentGoal && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setOpenGoals(true)}
+                  className="gap-1.5"
+                >
+                  <Target className="size-3.5" /> Definir meta deste mês
+                </Button>
+              )}
             </div>
-            {!currentGoal && (
-              <Button size="sm" variant="outline" onClick={() => setOpenGoals(true)} className="gap-1.5">
-                <Target className="size-3.5" /> Definir meta deste mês
-              </Button>
-            )}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <GoalRow label="Receita" real={receitaTotal} meta={Number(currentGoal?.receita_meta ?? 0)} pct={goalReceitaPct} accent="text-primary" barClass="bg-primary" />
-            <GoalRow label="Lucro" real={lucro} meta={Number(currentGoal?.lucro_meta ?? 0)} pct={goalLucroPct} accent={lucro >= 0 ? "text-emerald-300" : "text-rose-300"} barClass="bg-emerald-400" />
-          </div>
-        </CardContent>
-      </Card>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <GoalRow
+                label="Receita"
+                real={receitaTotal}
+                meta={Number(currentGoal?.receita_meta ?? 0)}
+                pct={goalReceitaPct}
+                accent="text-primary"
+                barClass="bg-primary"
+              />
+              <GoalRow
+                label="Lucro"
+                real={lucro}
+                meta={Number(currentGoal?.lucro_meta ?? 0)}
+                pct={goalLucroPct}
+                accent={lucro >= 0 ? "text-emerald-300" : "text-rose-300"}
+                barClass="bg-emerald-400"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </Disclosure>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="rounded-xl border-border bg-card lg:col-span-2">
@@ -520,10 +564,7 @@ function FinanceiroPage() {
                       stroke="none"
                     >
                       {byCategory.map((entry, i) => (
-                        <Cell
-                          key={entry.key}
-                          fill={entry.cor}
-                        />
+                        <Cell key={entry.key} fill={entry.cor} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -623,7 +664,7 @@ function FinanceiroPage() {
                         {new Date(e.data + "T00:00:00").toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {e.project_id ? projectMap.get(e.project_id) ?? "—" : "—"}
+                        {e.project_id ? (projectMap.get(e.project_id) ?? "—") : "—"}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
@@ -706,9 +747,7 @@ function SummaryCard({
     <Card className="rounded-xl border-border bg-card">
       <CardContent className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            {label}
-          </p>
+          <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{label}</p>
           <div className="shrink-0 text-muted-foreground/60">
             <Icon className="size-4" />
           </div>
@@ -739,9 +778,7 @@ function ExpenseDialog({
   onSaved: () => void;
 }) {
   const [descricao, setDescricao] = useState(expense?.descricao ?? "");
-  const [categoria, setCategoria] = useState(
-    expense?.categoria ?? categories[0]?.slug ?? "outros",
-  );
+  const [categoria, setCategoria] = useState(expense?.categoria ?? categories[0]?.slug ?? "outros");
   const [valor, setValor] = useState(expense ? String(expense.valor) : "");
   const [data, setData] = useState(expense?.data ?? new Date().toISOString().slice(0, 10));
   const [projectId, setProjectId] = useState<string>(expense?.project_id ?? "none");
@@ -769,22 +806,19 @@ function ExpenseDialog({
       project_id: projectId === "none" ? null : projectId,
       recorrente,
       recorrencia: recorrente ? recorrencia : null,
-      dia_cobranca: recorrente
-        ? (dia ?? Number(new Date(data + "T00:00:00").getDate()))
-        : null,
-      recorrencia_ate: recorrente ? (recorrenciaAte || null) : null,
+      dia_cobranca: recorrente ? (dia ?? Number(new Date(data + "T00:00:00").getDate())) : null,
+      recorrencia_ate: recorrente ? recorrenciaAte || null : null,
     };
     const res = expense
       ? await supabase.from("expenses").update(payload).eq("id", expense.id)
-      : await supabase
-          .from("expenses")
-          .insert({ ...payload, created_by: sess.session?.user.id });
+      : await supabase.from("expenses").insert({ ...payload, created_by: sess.session?.user.id });
     if (!res.error) {
       // Se marcada como recorrente, gera as ocorrências passadas até hoje.
       if (recorrente) await supabase.rpc("generate_recurrences");
     }
     setLoading(false);
-    if (res.error) return toast.error("Não foi possível salvar", { description: res.error.message });
+    if (res.error)
+      return toast.error("Não foi possível salvar", { description: res.error.message });
     toast.success(expense ? "Despesa atualizada" : "Despesa registrada");
     onSaved();
   }
@@ -862,7 +896,8 @@ function ExpenseDialog({
         </div>
         {isChild ? (
           <div className="rounded-xl border border-border bg-primary/5 p-3 text-xs text-muted-foreground">
-            Esta linha foi gerada automaticamente por uma despesa recorrente. Para alterar a recorrência edite a despesa de origem.
+            Esta linha foi gerada automaticamente por uma despesa recorrente. Para alterar a
+            recorrência edite a despesa de origem.
           </div>
         ) : (
           <div className="space-y-3 rounded-xl border border-border bg-card/40 p-4">
@@ -879,7 +914,10 @@ function ExpenseDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label>Frequência</Label>
-                  <Select value={recorrencia} onValueChange={(v) => setRecorrencia(v as "mensal" | "anual")}>
+                  <Select
+                    value={recorrencia}
+                    onValueChange={(v) => setRecorrencia(v as "mensal" | "anual")}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -984,12 +1022,14 @@ function CategoriesDialog({
   const [saving, setSaving] = useState(false);
 
   function slugify(s: string) {
-    return s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "") || `cat_${Date.now()}`;
+    return (
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || `cat_${Date.now()}`
+    );
   }
 
   async function add(e: React.FormEvent) {
@@ -1012,13 +1052,17 @@ function CategoriesDialog({
   }
 
   async function updateCor(id: string, novaCor: string) {
-    const { error } = await supabase.from("expense_categories").update({ cor: novaCor }).eq("id", id);
+    const { error } = await supabase
+      .from("expense_categories")
+      .update({ cor: novaCor })
+      .eq("id", id);
     if (error) return toast.error("Erro ao salvar cor", { description: error.message });
     onSaved();
   }
 
   async function remove(id: string) {
-    if (!confirm("Excluir esta categoria? Despesas existentes manterão o rótulo pelo slug.")) return;
+    if (!confirm("Excluir esta categoria? Despesas existentes manterão o rótulo pelo slug."))
+      return;
     const { error } = await supabase.from("expense_categories").delete().eq("id", id);
     if (error) return toast.error("Erro ao excluir", { description: error.message });
     toast.success("Categoria removida");
@@ -1184,7 +1228,9 @@ function GoalsDialog({
             <Button type="button" variant="ghost" onClick={remove} className="text-rose-300">
               Remover meta
             </Button>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
           <Button type="submit" disabled={saving} className="gap-2">
             {saving && <Loader2 className="size-4 animate-spin" />}
             {existing ? "Atualizar" : "Definir meta"}

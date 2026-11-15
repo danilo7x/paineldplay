@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Disclosure } from "@/components/Disclosure";
 import { useLeads, usePeopleMap } from "@/features/leads/api";
 import { cadenceResponse } from "@/features/leads/cadence";
 import { PageHeader } from "@/features/leads/components/LeadFilters";
@@ -199,39 +200,47 @@ function RelatoriosPage() {
               label="Ciclo médio até o ganho"
               value={avgCycle == null ? "—" : `${avgCycle} dia${avgCycle === 1 ? "" : "s"}`}
             />
-            <Stat label="Taxa de resposta" value={cadence.rate} hint={cadence.hint} />
-            <Stat label="Diagnósticos realizados" value={meetingsHeld} />
-            <Stat
-              label="Sem resposta"
-              value={leads.filter((l) => l.etapa === "sem_resposta").length}
-            />
-            <Stat
-              label="Perdidos"
-              value={
-                leads.filter((l) => l.etapa === "perdido" || l.etapa === "contrato_nao_concluido")
-                  .length
-              }
-            />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <BarList title="Funil por etapa" bars={funnel} />
-            <BarList
-              title="Origem dos leads"
-              bars={groupBy((l) => canalLabel(l.canal_origem) ?? "Não informada")}
-            />
-            {isAdmin && (
-              <BarList
-                title="Por responsável"
-                bars={groupBy((l) => ownerName(l, people) ?? "Sem responsável")}
+          <Disclosure label="Mais indicadores" labelOpen="Menos indicadores">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Stat label="Taxa de resposta" value={cadence.rate} hint={cadence.hint} />
+              <Stat label="Diagnósticos realizados" value={meetingsHeld} />
+              <Stat
+                label="Sem resposta"
+                value={leads.filter((l) => l.etapa === "sem_resposta").length}
               />
-            )}
-            <BarList
-              title="Motivos de perda"
-              bars={lossReasons}
-              empty="Nenhum lead perdido no período."
-            />
-          </div>
+              <Stat
+                label="Perdidos"
+                value={
+                  leads.filter((l) => l.etapa === "perdido" || l.etapa === "contrato_nao_concluido")
+                    .length
+                }
+              />
+            </div>
+          </Disclosure>
+
+          <BarList title="Funil por etapa" bars={funnel} />
+
+          <Disclosure label="Origem, responsáveis e motivos de perda" labelOpen="Esconder detalhes">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <BarList
+                title="Origem dos leads"
+                bars={groupBy((l) => canalLabel(l.canal_origem) ?? "Não informada")}
+              />
+              {isAdmin && (
+                <BarList
+                  title="Por responsável"
+                  bars={groupBy((l) => ownerName(l, people) ?? "Sem responsável")}
+                />
+              )}
+              <BarList
+                title="Motivos de perda"
+                bars={lossReasons}
+                empty="Nenhum lead perdido no período."
+              />
+            </div>
+          </Disclosure>
         </>
       )}
     </div>
