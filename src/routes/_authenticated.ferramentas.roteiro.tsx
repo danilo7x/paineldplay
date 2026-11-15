@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { FerramentasTabs } from "@/features/leads/components/FerramentasTabs";
-import { PageHeader } from "@/features/leads/components/LeadFilters";
 import { CallScriptContent } from "@/features/leads/components/ScriptAndTemplates";
 
 export const Route = createFileRoute("/_authenticated/ferramentas/roteiro")({
@@ -15,11 +14,7 @@ function RoteiroPage() {
   return (
     <div className="space-y-6">
       <FerramentasTabs />
-      <PageHeader
-        section="Ferramentas"
-        title="Roteiro de Ligação"
-        description="Material de apoio para o primeiro contato. Adapte as frases à conversa: o objetivo é entender a necessidade e, se fizer sentido, marcar a reunião de diagnóstico."
-      />
+      <p className="text-sm text-muted-foreground">Material de apoio para o primeiro contato.</p>
       <div className="max-w-3xl">
         <CallScriptContent />
       </div>

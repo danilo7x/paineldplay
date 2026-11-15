@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarCheck2, CheckCircle2, Circle, ClipboardList } from "lucide-react";
+import { CalendarCheck2, CheckCircle2, Circle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,7 @@ export function ProcessPanel({
   const [milestone, setMilestone] = useState<Milestone | null>(null);
   const [decision, setDecision] = useState<Decision | null>(null);
   const [closing, setClosing] = useState<{ resultado: FinalStage; motivo?: string } | null>(null);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   const closed = isFinalStage(lead.etapa);
   const pending = (chave: string) =>
@@ -83,7 +84,15 @@ export function ProcessPanel({
   ];
 
   return (
-    <SectionCard title="Diagnóstico e proposta" icon={ClipboardList}>
+    <SectionCard
+      title="Diagnóstico e proposta"
+      collapsible
+      // Antes da reunião de diagnóstico não há o que preencher aqui: fica recolhido.
+      defaultOpen={current >= stageIndex("reuniao") || closed}
+      summary={
+        lead.reuniao_em ? `Reunião ${formatDateTime(lead.reuniao_em)}` : "Reunião ainda não marcada"
+      }
+    >
       {/* Reunião de diagnóstico */}
       <div className="rounded-xl border border-border bg-background/40 p-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -164,7 +173,12 @@ export function ProcessPanel({
 
       {/* Marcos do processo */}
       <div className="mt-3 space-y-3">
-        {MILESTONE_GROUPS.map((g) => {
+        {MILESTONE_GROUPS.filter((g, idx) => {
+          // Só a etapa atual (ou a próxima, se o lead ainda não chegou lá); o resto sob demanda.
+          if (mostrarTodas || closed) return true;
+          const foco = MILESTONE_GROUPS.findIndex((x) => stageIndex(x.stage) >= current);
+          return idx === (foco === -1 ? MILESTONE_GROUPS.length - 1 : foco);
+        }).map((g) => {
           const gi = stageIndex(g.stage);
           const isCurrent = lead.etapa === g.stage;
           const past = closed
@@ -182,9 +196,7 @@ export function ProcessPanel({
             >
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 {g.label}
-                {isCurrent && (
-                  <span className="ml-2 normal-case tracking-normal text-primary">etapa atual</span>
-                )}
+                {isCurrent && <span className="ml-2 text-primary">etapa atual</span>}
               </p>
               <ul className="space-y-1.5">
                 {items.map((m) => {
@@ -307,6 +319,15 @@ export function ProcessPanel({
             </div>
           );
         })}
+        {!closed && (
+          <button
+            type="button"
+            onClick={() => setMostrarTodas((v) => !v)}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {mostrarTodas ? "Mostrar só a etapa atual" : "Ver todas as etapas"}
+          </button>
+        )}
       </div>
 
       {facts.some(([, v]) => v) && (

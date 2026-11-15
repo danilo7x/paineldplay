@@ -8,13 +8,11 @@ import {
   ExternalLink,
   Loader2,
   Send,
-  MessageCircle,
   Play,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -104,22 +102,18 @@ export function CadencePanel({
   return (
     <SectionCard
       title="Cadência de WhatsApp"
-      icon={MessageCircle}
-      action={
-        lead.cadencia_status ? (
-          <Badge variant="outline" className="text-[10px]">
-            {CADENCE_STATUS_LABEL[lead.cadencia_status] ?? lead.cadencia_status}
-            {ciclo > 1 ? ` · ciclo ${ciclo}` : ""}
-          </Badge>
-        ) : null
+      collapsible
+      // Só fica aberta enquanto a cadência está rodando; fora disso basta o resumo.
+      defaultOpen={active}
+      summary={
+        lead.cadencia_status
+          ? `${CADENCE_STATUS_LABEL[lead.cadencia_status] ?? lead.cadencia_status}${ciclo > 1 ? ` · ciclo ${ciclo}` : ""}`
+          : "Não iniciada"
       }
     >
       {ciclo === 0 ? (
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            Use quando o lead não atender ou não responder: 4 templates e o break-up, com lembretes
-            em dias úteis. Nenhuma mensagem é enviada automaticamente.
-          </p>
+          <p>Para quando o lead não atender ou não responder. Nada é enviado automaticamente.</p>
           {!closed && (
             <Button
               size="sm"
@@ -146,8 +140,9 @@ export function CadencePanel({
               <li
                 key={s.key}
                 className={cn(
-                  "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border bg-background/40 px-3 py-2",
-                  s.state === "prevista" && "border-primary/40 bg-primary/5",
+                  "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-border px-3 py-2",
+                  s.state === "prevista" && "border-primary/40",
+                  (s.state === "pendente" || s.state === "cancelada") && "opacity-60",
                 )}
               >
                 <StepIcon state={s.state} />
@@ -158,8 +153,8 @@ export function CadencePanel({
                       `${isClose ? "Encerrada" : "Enviada"} em ${formatDateTime(s.sentAt)}${s.canal ? ` · ${channelLabel(s.canal)}` : ""}`}
                     {s.state === "prevista" &&
                       `Previsto para ${formatDateTime(s.dueAt)}${overdue ? " · atrasado" : ""}`}
-                    {s.state === "cancelada" && "Não enviada (cadência interrompida)"}
-                    {s.state === "pendente" && "Aguardando etapa anterior"}
+                    {s.state === "cancelada" && "Não enviada"}
+                    {s.state === "pendente" && "Em seguida"}
                   </p>
                 </div>
                 {s.state === "prevista" && active && !closed && (
