@@ -50,13 +50,11 @@ import {
   type Registro,
   type RegistroTipo,
 } from "./meta";
+import { SectionCard } from "@/features/leads/components/shared";
 import { PesquisaDialog } from "./PesquisaDialog";
 import { SatisfacaoCard } from "./SatisfacaoCard";
 import {
   PLANO_INDICACOES,
-  escalaDe,
-  formatarMedia,
-  mediaPesquisa,
   type Pesquisa,
   type PesquisaTipo,
 } from "./pesquisa";
@@ -212,13 +210,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
     );
   }
 
-  const ultimo = (tipo: RegistroTipo) => registros.find((r) => r.tipo === tipo);
   const ultimoContato = registros.find((r) => r.tipo === "contato" || r.tipo === "reuniao");
-  const ultimaPesquisa = pesquisas[0];
-  const mediaAtual = ultimaPesquisa ? mediaPesquisa(ultimaPesquisa) : null;
-  // Registros antigos de NPS/CSAT continuam valendo até a primeira pesquisa guiada.
-  const npsAtual = ultimaPesquisa?.nps ?? ultimo("nps")?.nota ?? null;
-  const csatAntigo = ultimaPesquisa ? null : (ultimo("csat")?.nota ?? null);
   const indicacoesAtivas = indicacoes.filter((x) => x.status !== "perdida").length;
   const indicacoesFechadas = indicacoes.filter((x) => x.status === "fechada").length;
   const rumoAoDesconto = indicacoesAtivas % PLANO_INDICACOES.leadsParaDesconto;
@@ -228,145 +220,7 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
 
   return (
     <div className="space-y-4" data-testid="sucesso-tab">
-      {/* Saúde do projeto */}
-      <Card className="rounded-xl border-border bg-card">
-        <CardContent className="space-y-5 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground">Saúde do projeto</p>
-              <p className="mt-1 text-sm text-muted-foreground">Como o cliente está hoje?</p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Resumo
-                titulo="Último contato"
-                valor={ultimoContato ? formatarData(ultimoContato.data) : "—"}
-              />
-              <Resumo
-                titulo="Satisfação"
-                valor={
-                  mediaAtual != null
-                    ? `${escalaDe(mediaAtual).emoji} ${formatarMedia(mediaAtual)}/5`
-                    : csatAntigo != null
-                      ? `${csatAntigo}/5`
-                      : "—"
-                }
-                tom={
-                  mediaAtual != null
-                    ? mediaAtual >= 4
-                      ? "bom"
-                      : mediaAtual >= 3
-                        ? "medio"
-                        : "ruim"
-                    : csatAntigo != null
-                      ? notaTom("csat", csatAntigo)
-                      : null
-                }
-              />
-              <Resumo
-                titulo="Recomendação"
-                valor={npsAtual != null ? `${npsAtual}/10` : "—"}
-                tom={npsAtual != null ? notaTom("nps", npsAtual) : null}
-              />
-            </div>
-          </div>
-
-          <div
-            className="grid gap-2 sm:grid-cols-3"
-            role="radiogroup"
-            aria-label="Farol do projeto"
-          >
-            {FAROIS.map((f) => {
-              const ativo = cs?.farol === f;
-              const meta = FAROL_META[f];
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  role="radio"
-                  aria-checked={ativo}
-                  disabled={!canEdit}
-                  onClick={() =>
-                    !ativo && salvarCS({ farol: f }, `Farol: ${meta.label.toLowerCase()}`)
-                  }
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-left transition disabled:cursor-not-allowed",
-                    ativo ? cn("ring-2", meta.ring) : "hover:border-border hover:bg-background/50",
-                  )}
-                >
-                  <span className={cn("size-3 shrink-0 rounded-full", meta.dot)} />
-                  <span>
-                    <span className="block text-sm font-semibold">{meta.label}</span>
-                    <span className="block text-xs text-muted-foreground">{meta.hint}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_200px]">
-            <div className="space-y-1.5">
-              <Label htmlFor="cs-motivo" className="text-xs text-muted-foreground">
-                Motivo do farol
-              </Label>
-              <Textarea
-                id="cs-motivo"
-                rows={2}
-                placeholder="Ex.: cliente satisfeito com a última entrega"
-                value={motivo}
-                disabled={!canEdit}
-                onChange={(e) => setMotivo(e.target.value)}
-                onBlur={() => {
-                  if ((cs?.farol_motivo ?? "") !== motivo.trim())
-                    salvarCS({ farol_motivo: motivo.trim() || null }, "Motivo salvo");
-                }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Responsável CS</Label>
-              <Select
-                value={cs?.responsavel_id ?? "none"}
-                disabled={!canEdit}
-                onValueChange={(v) =>
-                  salvarCS({ responsavel_id: v === "none" ? null : v }, "Responsável salvo")
-                }
-              >
-                <SelectTrigger aria-label="Responsável CS">
-                  <SelectValue placeholder="Sem responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem responsável</SelectItem>
-                  {pessoas.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cs-proximo" className="text-xs text-muted-foreground">
-                Próximo contato
-              </Label>
-              <Input
-                id="cs-proximo"
-                type="date"
-                value={proximo ?? ""}
-                disabled={!canEdit}
-                onChange={(e) =>
-                  salvarCS({ proximo_contato: e.target.value || null }, "Próximo contato salvo")
-                }
-                className={cn(atrasado && "border-red-500/50 text-red-300")}
-              />
-              {proximo && (
-                <p className={cn("text-xs", atrasado ? "text-red-300" : "text-muted-foreground")}>
-                  {textoProximoContato(proximo)}
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* 1) A pergunta principal: o cliente ficou satisfeito? */}
       {/* Pesquisas de satisfação (roteiros de Coleta e de Alinhamento Final) */}
       {semPesquisas ? (
         <Card className="rounded-xl border-dashed border-border bg-card/40">
@@ -385,28 +239,233 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
         />
       )}
 
-      {/* Registrar contato ou reunião */}
-      {canEdit && (
-        <div className="flex flex-wrap gap-2">
-          {REGISTROS_RAPIDOS.map((t) => (
-            <Button
-              key={t}
-              variant="outline"
-              size="sm"
-              className="gap-2 rounded-full"
-              onClick={() => setNovoRegistro(t)}
-            >
-              <MessageSquarePlus className="size-4" /> {REGISTRO_META[t].acao}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* 2) Indicações do cliente (Plano de Indicações) */}
+      {/* Indicações */}
+      <Card className="rounded-xl border-border bg-card/50">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-semibold">Indicações</h3>
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1"
+                onClick={() => setNovaIndicacao(true)}
+              >
+                <Plus className="size-4" /> Nova
+              </Button>
+            )}
+          </div>
+          {/* Plano de Indicações: 5 indicações = desconto; 1 fechada = mensalidade abatida. */}
+          <div className="mt-3 rounded-lg bg-muted/40 p-3" data-testid="plano-indicacoes">
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">Rumo ao desconto</span>
+              <span className="font-medium">
+                {rumoAoDesconto} de {PLANO_INDICACOES.leadsParaDesconto}
+              </span>
+            </div>
+            <div className="mt-1.5 grid grid-cols-5 gap-1">
+              {Array.from({ length: PLANO_INDICACOES.leadsParaDesconto }, (_, n) => (
+                <span
+                  key={n}
+                  className={cn(
+                    "h-1.5 rounded-full",
+                    n < rumoAoDesconto ? "bg-primary" : "bg-muted",
+                  )}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {descontosGanhos > 0 &&
+                `${descontosGanhos}× ${PLANO_INDICACOES.descricaoDesconto} conquistado. `}
+              {indicacoesFechadas > 0
+                ? `${indicacoesFechadas} fechada${indicacoesFechadas > 1 ? "s" : ""}: ${PLANO_INDICACOES.descricaoFechada}.`
+                : `A cada ${PLANO_INDICACOES.leadsParaDesconto}: ${PLANO_INDICACOES.descricaoDesconto}.`}
+            </p>
+          </div>
+          {indicacoes.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Cliente satisfeito indicou alguém? Anote aqui.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {indicacoes.map((x) => (
+                <li
+                  key={x.id}
+                  className="group rounded-xl border border-border bg-background/30 p-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{x.empresa}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[x.contato, x.telefone].filter(Boolean).join(" · ") || "Sem contato"}
+                      </p>
+                    </div>
+                    {(isAdmin || x.autor_id === currentUserId) && (
+                      <button
+                        type="button"
+                        aria-label="Excluir indicação"
+                        onClick={() => excluirIndicacao(x.id)}
+                        className="text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                  <Select
+                    value={x.status}
+                    disabled={!canEdit}
+                    onValueChange={(v) => mudarStatusIndicacao(x.id, v as IndicacaoStatus)}
+                  >
+                    <SelectTrigger className="mt-2 h-8 w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDICACAO_STATUS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {INDICACAO_META[s].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Histórico */}
-        <Card className="rounded-xl border-border bg-card/50">
-          <CardContent className="p-5">
-            <h3 className="text-base font-semibold">Histórico</h3>
+      {/* 3) Acompanhamento do dia a dia: recolhido para não poluir */}
+      <SectionCard
+        title="Acompanhamento"
+        collapsible
+        defaultOpen={false}
+        summary={[
+          cs?.farol ? `Farol ${FAROL_META[cs.farol].label.toLowerCase()}` : "Sem farol",
+          proximo ? `próximo contato ${textoProximoContato(proximo)}` : null,
+          ultimoContato ? `último contato ${formatarData(ultimoContato.data)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        <div className="space-y-6">
+          <div className="space-y-5">
+            <div
+              className="grid gap-2 sm:grid-cols-3"
+              role="radiogroup"
+              aria-label="Farol do projeto"
+            >
+              {FAROIS.map((f) => {
+                const ativo = cs?.farol === f;
+                const meta = FAROL_META[f];
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    role="radio"
+                    aria-checked={ativo}
+                    disabled={!canEdit}
+                    onClick={() =>
+                      !ativo && salvarCS({ farol: f }, `Farol: ${meta.label.toLowerCase()}`)
+                    }
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border border-border bg-background/30 px-4 py-3 text-left transition disabled:cursor-not-allowed",
+                      ativo
+                        ? cn("ring-2", meta.ring)
+                        : "hover:border-border hover:bg-background/50",
+                    )}
+                  >
+                    <span className={cn("size-3 shrink-0 rounded-full", meta.dot)} />
+                    <span>
+                      <span className="block text-sm font-semibold">{meta.label}</span>
+                      <span className="block text-xs text-muted-foreground">{meta.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_200px]">
+              <div className="space-y-1.5">
+                <Label htmlFor="cs-motivo" className="text-xs text-muted-foreground">
+                  Motivo do farol
+                </Label>
+                <Textarea
+                  id="cs-motivo"
+                  rows={2}
+                  placeholder="Ex.: cliente satisfeito com a última entrega"
+                  value={motivo}
+                  disabled={!canEdit}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  onBlur={() => {
+                    if ((cs?.farol_motivo ?? "") !== motivo.trim())
+                      salvarCS({ farol_motivo: motivo.trim() || null }, "Motivo salvo");
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Responsável CS</Label>
+                <Select
+                  value={cs?.responsavel_id ?? "none"}
+                  disabled={!canEdit}
+                  onValueChange={(v) =>
+                    salvarCS({ responsavel_id: v === "none" ? null : v }, "Responsável salvo")
+                  }
+                >
+                  <SelectTrigger aria-label="Responsável CS">
+                    <SelectValue placeholder="Sem responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem responsável</SelectItem>
+                    {pessoas.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cs-proximo" className="text-xs text-muted-foreground">
+                  Próximo contato
+                </Label>
+                <Input
+                  id="cs-proximo"
+                  type="date"
+                  value={proximo ?? ""}
+                  disabled={!canEdit}
+                  onChange={(e) =>
+                    salvarCS({ proximo_contato: e.target.value || null }, "Próximo contato salvo")
+                  }
+                  className={cn(atrasado && "border-red-500/50 text-red-300")}
+                />
+                {proximo && (
+                  <p className={cn("text-xs", atrasado ? "text-red-300" : "text-muted-foreground")}>
+                    {textoProximoContato(proximo)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Registrar contato ou reunião */}
+          {canEdit && (
+            <div className="flex flex-wrap gap-2">
+              {REGISTROS_RAPIDOS.map((t) => (
+                <Button
+                  key={t}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full"
+                  onClick={() => setNovoRegistro(t)}
+                >
+                  <MessageSquarePlus className="size-4" /> {REGISTRO_META[t].acao}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <h4 className="text-sm font-medium">Contatos e reuniões</h4>
             {registros.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 Nenhum contato ou reunião registrado ainda.
@@ -461,104 +520,9 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
                 })}
               </ul>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Indicações */}
-        <Card className="rounded-xl border-border bg-card/50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-semibold">Indicações</h3>
-              {canEdit && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 gap-1"
-                  onClick={() => setNovaIndicacao(true)}
-                >
-                  <Plus className="size-4" /> Nova
-                </Button>
-              )}
-            </div>
-            {/* Plano de Indicações: 5 indicações = desconto; 1 fechada = mensalidade abatida. */}
-            <div className="mt-3 rounded-lg bg-muted/40 p-3" data-testid="plano-indicacoes">
-              <div className="flex items-baseline justify-between gap-2 text-xs">
-                <span className="text-muted-foreground">Rumo ao desconto</span>
-                <span className="font-medium">
-                  {rumoAoDesconto} de {PLANO_INDICACOES.leadsParaDesconto}
-                </span>
-              </div>
-              <div className="mt-1.5 grid grid-cols-5 gap-1">
-                {Array.from({ length: PLANO_INDICACOES.leadsParaDesconto }, (_, n) => (
-                  <span
-                    key={n}
-                    className={cn(
-                      "h-1.5 rounded-full",
-                      n < rumoAoDesconto ? "bg-primary" : "bg-muted",
-                    )}
-                  />
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {descontosGanhos > 0 &&
-                  `${descontosGanhos}× ${PLANO_INDICACOES.descricaoDesconto} conquistado. `}
-                {indicacoesFechadas > 0
-                  ? `${indicacoesFechadas} fechada${indicacoesFechadas > 1 ? "s" : ""}: ${PLANO_INDICACOES.descricaoFechada}.`
-                  : `A cada ${PLANO_INDICACOES.leadsParaDesconto}: ${PLANO_INDICACOES.descricaoDesconto}.`}
-              </p>
-            </div>
-            {indicacoes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Cliente satisfeito indicou alguém? Anote aqui.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {indicacoes.map((x) => (
-                  <li
-                    key={x.id}
-                    className="group rounded-xl border border-border bg-background/30 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{x.empresa}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[x.contato, x.telefone].filter(Boolean).join(" · ") || "Sem contato"}
-                        </p>
-                      </div>
-                      {(isAdmin || x.autor_id === currentUserId) && (
-                        <button
-                          type="button"
-                          aria-label="Excluir indicação"
-                          onClick={() => excluirIndicacao(x.id)}
-                          className="text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      )}
-                    </div>
-                    <Select
-                      value={x.status}
-                      disabled={!canEdit}
-                      onValueChange={(v) => mudarStatusIndicacao(x.id, v as IndicacaoStatus)}
-                    >
-                      <SelectTrigger className="mt-2 h-8 w-full text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDICACAO_STATUS.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {INDICACAO_META[s].label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </SectionCard>
 
       <NovoRegistroDialog
         tipo={novoRegistro}
@@ -597,27 +561,6 @@ export function SucessoTab({ projectId, canEdit, isAdmin, currentUserId }: Props
   );
 }
 
-function Resumo({
-  titulo,
-  valor,
-  tom,
-}: {
-  titulo: string;
-  valor: string;
-  tom?: "bom" | "medio" | "ruim" | null;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-full px-3 py-1 ring-1 ring-border/50",
-        tom ? TOM_CLASSE[tom] : "bg-background/40",
-      )}
-    >
-      <span className="text-muted-foreground">{titulo}: </span>
-      <span className="font-semibold">{valor}</span>
-    </div>
-  );
-}
 
 function NovoRegistroDialog({
   tipo,

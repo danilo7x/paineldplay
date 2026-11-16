@@ -57,7 +57,7 @@ export function SatisfacaoCard({ pesquisas, canEdit, podeExcluir, onNova, onExcl
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" className="gap-2" onClick={() => onNova("raf")}>
-                <Flag className="size-4" /> Pesquisa final (RAF)
+                <Flag className="size-4" /> Registrar pesquisa
               </Button>
               {/* Coleta no meio do projeto é rara (projetos pequenos), por isso fica discreta. */}
               <Button
@@ -76,9 +76,9 @@ export function SatisfacaoCard({ pesquisas, canEdit, podeExcluir, onNova, onExcl
           <div className="rounded-lg border border-dashed border-border p-4 text-sm">
             <p className="font-medium">Ainda sem pesquisa de satisfação</p>
             <p className="mt-1 text-muted-foreground">
-              Na reunião de alinhamento final, clique em “Pesquisa final (RAF)” e marque as
-              respostas do cliente: {PESQUISA_META.raf.perguntas.length} perguntas de satisfação,
-              recomendação de 1 a 10, feedback aberto e interesse em outras soluções.
+              Na reunião de alinhamento final, clique em “Registrar pesquisa” e marque as respostas
+              do cliente: {PESQUISA_META.raf.perguntas.length} perguntas de satisfação, recomendação
+              de 1 a 10, feedback aberto e interesse em outras soluções.
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               Em projetos mais longos, use a coleta intermediária para medir no meio do caminho.
