@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   ArrowRightLeft,
   CalendarCheck2,
@@ -18,9 +18,6 @@ import { usePeopleMap } from "../api";
 import { channelLabel, stageLabel, type LeadActivity } from "../model";
 import { PersonChip, SectionCard } from "./shared";
 import { formatDateTime, isOverdue } from "../format";
-
-/** Quantas atividades aparecem antes de "Ver histórico completo". */
-const RESUMO = 5;
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ligacao: Phone,
@@ -49,7 +46,6 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         .sort((a, b) => (a.previsto_para ?? "").localeCompare(b.previsto_para ?? "")),
     [activities],
   );
-  const [verTudo, setVerTudo] = useState(false);
   const history = useMemo(
     () =>
       activities
@@ -59,7 +55,17 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
   );
 
   return (
-    <SectionCard title="Histórico">
+    // Recolhido por padrão: a "Próxima ação" já mostra o que fazer agora.
+    <SectionCard
+      title="Histórico de movimentações"
+      collapsible
+      defaultOpen={false}
+      summary={
+        history.length
+          ? `${history.length} movimentaç${history.length === 1 ? "ão" : "ões"} · última em ${formatDateTime(when(history[0]))}`
+          : "Nenhuma movimentação ainda"
+      }
+    >
       {planned.length > 0 && (
         <div className="mb-4">
           <p className="mb-2 text-xs font-medium text-muted-foreground">Próximas</p>
@@ -96,7 +102,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         <p className="text-sm text-muted-foreground">Nenhuma atividade registrada.</p>
       ) : (
         <ol className="relative space-y-3 border-l border-border pl-5">
-          {(verTudo ? history : history.slice(0, RESUMO)).map((a) => {
+          {history.map((a) => {
             const Icon = ICONS[a.tipo] ?? StickyNote;
             const cancelled = a.status === "cancelada";
             return (
@@ -142,15 +148,6 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
             );
           })}
         </ol>
-      )}
-      {history.length > RESUMO && (
-        <button
-          type="button"
-          onClick={() => setVerTudo((v) => !v)}
-          className="mt-3 text-xs font-medium text-primary hover:underline"
-        >
-          {verTudo ? "Mostrar só os mais recentes" : `Ver histórico completo (${history.length})`}
-        </button>
       )}
     </SectionCard>
   );

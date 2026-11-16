@@ -300,9 +300,9 @@ function LeadDetailPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+      <div className="flex flex-col gap-4">
         {/* No celular, "contents" deixa os blocos na ordem: próxima ação, dados, cadência, diagnóstico, histórico. */}
-        <div className="contents lg:flex lg:flex-col lg:gap-4">
+        <div className="flex flex-col gap-4">
           {/* O que fazer agora vem primeiro. */}
           <SectionCard
             className="order-1"
@@ -452,9 +452,7 @@ function LeadDetailPage() {
           </div>
         </div>
 
-        <div className="order-5 lg:sticky lg:top-4 lg:order-none">
-          <Timeline activities={activities} />
-        </div>
+        <Timeline activities={activities} />
       </div>
 
       <ConfirmDialog
