@@ -11,9 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpenText,
-  Building2,
   Flag,
-  ListChecks,
   Loader2,
   MessageSquareReply,
   MoreHorizontal,
@@ -23,7 +21,6 @@ import {
   ShieldQuestion,
   StickyNote,
   Trash2,
-  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,6 +65,7 @@ import { formatDate, formatDateTime, formatMoney } from "@/features/leads/format
 import {
   ACTIVE_STAGES,
   STAGE_META,
+  SUBSTEP_LABEL,
   callResultLabel,
   canalLabel,
   isFinalStage,
@@ -204,19 +202,12 @@ function LeadDetailPage() {
 
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">
-            {lead.nome}
-          </h1>
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {lead.empresa && (
-              <span className="inline-flex items-center gap-1">
-                <Building2 className="size-3.5" /> {lead.empresa}
-              </span>
-            )}
-            <StageBadge etapa={lead.etapa} subetapa={lead.subetapa} />
-          </p>
+          <h1 className="truncate text-2xl font-semibold tracking-tight">{lead.nome}</h1>
+          {lead.empresa && (
+            <p className="mt-1 truncate text-sm text-muted-foreground">{lead.empresa}</p>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {!closed && (
             <>
               <Button size="sm" className="gap-1.5" onClick={() => setDialog("call")}>
@@ -224,7 +215,7 @@ function LeadDetailPage() {
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 className="gap-1.5"
                 onClick={() => setDialog("response")}
               >
@@ -232,22 +223,6 @@ function LeadDetailPage() {
               </Button>
             </>
           )}
-          <Button
-            size="sm"
-            variant="secondary"
-            className="gap-1.5"
-            onClick={() => setDialog("script")}
-          >
-            <BookOpenText className="size-4" /> Roteiro
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="gap-1.5"
-            onClick={() => setDialog("objections")}
-          >
-            <ShieldQuestion className="size-4" /> Objeções
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="ghost" aria-label="Mais ações">
@@ -255,6 +230,13 @@ function LeadDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setDialog("script")}>
+                <BookOpenText className="mr-2 size-4" /> Roteiro de ligação
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog("objections")}>
+                <ShieldQuestion className="mr-2 size-4" /> Objeções
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setDialog("edit")}>
                 <Pencil className="mr-2 size-4" /> Editar dados
               </DropdownMenuItem>
@@ -285,115 +267,48 @@ function LeadDetailPage() {
         </div>
       </header>
 
-      {/* Progresso no processo */}
-      <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <ol className="flex min-w-max gap-1.5">
-          {ACTIVE_STAGES.map((s, i) => (
-            <li
-              key={s}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px]",
-                i < stageIdx && "border-primary/30 text-muted-foreground",
-                i === stageIdx && "border-primary bg-primary/15 font-medium text-primary",
-                (i > stageIdx || closed) &&
-                  i !== stageIdx &&
-                  "border-border text-muted-foreground/60",
-              )}
-            >
-              <span className={cn("size-1.5 rounded-full", STAGE_META[s].dot)} />
-              {STAGE_META[s].label}
-            </li>
-          ))}
-          {closed && (
-            <li className="flex items-center gap-1.5 rounded-full border border-primary bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-primary">
-              <span
-                className={cn("size-1.5 rounded-full", STAGE_META[lead.etapa as LeadStage]?.dot)}
-              />
-              {stageLabel(lead.etapa)}
-            </li>
+      {/* Progresso no processo: barra segmentada + etapa atual */}
+      <div className="space-y-2" aria-label="Progresso do lead">
+        <div className="flex items-baseline gap-2 text-sm">
+          <span className="font-medium">{stageLabel(lead.etapa)}</span>
+          {lead.subetapa && SUBSTEP_LABEL[lead.subetapa] && (
+            <span className="text-muted-foreground">· {SUBSTEP_LABEL[lead.subetapa]}</span>
           )}
-        </ol>
+          {!closed && stageIdx >= 0 && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              Etapa {stageIdx + 1} de {ACTIVE_STAGES.length}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-1" role="presentation">
+          {ACTIVE_STAGES.map((s, i) => (
+            <span
+              key={s}
+              title={STAGE_META[s].label}
+              className={cn(
+                "h-1.5 flex-1 rounded-full",
+                closed
+                  ? lead.etapa === "ganho"
+                    ? "bg-emerald-400/70"
+                    : "bg-muted"
+                  : i <= stageIdx
+                    ? "bg-primary"
+                    : "bg-muted",
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
-        {/* No celular, "contents" deixa os blocos na ordem: dados, próxima ação, linha do tempo, cadência, diagnóstico. */}
+        {/* No celular, "contents" deixa os blocos na ordem: próxima ação, dados, cadência, diagnóstico, histórico. */}
         <div className="contents lg:flex lg:flex-col lg:gap-4">
+          {/* O que fazer agora vem primeiro. */}
           <SectionCard
             className="order-1"
-            title="Dados do lead"
-            icon={UserRound}
-            action={
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs"
-                onClick={() => setDialog("edit")}
-              >
-                <Pencil className="size-3.5" /> Editar
-              </Button>
-            }
-          >
-            <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
-              <Info label="Telefone / WhatsApp">
-                {lead.telefone ? (
-                  <span className="flex flex-wrap items-center gap-2">
-                    <a className="hover:text-primary" href={`tel:${telDigits}`}>
-                      {lead.telefone}
-                    </a>
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </Info>
-              <Info label="Contato">{lead.contato ?? "—"}</Info>
-              <Info label="Empresa">{lead.empresa ?? "—"}</Info>
-              <Info label="Origem">
-                {[canalLabel(lead.canal_origem), lead.origem].filter(Boolean).join(" · ") || "—"}
-              </Info>
-              <Info label="Responsável comercial">
-                <OwnerChip lead={lead} people={people} className="text-sm" />
-              </Info>
-              <Info label="Valor estimado">{formatMoney(lead.valor_estimado)}</Info>
-              <Info label="Primeiro contato">
-                {lead.data_primeiro_contato
-                  ? `${formatDateTime(lead.data_primeiro_contato)} · ${callResultLabel(lead.resultado_primeira_ligacao)}`
-                  : "Ainda não houve ligação"}
-              </Info>
-              <Info label="Cadastrado em">{formatDate(lead.created_at)}</Info>
-              <Info label="Necessidade percebida" wide>
-                {lead.necessidade_inicial ?? "—"}
-              </Info>
-              {lead.observacoes && (
-                <Info label="Observações" wide>
-                  {lead.observacoes}
-                </Info>
-              )}
-              {lead.client_id && (
-                <Info label="Cliente vinculado" wide>
-                  <Link to="/clientes" className="text-primary hover:underline">
-                    {client?.nome ?? "Cliente"}
-                  </Link>
-                </Info>
-              )}
-              {lead.nao_contatar && (
-                <p className="text-xs text-amber-400 sm:col-span-2">
-                  Pediu para não receber novos contatos.
-                </p>
-              )}
-              {lead.etapa_legada && (
-                <p className="text-[11px] text-muted-foreground sm:col-span-2">
-                  Migrado do funil anterior (etapa “{lead.etapa_legada}”).
-                </p>
-              )}
-            </dl>
-          </SectionCard>
-
-          <SectionCard
-            className="order-2"
             title="Próxima ação"
-            icon={ListChecks}
             action={
-              !closed ? (
+              !closed && lead.proximo_passo ? (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -432,7 +347,7 @@ function LeadDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
                 <p>Nenhuma próxima ação definida.</p>
                 <Button size="sm" variant="secondary" onClick={() => setDialog("next")}>
                   Definir próxima ação
@@ -441,7 +356,81 @@ function LeadDetailPage() {
             )}
           </SectionCard>
 
-          <div className="order-4">
+          {/* Só o que está preenchido; o resto fica em "Editar". */}
+          <SectionCard
+            className="order-2"
+            title="Dados do lead"
+            action={
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => setDialog("edit")}
+              >
+                <Pencil className="size-3.5" /> Editar
+              </Button>
+            }
+          >
+            <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+              <Info label="Telefone / WhatsApp">
+                {lead.telefone ? (
+                  <a className="hover:text-primary" href={`tel:${telDigits}`}>
+                    {lead.telefone}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Não informado</span>
+                )}
+              </Info>
+              {lead.contato && <Info label="Contato">{lead.contato}</Info>}
+              <Info label="Responsável comercial">
+                <OwnerChip lead={lead} people={people} className="text-sm" />
+              </Info>
+              {lead.valor_estimado != null && (
+                <Info label="Valor estimado">{formatMoney(lead.valor_estimado)}</Info>
+              )}
+              {(lead.canal_origem || lead.origem) && (
+                <Info label="Origem">
+                  {[canalLabel(lead.canal_origem), lead.origem].filter(Boolean).join(" · ")}
+                </Info>
+              )}
+              {lead.data_primeiro_contato && (
+                <Info label="Primeiro contato">
+                  {formatDateTime(lead.data_primeiro_contato)}
+                  {lead.resultado_primeira_ligacao &&
+                    ` · ${callResultLabel(lead.resultado_primeira_ligacao)}`}
+                </Info>
+              )}
+              {lead.necessidade_inicial && (
+                <Info label="Necessidade percebida" wide>
+                  {lead.necessidade_inicial}
+                </Info>
+              )}
+              {lead.observacoes && (
+                <Info label="Observações" wide>
+                  {lead.observacoes}
+                </Info>
+              )}
+              {lead.client_id && (
+                <Info label="Cliente vinculado" wide>
+                  <Link to="/clientes" className="text-primary hover:underline">
+                    {client?.nome ?? "Cliente"}
+                  </Link>
+                </Info>
+              )}
+              {lead.nao_contatar && (
+                <p className="text-xs text-amber-400 sm:col-span-2">
+                  Pediu para não receber novos contatos.
+                </p>
+              )}
+              {lead.etapa_legada && (
+                <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                  Migrado do funil anterior (etapa “{lead.etapa_legada}”).
+                </p>
+              )}
+            </dl>
+          </SectionCard>
+
+          <div className="order-3">
             <CadencePanel
               lead={lead}
               activities={activities}
@@ -452,7 +441,7 @@ function LeadDetailPage() {
             />
           </div>
 
-          <div className="order-5">
+          <div className="order-4">
             <ProcessPanel
               lead={lead}
               activities={activities}
@@ -463,7 +452,7 @@ function LeadDetailPage() {
           </div>
         </div>
 
-        <div className="order-3 lg:sticky lg:top-4 lg:order-none">
+        <div className="order-5 lg:sticky lg:top-4 lg:order-none">
           <Timeline activities={activities} />
         </div>
       </div>

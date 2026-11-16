@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { FerramentasTabs } from "@/features/leads/components/FerramentasTabs";
-import { PageHeader } from "@/features/leads/components/LeadFilters";
 import { TemplatesList } from "@/features/leads/components/ScriptAndTemplates";
 
 export const Route = createFileRoute("/_authenticated/ferramentas/templates")({
@@ -16,13 +15,9 @@ function TemplatesPage() {
   return (
     <div className="space-y-6">
       <FerramentasTabs />
-      <PageHeader
-        section="Ferramentas"
-        title="Templates"
-        description={`Mensagens da cadência de WhatsApp e de no-show. Os campos entre colchetes são preenchidos com os dados do lead ao preparar a mensagem.${
-          isAdmin ? "" : " Somente administradores podem editar."
-        }`}
-      />
+      <p className="text-sm text-muted-foreground">
+        Mensagens da cadência de WhatsApp e de no-show.
+      </p>
       <TemplatesList canEdit={isAdmin} />
     </div>
   );

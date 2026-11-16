@@ -1,10 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRightLeft,
   CalendarCheck2,
   Flag,
   Gavel,
-  History,
   Mail,
   MessageCircle,
   MessageSquareReply,
@@ -16,9 +15,12 @@ import {
 
 import { cn } from "@/lib/utils";
 import { usePeopleMap } from "../api";
-import { ACTIVITY_TYPE_LABEL, channelLabel, stageLabel, type LeadActivity } from "../model";
+import { channelLabel, stageLabel, type LeadActivity } from "../model";
 import { PersonChip, SectionCard } from "./shared";
 import { formatDateTime, isOverdue } from "../format";
+
+/** Quantas atividades aparecem antes de "Ver histórico completo". */
+const RESUMO = 5;
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ligacao: Phone,
@@ -47,6 +49,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         .sort((a, b) => (a.previsto_para ?? "").localeCompare(b.previsto_para ?? "")),
     [activities],
   );
+  const [verTudo, setVerTudo] = useState(false);
   const history = useMemo(
     () =>
       activities
@@ -56,12 +59,10 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
   );
 
   return (
-    <SectionCard title="Linha do tempo" icon={History}>
+    <SectionCard title="Histórico">
       {planned.length > 0 && (
         <div className="mb-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">
-            Previstas (ainda não realizadas)
-          </p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Próximas</p>
           <ul className="space-y-1.5">
             {planned.map((a) => {
               const Icon = ICONS[a.tipo] ?? StickyNote;
@@ -69,13 +70,13 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
               return (
                 <li
                   key={a.id}
-                  className="flex items-center gap-2.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-2"
+                  className="flex items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2"
                 >
-                  <Icon className="size-4 shrink-0 text-primary" />
+                  <Icon className="size-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{a.titulo}</p>
                     <p className={cn("text-[11px] text-muted-foreground", late && "text-red-400")}>
-                      Previsto para {formatDateTime(a.previsto_para)}
+                      {formatDateTime(a.previsto_para)}
                       {late && " · atrasado"}
                     </p>
                   </div>
@@ -91,14 +92,11 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
         </div>
       )}
 
-      <p className="mb-2 text-xs font-semibold text-muted-foreground">
-        Histórico · mais recentes primeiro
-      </p>
       {history.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhuma atividade registrada.</p>
       ) : (
         <ol className="relative space-y-3 border-l border-border pl-5">
-          {history.map((a) => {
+          {(verTudo ? history : history.slice(0, RESUMO)).map((a) => {
             const Icon = ICONS[a.tipo] ?? StickyNote;
             const cancelled = a.status === "cancelada";
             return (
@@ -109,7 +107,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
                     cancelled && "opacity-60",
                   )}
                 >
-                  <Icon className="size-3.5 text-primary" />
+                  <Icon className="size-3.5 text-muted-foreground" />
                 </span>
                 <div className={cn("min-w-0", cancelled && "opacity-60")}>
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -118,9 +116,7 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
                         ? `${a.titulo}: ${a.etapa_de ? `${stageLabel(a.etapa_de)} → ` : ""}${stageLabel(a.etapa_para)}`
                         : a.titulo}
                     </p>
-                    <span className="text-xs text-muted-foreground">
-                      {cancelled ? "Cancelada" : (ACTIVITY_TYPE_LABEL[a.tipo] ?? a.tipo)}
-                    </span>
+                    {cancelled && <span className="text-xs text-muted-foreground">Cancelada</span>}
                   </div>
                   {a.resultado && (
                     <p className="text-xs text-foreground/80">Resultado: {a.resultado}</p>
@@ -146,6 +142,15 @@ export function Timeline({ activities }: { activities: LeadActivity[] }) {
             );
           })}
         </ol>
+      )}
+      {history.length > RESUMO && (
+        <button
+          type="button"
+          onClick={() => setVerTudo((v) => !v)}
+          className="mt-3 text-xs font-medium text-primary hover:underline"
+        >
+          {verTudo ? "Mostrar só os mais recentes" : `Ver histórico completo (${history.length})`}
+        </button>
       )}
     </SectionCard>
   );

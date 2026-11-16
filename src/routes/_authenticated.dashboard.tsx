@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { Disclosure } from "@/components/Disclosure";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity,
@@ -87,10 +88,7 @@ function friendlyAction(acao: string, entity: string): string {
   return target ? `${v} ${target}` : `${v} ${ent}`;
 }
 
-function buildChart(
-  sales: { valor: number; data: string; status: string }[],
-  period: Period,
-) {
+function buildChart(sales: { valor: number; data: string; status: string }[], period: Period) {
   const now = new Date();
   let months = 6;
   if (period === "1D" || period === "1S" || period === "1M") months = 3;
@@ -205,9 +203,7 @@ function DashboardPage() {
       const acts = (actRes.data ?? []) as typeof activities;
       setActivities(acts);
       setRecentNotices((notRes.data ?? []) as typeof recentNotices);
-      const actorIds = Array.from(
-        new Set(acts.map((a) => a.actor_id).filter(Boolean) as string[]),
-      );
+      const actorIds = Array.from(new Set(acts.map((a) => a.actor_id).filter(Boolean) as string[]));
       if (actorIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
@@ -246,8 +242,7 @@ function DashboardPage() {
       label: "Projetos ativos",
       value: String(projectStats.ativos),
       icon: FolderKanban,
-      hint:
-        projectStats.total === 0 ? "Nenhum cadastrado" : `${projectStats.total} no total`,
+      hint: projectStats.total === 0 ? "Nenhum cadastrado" : `${projectStats.total} no total`,
     },
     {
       key: "vendas",
@@ -322,360 +317,364 @@ function DashboardPage() {
         )}
       </AnimatePresence>
 
-    <motion.div
-      className="space-y-8"
-      initial="hidden"
-      animate="show"
-      variants={{
-        hidden: {},
-        show: { transition: { staggerChildren: 0.06, delayChildren: showWelcome ? 0.6 : 0 } },
-      }}
-    >
-      <motion.header
-        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-        className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
-      >
-        <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">Olá, {firstName}</h1>
-          <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
-            {new Date().toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
-        </div>
-      </motion.header>
-
       <motion.div
-        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-        className={cn(
-          "grid grid-cols-2 gap-3 sm:gap-4",
-          isFinance ? "xl:grid-cols-5" : "xl:grid-cols-4",
-        )}
+        className="space-y-8"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.06, delayChildren: showWelcome ? 0.6 : 0 } },
+        }}
       >
-        {loading
-          ? Array.from({ length: isFinance ? 5 : 4 }).map((_, i) => (
-              <Card key={i} className="rounded-xl border-border bg-card/40">
-                <CardContent className="p-6">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="mt-4 h-8 w-32" />
-                  <Skeleton className="mt-4 h-3 w-20" />
-                </CardContent>
-              </Card>
-            ))
-          : kpis.map((k) => (
-          <Card
-            key={k.key}
-            className="rounded-xl border-border bg-card transition hover:border-primary/40"
-          >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                  {k.label}
-                </p>
-                <div className="shrink-0 text-muted-foreground/60">
-                  <k.icon className="size-4" />
+        <motion.header
+          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+          className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+        >
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold tracking-tight">Olá, {firstName}</h1>
+            <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
+              {new Date().toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </p>
+          </div>
+        </motion.header>
+
+        <motion.div
+          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+          className={cn(
+            "grid grid-cols-2 gap-3 sm:gap-4",
+            isFinance ? "xl:grid-cols-5" : "xl:grid-cols-4",
+          )}
+        >
+          {loading
+            ? Array.from({ length: isFinance ? 5 : 4 }).map((_, i) => (
+                <Card key={i} className="rounded-xl border-border bg-card/40">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="mt-4 h-8 w-32" />
+                    <Skeleton className="mt-4 h-3 w-20" />
+                  </CardContent>
+                </Card>
+              ))
+            : kpis.map((k) => (
+                <Card
+                  key={k.key}
+                  className="rounded-xl border-border bg-card transition hover:border-primary/40"
+                >
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                        {k.label}
+                      </p>
+                      <div className="shrink-0 text-muted-foreground/60">
+                        <k.icon className="size-4" />
+                      </div>
+                    </div>
+                    <p
+                      className={cn(
+                        "mt-2 w-full truncate whitespace-nowrap text-lg font-semibold tracking-tight tabular-nums sm:text-2xl",
+                        (k as { accent?: string }).accent,
+                      )}
+                    >
+                      {k.value}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>
+                  </CardContent>
+                </Card>
+              ))}
+        </motion.div>
+
+        <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}>
+          <Card className="rounded-xl border-border bg-card">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+                    Evolução do faturamento
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Vendas agregadas por mês, respeitando seu nível de acesso.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 rounded-full border border-border bg-card/60 p-1">
+                  {periods.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium transition",
+                        period === p
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <p
-                className={cn(
-                  "mt-2 w-full truncate whitespace-nowrap text-lg font-semibold tracking-tight tabular-nums sm:text-2xl",
-                  (k as { accent?: string }).accent,
+
+              <div className="mt-6 h-72 w-full">
+                {loading ? (
+                  <Skeleton className="h-full w-full rounded-xl" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="fillBlue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#057EF3" stopOpacity={0.45} />
+                          <stop offset="100%" stopColor="#057EF3" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis
+                        dataKey="d"
+                        stroke="rgba(255,255,255,0.35)"
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={11}
+                      />
+                      <YAxis
+                        stroke="rgba(255,255,255,0.35)"
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={11}
+                        width={56}
+                        tickFormatter={(v: number) =>
+                          v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR")} mil` : `R$ ${v}`
+                        }
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "rgba(11,15,26,0.95)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: "#fff",
+                        }}
+                        labelStyle={{ color: "rgba(255,255,255,0.7)" }}
+                        itemStyle={{ color: "#fff" }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="v"
+                        stroke="#31B7FF"
+                        strokeWidth={2}
+                        fill="url(#fillBlue)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 )}
-              >
-                {k.value}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>
+              </div>
             </CardContent>
           </Card>
-        ))}
-      </motion.div>
+        </motion.div>
 
-      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}>
-      <Card className="rounded-xl border-border bg-card">
-        <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">
-                Evolução do faturamento
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Vendas agregadas por mês, respeitando seu nível de acesso.
-              </p>
-            </div>
-            <div className="flex items-center gap-1 rounded-full border border-border bg-card/60 p-1">
-              {periods.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition",
-                    period === p
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
+        <motion.div
+          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+          className="grid gap-4 lg:grid-cols-2"
+        >
+          {/* Avisos recentes */}
+          <Card className="rounded-xl border-border bg-card">
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="grid size-8 place-items-center text-muted-foreground">
+                    <Megaphone className="size-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold tracking-tight">Avisos recentes</h3>
+                  </div>
+                </div>
+                <Link to="/avisos" className="text-[11px] text-primary transition hover:underline">
+                  Ver todos
+                </Link>
+              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : recentNotices.length === 0 ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                  Nenhum aviso publicado.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {recentNotices.map((n) => {
+                    const dot =
+                      n.prioridade === "urgente"
+                        ? "bg-rose-400"
+                        : n.prioridade === "alerta"
+                          ? "bg-amber-400"
+                          : "bg-sky-400";
+                    return (
+                      <li key={n.id}>
+                        <Link
+                          to="/avisos"
+                          className="flex items-start gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                        >
+                          <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="flex items-center gap-1.5">
+                              <span className="line-clamp-1 font-medium">{n.titulo}</span>
+                              {n.critico && (
+                                <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-xs font-semibold text-rose-300">
+                                  crítico
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(n.created_at), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Projetos em atenção */}
+          <Card className="rounded-xl border-border bg-card">
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="grid size-8 place-items-center text-amber-300">
+                    <AlertTriangle className="size-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold tracking-tight">Projetos em atenção</h3>
+                  </div>
+                </div>
+                <Link
+                  to="/projetos"
+                  className="text-[11px] text-primary transition hover:underline"
                 >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 h-72 w-full">
-            {loading ? (
-              <Skeleton className="h-full w-full rounded-xl" />
-            ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="fillBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#057EF3" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#057EF3" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis
-                  dataKey="d"
-                  stroke="rgba(255,255,255,0.35)"
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={11}
-                />
-                <YAxis
-                  stroke="rgba(255,255,255,0.35)"
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={11}
-                  width={56}
-                  tickFormatter={(v: number) =>
-                    v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR")} mil` : `R$ ${v}`
-                  }
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "rgba(11,15,26,0.95)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 12,
-                    fontSize: 12,
-                    color: "#fff",
-                  }}
-                  labelStyle={{ color: "rgba(255,255,255,0.7)" }}
-                  itemStyle={{ color: "#fff" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke="#31B7FF"
-                  strokeWidth={2}
-                  fill="url(#fillBlue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      </motion.div>
-
-      <motion.div
-        variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
-        className="grid gap-4 lg:grid-cols-3"
-      >
-        {/* Últimas atividades */}
-        <Card className="min-w-0 rounded-xl border-border bg-card">
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center text-muted-foreground">
-                  <Activity className="size-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight">Últimas atividades</h3>
+                  Ver todos
+                </Link>
+              </div>
+              {loading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                  ))}
                 </div>
-              </div>
-            </div>
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : activities.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
-                {isAdmin ? "Nenhuma atividade ainda." : "Nada por aqui — suas ações aparecerão aqui."}
-              </p>
-            ) : (
-              <ul className="min-w-0 space-y-3">
-                {activities.map((a) => (
-                  <li key={a.id} className="flex min-w-0 items-start gap-3 text-xs">
-                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/60" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">
-                        <span className="font-medium text-foreground">
-                          {a.actor_id ? actorMap[a.actor_id] ?? "Alguém" : "Sistema"}
-                        </span>{" "}
-                        <span className="text-muted-foreground">
-                          {friendlyAction(a.acao, a.entity_type)}
-                        </span>
-                        {a.entity_name ? (
-                          <>
-                            {" "}
-                            <span className="text-foreground/80">{a.entity_name}</span>
-                          </>
-                        ) : null}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(a.created_at), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Avisos recentes */}
-        <Card className="rounded-xl border-border bg-card">
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center text-muted-foreground">
-                  <Megaphone className="size-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight">Avisos recentes</h3>
-                </div>
-              </div>
-              <Link
-                to="/avisos"
-                className="text-[11px] text-primary transition hover:underline"
-              >
-                Ver todos
-              </Link>
-            </div>
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : recentNotices.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
-                Nenhum aviso publicado.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {recentNotices.map((n) => {
-                  const dot =
-                    n.prioridade === "urgente"
-                      ? "bg-rose-400"
-                      : n.prioridade === "alerta"
-                      ? "bg-amber-400"
-                      : "bg-sky-400";
-                  return (
-                    <li key={n.id}>
-                      <Link
-                        to="/avisos"
-                        className="flex items-start gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
-                      >
-                        <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${dot}`} />
-                        <div className="min-w-0 flex-1">
-                          <p className="flex items-center gap-1.5">
-                            <span className="line-clamp-1 font-medium">{n.titulo}</span>
-                            {n.critico && (
-                              <span className="rounded-full bg-rose-500/15 px-1.5 py-[1px] text-xs font-semibold text-rose-300">
-                                crítico
-                              </span>
+              ) : attentionProjects.length === 0 ? (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                  Nenhum projeto pausado ou em manutenção.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {attentionProjects.map((p) => {
+                    const label = p.status === "em_manutencao" ? "Manutenção" : "Pausado";
+                    const tone =
+                      p.status === "em_manutencao"
+                        ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                        : "border-slate-500/40 bg-slate-500/10 text-slate-300";
+                    return (
+                      <li key={p.id}>
+                        <Link
+                          to="/projetos/$id"
+                          params={{ id: p.id }}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{p.nome}</p>
+                            {p.cliente && (
+                              <p className="truncate text-[10px] text-muted-foreground">
+                                {p.cliente}
+                              </p>
                             )}
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${tone}`}
+                          >
+                            {label}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Atividade completa fica a um clique; o resto da tela mostra só o que pede ação. */}
+        <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}>
+          <Disclosure label="Ver últimas atividades" labelOpen="Esconder últimas atividades">
+            {/* Últimas atividades */}
+            <Card className="min-w-0 rounded-xl border-border bg-card">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-8 place-items-center text-muted-foreground">
+                      <Activity className="size-4" />
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-semibold tracking-tight">Últimas atividades</h3>
+                    </div>
+                  </div>
+                </div>
+                {loading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : activities.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    {isAdmin
+                      ? "Nenhuma atividade ainda."
+                      : "Nada por aqui — suas ações aparecerão aqui."}
+                  </p>
+                ) : (
+                  <ul className="min-w-0 space-y-3">
+                    {activities.map((a) => (
+                      <li key={a.id} className="flex min-w-0 items-start gap-3 text-xs">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/60" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate">
+                            <span className="font-medium text-foreground">
+                              {a.actor_id ? (actorMap[a.actor_id] ?? "Alguém") : "Sistema"}
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              {friendlyAction(a.acao, a.entity_type)}
+                            </span>
+                            {a.entity_name ? (
+                              <>
+                                {" "}
+                                <span className="text-foreground/80">{a.entity_name}</span>
+                              </>
+                            ) : null}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(n.created_at), {
+                            {formatDistanceToNow(new Date(a.created_at), {
                               addSuffix: true,
                               locale: ptBR,
                             })}
                           </p>
                         </div>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Projetos em atenção */}
-        <Card className="rounded-xl border-border bg-card">
-          <CardContent className="space-y-4 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center text-amber-300">
-                  <AlertTriangle className="size-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight">Projetos em atenção</h3>
-                </div>
-              </div>
-              <Link
-                to="/projetos"
-                className="text-[11px] text-primary transition hover:underline"
-              >
-                Ver todos
-              </Link>
-            </div>
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : attentionProjects.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
-                Nenhum projeto pausado ou em manutenção.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {attentionProjects.map((p) => {
-                  const label = p.status === "em_manutencao" ? "Manutenção" : "Pausado";
-                  const tone =
-                    p.status === "em_manutencao"
-                      ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-                      : "border-slate-500/40 bg-slate-500/10 text-slate-300";
-                  return (
-                    <li key={p.id}>
-                      <Link
-                        to="/projetos/$id"
-                        params={{ id: p.id }}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs transition hover:border-primary/40"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{p.nome}</p>
-                          {p.cliente && (
-                            <p className="truncate text-[10px] text-muted-foreground">
-                              {p.cliente}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${tone}`}
-                        >
-                          {label}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </Disclosure>
+        </motion.div>
       </motion.div>
-    </motion.div>
     </>
   );
 }

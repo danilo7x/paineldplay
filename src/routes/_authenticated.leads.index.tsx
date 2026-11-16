@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { addDays } from "date-fns";
 import {
@@ -193,8 +193,8 @@ function KanbanPage() {
         title="Kanban"
         description={
           isAdmin
-            ? "Processo comercial TO BE: da primeira ligação ao contrato."
-            : "Leads atribuídos a você no processo comercial."
+            ? "Da primeira ligação ao contrato."
+            : "Leads atribuídos a você."
         }
         actions={
           <Button className="gap-2" onClick={() => setFormOpen(true)}>
@@ -227,15 +227,6 @@ function KanbanPage() {
         ))}
       </div>
 
-      {overdue.length + dueToday.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Há {overdue.length + dueToday.length} ação(ões) para hoje ou atrasadas.{" "}
-          <Link to="/leads/agenda" className="text-primary hover:underline">
-            Ver na Agenda Comercial
-          </Link>
-        </p>
-      )}
-
       <LeadFiltersBar filters={filters} set={set} isAdmin={isAdmin} />
 
       {isLoading ? (
@@ -264,10 +255,6 @@ function KanbanPage() {
         </Card>
       ) : (
         <>
-          <p className="hidden text-xs text-muted-foreground md:block">
-            Arraste os cartões entre as colunas. Etapas com regras próprias (cadência, reunião,
-            encerramento) pedem os dados necessários antes de mover.
-          </p>
           <LeadBoard leads={filtered} people={people} onOpen={openLead} onMove={handleMove} />
         </>
       )}

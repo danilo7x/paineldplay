@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search } from "lucide-react";
+import { ChevronDown, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,6 @@ export function CallScriptContent() {
             <span className="mr-2 text-primary">{i + 1}.</span>
             {s.title}
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground">{s.guidance}</p>
           <div className="mt-2 space-y-1.5 border-l-2 border-primary/60 pl-3 text-sm">
             {s.lines.map((l) => (
               <p key={l}>
@@ -56,6 +55,13 @@ export function CallScriptContent() {
               </p>
             ))}
           </div>
+          {/* A orientação fica recolhida: o que importa na hora da ligação são as falas. */}
+          <details className="mt-3 text-xs text-muted-foreground">
+            <summary className="cursor-pointer select-none hover:text-foreground">
+              Como conduzir
+            </summary>
+            <p className="mt-1.5 leading-relaxed">{s.guidance}</p>
+          </details>
         </section>
       ))}
     </div>
@@ -87,7 +93,7 @@ export function CallScriptSheet({
   );
 }
 
-export function ObjectionsBrowser({ compact = false }: { compact?: boolean }) {
+export function ObjectionsBrowser() {
   const [q, setQ] = useState("");
   const [stage, setStage] = useState<ObjectionStage | "todas">("todas");
   const norm = (t: string) =>
@@ -130,32 +136,29 @@ export function ObjectionsBrowser({ compact = false }: { compact?: boolean }) {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        {items.length} objeç{items.length === 1 ? "ão" : "ões"} · Qualificação = ligação e
-        diagnóstico · Proposta = apresentação e negociação
+        {items.length} objeç{items.length === 1 ? "ão" : "ões"}
+        {" · "}clique para ver a resposta
       </p>
-      <div className={cn("grid gap-3", !compact && "lg:grid-cols-2")}>
+      {/* Só os títulos; a resposta abre ao clicar. */}
+      <div className="divide-y divide-border rounded-xl border border-border bg-card/50">
         {items.map((o) => (
-          <section
-            key={o.titulo}
-            className="rounded-xl border border-border bg-card/50 p-3 sm:p-4"
-          >
-            <div className="flex items-start gap-2">
+          <details key={o.titulo} className="group">
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm transition hover:bg-accent/40 [&::-webkit-details-marker]:hidden">
               <span
-                className={cn(
-                  "mt-1.5 size-2 shrink-0 rounded-full",
-                  OBJECTION_STAGE_META[o.etapa].dot,
-                )}
+                className={cn("size-2 shrink-0 rounded-full", OBJECTION_STAGE_META[o.etapa].dot)}
+                title={OBJECTION_STAGE_META[o.etapa].label}
                 aria-hidden
               />
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">{o.titulo}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {OBJECTION_STAGE_META[o.etapa].label}
-                </p>
-              </div>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{o.resposta}</p>
-          </section>
+              <span className="min-w-0 flex-1 font-medium">{o.titulo}</span>
+              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                {OBJECTION_STAGE_META[o.etapa].label}
+              </span>
+              <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="px-4 pb-4 pl-9 text-sm leading-relaxed text-muted-foreground">
+              {o.resposta}
+            </p>
+          </details>
         ))}
         {items.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -184,7 +187,7 @@ export function ObjectionsSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="mt-4 pb-6">
-          <ObjectionsBrowser compact />
+          <ObjectionsBrowser />
         </div>
       </SheetContent>
     </Sheet>

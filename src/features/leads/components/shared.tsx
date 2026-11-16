@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, ChevronDown } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -109,36 +110,58 @@ export function DueBadge({
   );
 }
 
+/**
+ * Bloco de uma página. Com `collapsible`, começa fechado ou aberto conforme `defaultOpen`
+ * e mostra `summary` (uma linha) enquanto está fechado, para a tela não ficar poluída.
+ */
 export function SectionCard({
   title,
-  icon: Icon,
   action,
   children,
   className,
+  collapsible,
+  defaultOpen = true,
+  summary,
 }: {
   title: string;
-  icon: React.ComponentType<{ className?: string }>;
+  /** Mantido por compatibilidade; o ícone não é mais exibido. */
+  icon?: React.ComponentType<{ className?: string }>;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  summary?: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const aberto = !collapsible || open;
   return (
-    <section
-      className={cn(
-        "rounded-xl border border-border bg-card p-4 sm:p-5",
-        className,
-      )}
-    >
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-            <Icon className="size-4" />
-          </span>
-          <span className="truncate">{title}</span>
-        </h2>
+    <section className={cn("rounded-xl border border-border bg-card p-4 sm:p-5", className)}>
+      <header className={cn("flex items-center justify-between gap-2", aberto && "mb-3")}>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          >
+            <h2 className="truncate text-sm font-semibold">{title}</h2>
+            {!open && summary && (
+              <span className="min-w-0 truncate text-xs text-muted-foreground">{summary}</span>
+            )}
+            <ChevronDown
+              className={cn(
+                "ml-auto size-4 shrink-0 text-muted-foreground transition-transform",
+                open && "rotate-180",
+              )}
+            />
+          </button>
+        ) : (
+          <h2 className="min-w-0 truncate text-sm font-semibold">{title}</h2>
+        )}
         {action}
       </header>
-      {children}
+      {aberto && children}
     </section>
   );
 }
