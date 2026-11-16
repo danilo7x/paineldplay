@@ -1101,6 +1101,80 @@ export type Database = {
           },
         ]
       }
+      project_cs_pesquisas: {
+        Row: {
+          andamento: number | null
+          autor_id: string | null
+          comunicacao: number | null
+          created_at: string
+          data: string
+          facilidade_uso: number | null
+          funcionou_bem: string | null
+          id: string
+          impacto: number | null
+          interesses: string[]
+          melhorar: string | null
+          meses_acompanhamento: number | null
+          nps: number | null
+          project_id: string
+          qualidade_entregaveis: number | null
+          qualidade_servico: number | null
+          satisfacao_geral: number | null
+          sugestoes: string | null
+          tipo: string
+        }
+        Insert: {
+          andamento?: number | null
+          autor_id?: string | null
+          comunicacao?: number | null
+          created_at?: string
+          data?: string
+          facilidade_uso?: number | null
+          funcionou_bem?: string | null
+          id?: string
+          impacto?: number | null
+          interesses?: string[]
+          melhorar?: string | null
+          meses_acompanhamento?: number | null
+          nps?: number | null
+          project_id: string
+          qualidade_entregaveis?: number | null
+          qualidade_servico?: number | null
+          satisfacao_geral?: number | null
+          sugestoes?: string | null
+          tipo: string
+        }
+        Update: {
+          andamento?: number | null
+          autor_id?: string | null
+          comunicacao?: number | null
+          created_at?: string
+          data?: string
+          facilidade_uso?: number | null
+          funcionou_bem?: string | null
+          id?: string
+          impacto?: number | null
+          interesses?: string[]
+          melhorar?: string | null
+          meses_acompanhamento?: number | null
+          nps?: number | null
+          project_id?: string
+          qualidade_entregaveis?: number | null
+          qualidade_servico?: number | null
+          satisfacao_geral?: number | null
+          sugestoes?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_cs_pesquisas_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_cs_registros: {
         Row: {
           autor_id: string | null
